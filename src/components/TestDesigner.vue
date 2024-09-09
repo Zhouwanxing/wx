@@ -1,6 +1,7 @@
 <template>
     <div>
         12311111111111111
+        <button @click="testRoute">to hello</button>
     </div>
 </template>
 
@@ -14,6 +15,11 @@ export default {
     },
     mounted() {
 
+    },
+    methods: {
+        testRoute: function () {
+            this.$router.push({path: '/hello'})
+        }
     }
 }
 </script>

@@ -4,7 +4,7 @@ import {createRouter, createWebHistory} from "vue-router";
 const routes = [
     {
         //默认展示，这是主页面路由必须加斜杠 /
-        path: "/a",
+        path: "/",
         component: () => import("../components/TestDesigner.vue"),
     },
     {
