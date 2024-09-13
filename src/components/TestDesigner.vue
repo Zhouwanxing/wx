@@ -1,7 +1,11 @@
 <template>
     <div>
-        12311111111111111
-        <button @click="testRoute">to hello</button>
+        <div>
+            <button @click="toGold">Gold</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button @click="testRoute">to hello</button>
+        </div>
     </div>
 </template>
 
@@ -17,6 +21,9 @@ export default {
 
     },
     methods: {
+        toGold: function () {
+            this.$router.push({path: '/gold'})
+        },
         testRoute: function () {
             // this.$router.push({path: '/hello'})
             this.$http.get(import.meta.env.VITE_BASE_URL + "/testA").then((response) => {

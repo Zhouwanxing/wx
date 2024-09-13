@@ -12,6 +12,11 @@ const routes = [
         //路由懒加载
         component: () => import("../components/HelloWorld.vue"),
     },
+    {
+        path: "/gold",
+        //路由懒加载
+        component: () => import("../components/Gold.vue"),
+    }
 ];
 
 // 创建路由
