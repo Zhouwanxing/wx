@@ -1,7 +1,7 @@
 <template>
     <div class="start-page">
         <div style="margin-top: 20px;text-align: center; ">
-            <button @click="toGold">Gold</button>
+            <button @click="toGold">金价</button>
         </div>
     </div>
 </template>
