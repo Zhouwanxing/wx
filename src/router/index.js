@@ -5,7 +5,7 @@ const routes = [
     {
         //默认展示，这是主页面路由必须加斜杠 /
         path: "/",
-        component: () => import("../components/TestDesigner.vue"),
+        component: () => import("../components/StartPage.vue"),
     },
     {
         path: "/hello",
