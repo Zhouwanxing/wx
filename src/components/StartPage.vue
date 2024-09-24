@@ -1,7 +1,10 @@
 <template>
     <div class="start-page">
         <div style="margin-top: 20px;text-align: center; ">
-            <button @click="toGold">金价</button>
+            <button @click="toGold('gold')">金价</button>
+        </div>
+        <div style="margin-top: 20px;text-align: center; ">
+            <button @click="toGold('initData')">初始化</button>
         </div>
     </div>
 </template>
@@ -18,8 +21,8 @@ export default {
 
     },
     methods: {
-        toGold: function () {
-            this.$router.push({path: '/gold'})
+        toGold: function (page) {
+            this.$router.push({path: '/' + page});
         },
     }
 }

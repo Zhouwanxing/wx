@@ -16,6 +16,11 @@ const routes = [
         path: "/gold",
         //路由懒加载
         component: () => import("../components/Gold.vue"),
+    },
+    {
+        path: "/initData",
+        //路由懒加载
+        component: () => import("../components/InitData.vue"),
     }
 ];
 
