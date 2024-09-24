@@ -12,8 +12,8 @@
                 <button @click="getUrls">获取</button>
             </div>
         </div>
-        <div>
-
+        <div v-for="(item,index) in showUrls" :key="index">
+            {{index}}={{item}}
         </div>
     </div>
 </template>
