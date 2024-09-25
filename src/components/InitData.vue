@@ -38,7 +38,8 @@ export default {
         },
         getUrls: function () {
             this.$http.post(import.meta.env.VITE_BASE_URL + "/getUrls", {key: this.checkKey}).then((response) => {
-                this.showUrls = response.urls || [];
+                console.log(response);
+                this.showUrls = response.data.urls || [];
             });
         },
     }
