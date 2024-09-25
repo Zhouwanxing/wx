@@ -15,7 +15,7 @@
         <div style="margin-top: 10px;">
             <table border="1" cellspacing="0" style="margin-left: auto; margin-right: auto;">
                 <tr>
-                    <td></td>
+                    <td>/</td>
                     <td>地址</td>
                     <td>操作</td>
                 </tr>
@@ -54,6 +54,7 @@ export default {
         saveData: function () {
             this.$http.post(import.meta.env.VITE_BASE_URL + "/initData", this.formData).then((response) => {
                 console.log(response);
+                this.formData.url = "";
                 this.alertMessage = "保存成功";
                 this.showAlert = true;
             }).catch((err) => {
