@@ -34,7 +34,7 @@ export default {
                                 show: true, // 开启显示
                                 position: 'inside', // 标签的位置
                                 formatter: function (params) {
-                                    return `${params.seriesName}:${params.value +750}`;
+                                    return `${params.seriesName}:${params.value + 750}`;
                                 },
                                 color: '#fff' // 文字颜色
                             }
@@ -47,7 +47,7 @@ export default {
                                 show: true, // 开启显示
                                 position: 'inside', // 标签的位置
                                 formatter: function (params) {
-                                    return `${params.seriesName}:${params.value+750}`;
+                                    return `${params.seriesName}:${params.value + 750}`;
                                 },
                                 color: '#fff' // 文字颜色
                             }
