@@ -56,8 +56,8 @@ export default {
                 };
                 list.forEach(item => {
                     option.yAxis.data.push(item.date);
-                    option.series[0].data.push(item.zdf || 0);
-                    option.series[1].data.push(item.zss || 0);
+                    option.series[0].data.push(item.zdf - 750 || 0);
+                    option.series[1].data.push(item.zss - 750 || 0);
                 });
                 myChart.setOption(option);
             });

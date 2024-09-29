@@ -30,7 +30,8 @@ export default {
 <style scoped>
 .start-page button {
     width: 150px;
-    background-image: linear-gradient(45deg, #f06d06, #f0c040);
+    /*background-image: linear-gradient(45deg, #f06d06, #f0c040);*/
+    background-image: linear-gradient(45deg, #483e34, #f7f4eb);
     border: none;
     color: white;
     padding: 10px 20px;
@@ -43,6 +44,6 @@ export default {
 }
 
 .start-page button:hover {
-    background-image: linear-gradient(45deg, #f08c06, #f0d040);
+    /*background-image: linear-gradient(45deg, #f08c06, #f0d040);*/
 }
 </style>
