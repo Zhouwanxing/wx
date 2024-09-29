@@ -1,5 +1,8 @@
 <template>
-    <div id="container" style="height: 100vh;"></div>
+    <div style="text-align: center;">
+        <button @click="showChange" style="margin-top: 5px;">切换</button>
+        <div id="container" style="height: 90vh;"></div>
+    </div>
 </template>
 
 <script>
@@ -8,23 +11,29 @@ import * as echarts from 'echarts';
 export default {
     name: "Gold",
     data() {
-        return {};
+        return {
+            showAll: true
+        };
     },
     mounted() {
         this.initPage();
     },
     methods: {
+        showChange: function () {
+            this.showAll = !this.showAll;
+            this.initPage();
+        },
         initPage() {
             const myChart = echarts.init(document.getElementById('container'));
             this.$http.get(import.meta.env.VITE_BASE_URL + "/allGold").then((response) => {
                 let data = response.data || {}, {list = []} = data;
-                let min = list.reduce((pre, item) => {
+                let min = this.showAll ? list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
                         return Math.min(item.zss, pre);
                     } else {
                         return Math.min(item.zdf, pre);
                     }
-                }, 10000);
+                }, 10000) : 0;
                 let option = {
                     title: {text: '金价'},
                     tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
