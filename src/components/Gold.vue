@@ -25,13 +25,13 @@ export default {
             this.initPage();
         },
         initPage() {
-            const myChart = echarts.init(document.getElementById('container'));
+            const self = this, myChart = echarts.init(document.getElementById('container'));
             Http.sendGet("/allGold", function (data) {
                 if (data.error) {
                     return;
                 }
                 let {list = []} = data;
-                let min = this.showAll ? list.reduce((pre, item) => {
+                let min = self.showAll ? list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
                         return Math.min(item.zss, pre);
                     } else {
