@@ -18,6 +18,13 @@ export default {
             const myChart = echarts.init(document.getElementById('container'));
             this.$http.get(import.meta.env.VITE_BASE_URL + "/allGold").then((response) => {
                 let data = response.data || {}, {list = []} = data;
+                let min = list.reduce((pre, item) => {
+                    if (item.zdf > item.zss) {
+                        return Math.min(item.zss, pre);
+                    } else {
+                        return Math.min(item.zdf, pre);
+                    }
+                }, 10000);
                 let option = {
                     title: {text: '金价'},
                     tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
@@ -34,7 +41,7 @@ export default {
                                 show: true, // 开启显示
                                 position: 'inside', // 标签的位置
                                 formatter: function (params) {
-                                    return `${params.seriesName}:${params.value + 750}`;
+                                    return `${params.seriesName}:${params.value + min}`;
                                 },
                                 color: '#fff' // 文字颜色
                             }
@@ -47,7 +54,7 @@ export default {
                                 show: true, // 开启显示
                                 position: 'inside', // 标签的位置
                                 formatter: function (params) {
-                                    return `${params.seriesName}:${params.value + 750}`;
+                                    return `${params.seriesName}:${params.value + min}`;
                                 },
                                 color: '#fff' // 文字颜色
                             }
@@ -56,8 +63,8 @@ export default {
                 };
                 list.forEach(item => {
                     option.yAxis.data.push(item.date);
-                    option.series[0].data.push(item.zdf - 750 || 0);
-                    option.series[1].data.push(item.zss - 750 || 0);
+                    option.series[0].data.push(item.zdf - min);
+                    option.series[1].data.push(item.zss - min);
                 });
                 myChart.setOption(option);
             });
