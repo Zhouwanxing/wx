@@ -25,7 +25,9 @@ export default {
         },
         initPage() {
             const myChart = echarts.init(document.getElementById('container'));
+            document.getElementById("loading-indicator-id").style.display = "block";
             this.$http.get(import.meta.env.VITE_BASE_URL + "/allGold").then((response) => {
+                document.getElementById("loading-indicator-id").style.display = "none";
                 let data = response.data || {}, {list = []} = data;
                 let min = this.showAll ? list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
@@ -76,6 +78,9 @@ export default {
                     option.series[1].data.push(item.zss - min);
                 });
                 myChart.setOption(option);
+            }).catch((e) => {
+                console.error(e);
+                document.getElementById("loading-indicator-id").style.display = "none";
             });
         }
     },
