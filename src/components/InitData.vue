@@ -35,6 +35,7 @@
 
 <script>
 import Alert from "./common/Alert.vue";
+import Http from "../js/Http.js";
 
 export default {
     name: "InitData",
@@ -52,35 +53,28 @@ export default {
     },
     methods: {
         saveData: function () {
-            this.$http.post(import.meta.env.VITE_BASE_URL + "/initData", this.formData).then((response) => {
-                console.log(response);
-                this.formData.url = "";
-                this.alertMessage = "保存成功";
-                this.showAlert = true;
-            }).catch((err) => {
-                console.log(err);
-                this.alertMessage = "保存失败";
-                this.showAlert = true;
+            const self = this;
+            Http.sendPost("/initData", self.formData, function (res) {
+                if (res.error) {
+                    self.alertMessage = "保存失败";
+                    self.showAlert = true;
+                    return;
+                }
+                self.formData.url = "";
+                self.alertMessage = "保存成功";
+                self.showAlert = true;
             });
         },
         getUrls: function () {
-            this.$http.post(import.meta.env.VITE_BASE_URL + "/getUrls", {key: this.checkKey}).then((response) => {
-                console.log(response);
-                this.showUrls = response.data.urls || [];
-            }).catch((err) => {
-                console.log(err);
-                this.alertMessage = "获取失败";
-                this.showAlert = true;
+            const self = this;
+            Http.sendPost("/getUrls", {key: self.checkKey}, function (res) {
+                self.showUrls = res.urls || [];
             });
         },
         deleteUrl: function (url) {
-            this.$http.post(import.meta.env.VITE_BASE_URL + "/deleteUrl", {url: url}).then((response) => {
-                console.log(response);
-                this.showUrls = response.data.urls || [];
-            }).catch((err) => {
-                console.log(err);
-                this.alertMessage = "删除失败";
-                this.showAlert = true;
+            const self = this;
+            Http.sendPost("/deleteUrl", {url: url}, function (res) {
+                self.showUrls = res.urls || [];
             });
         }
     }

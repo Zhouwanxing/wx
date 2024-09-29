@@ -7,6 +7,7 @@
 
 <script>
 import * as echarts from 'echarts';
+import Http from "../js/Http.js";
 
 export default {
     name: "Gold",
@@ -25,10 +26,11 @@ export default {
         },
         initPage() {
             const myChart = echarts.init(document.getElementById('container'));
-            document.getElementById("loading-indicator-id").style.display = "block";
-            this.$http.get(import.meta.env.VITE_BASE_URL + "/allGold").then((response) => {
-                document.getElementById("loading-indicator-id").style.display = "none";
-                let data = response.data || {}, {list = []} = data;
+            Http.sendGet("/allGold", function (data) {
+                if (data.error) {
+                    return;
+                }
+                let {list = []} = data;
                 let min = this.showAll ? list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
                         return Math.min(item.zss, pre);
@@ -78,9 +80,6 @@ export default {
                     option.series[1].data.push(item.zss - min);
                 });
                 myChart.setOption(option);
-            }).catch((e) => {
-                console.error(e);
-                document.getElementById("loading-indicator-id").style.display = "none";
             });
         }
     },
