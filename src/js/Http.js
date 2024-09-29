@@ -1,7 +1,9 @@
+import axios from 'axios'
+
 export default {
     sendGet: function (path, callback) {
         document.getElementById("loading-indicator-id").style.display = "block";
-        this.$http.get(import.meta.env.VITE_BASE_URL + path).then((response) => {
+        axios.get(import.meta.env.VITE_BASE_URL + path).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
             callback(response.data || {});
         }).catch((e) => {
@@ -12,7 +14,7 @@ export default {
     },
     sendPost: function (path, data, callback) {
         document.getElementById("loading-indicator-id").style.display = "block";
-        this.$http.post(import.meta.env.VITE_BASE_URL + path, data).then((response) => {
+        axios.post(import.meta.env.VITE_BASE_URL + path, data).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
             callback(response.data || {});
         }).catch((err) => {
