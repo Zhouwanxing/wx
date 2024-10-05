@@ -20,7 +20,7 @@ export default {
     name: "Mp4.vue",
     data: function () {
         return {
-            page: 1,
+            page: 0,
             count: 0,
             list: []
         }
@@ -37,7 +37,7 @@ export default {
         },
         getList: function () {
             const self = this;
-            Http.sendGet("/mp4/pageShowList?page=" + self.page++, function (data) {
+            Http.sendGet("/mp4/pageShowList?page=" + ++self.page, function (data) {
                 if (data.error) {
                     return;
                 }
