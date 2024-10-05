@@ -41,7 +41,7 @@ export default {
                 if (data.error) {
                     return;
                 }
-                self.list = data.list;
+                self.list = self.list.concat(data.list);
                 self.count = data.count;
                 document.title = data.count + "=" + self.page;
             });
