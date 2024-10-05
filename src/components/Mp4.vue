@@ -9,61 +9,43 @@
                 按钮
             </div>
         </div>
-        <div style="text-align: center;padding: 10px;color: blue;">加载更多</div>
+        <div style="text-align: center;padding: 10px;color: blue;" @click="getList">加载更多</div>
     </div>
 </template>
 
 <script>
+import Http from "../js/Http.js";
+
 export default {
     name: "Mp4.vue",
     data: function () {
         return {
+            page: 1,
             count: 0,
-            list: [{
-                "_id": "202404/6630cbdbe2519513f3e84cd2",
-                "name": "name",
-                "path": "path",
-                "url": "url",
-                "date": "2024-09-30",
-                "img": "https://a1-online-gerenxinxi.oss-cn-beijing.aliyuncs.com/systemBackgroundImage/10.8%20A6_201910081633118.jpg"
-            }, {
-                "_id": "202404/6630cbdbe2519513f3e84cd2111",
-                "name": "name",
-                "path": "path",
-                "url": "url",
-                "date": "2024-09-30",
-                "img": "https://a1-online-gerenxinxi.oss-cn-beijing.aliyuncs.com/systemBackgroundImage/10.8%20A6_201910081633118.jpg"
-            }, {
-                "_id": "202404/6630cbdbe2519513f3e84cd21112",
-                "name": "name",
-                "path": "path",
-                "url": "url",
-                "date": "2024-09-30",
-                "img": "https://a1-online-gerenxinxi.oss-cn-beijing.aliyuncs.com/systemBackgroundImage/10.8%20A6_201910081633118.jpg"
-            }, {
-                "_id": "202404/6630cbdbe2519513f3e84cd213",
-                "name": "name",
-                "path": "path",
-                "url": "url",
-                "date": "2024-09-30",
-                "img": "https://a1-online-gerenxinxi.oss-cn-beijing.aliyuncs.com/systemBackgroundImage/10.8%20A6_201910081633118.jpg"
-            }, {
-                "_id": "202404/6630cbdbe2519513f3e84cd214",
-                "name": "name",
-                "path": "path",
-                "url": "url",
-                "date": "2024-09-30",
-                "img": "https://a1-online-gerenxinxi.oss-cn-beijing.aliyuncs.com/systemBackgroundImage/10.8%20A6_201910081633118.jpg"
-            }]
+            list: []
         }
     },
     mounted() {
-
+        const self = this;
+        setTimeout(function () {
+            self.getList();
+        }, 1);
     },
     methods: {
         clickImg: function (item) {
             console.log(item);
-        }
+        },
+        getList: function () {
+            const self = this;
+            Http.sendGet("/mp4/pageShowList?page=" + self.page++, function (data) {
+                if (data.error) {
+                    return;
+                }
+                self.list = data.list;
+                self.count = data.count;
+                document.title = data.count + "=" + self.page;
+            });
+        },
     }
 }
 </script>
