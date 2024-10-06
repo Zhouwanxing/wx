@@ -1,11 +1,11 @@
 <template>
     <div class="mp4" style="background-color: #ccc;padding: 5px;">
         <div v-for="(item,index) in list" :key="item._id" class="one-mp4">
-            <div style="margin-left: 5px;">{{ item.name }}</div>
+            <div style="padding: 10px;">{{ item.name }}</div>
             <div class="img-div" @click="clickImg(item)">
                 <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
             </div>
-            <div>
+            <div style="padding: 10px;">
                 按钮
             </div>
         </div>
