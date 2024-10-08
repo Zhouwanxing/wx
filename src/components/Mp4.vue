@@ -1,5 +1,6 @@
 <template>
     <div class="mp4" style="background-color: #ccc;padding: 5px;">
+        <div style="text-align: center;padding: 10px;color: blue;" @click="page = 0;getList();">刷新</div>
         <div v-for="(item,index) in list" :key="item._id" class="one-mp4">
             <div style="padding: 10px;">{{ item.name }}</div>
             <div class="img-div" @click="clickImg(item)">
@@ -37,7 +38,7 @@ export default {
         },
         getList: function () {
             const self = this;
-            Http.sendGet("/mp4/pageShowList?page=" + ++self.page, function (data) {
+            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&devId=" + self.getDevId(), function (data) {
                 if (data.error) {
                     return;
                 }
@@ -45,6 +46,14 @@ export default {
                 self.count = data.count;
                 document.title = data.count + "=" + self.page;
             });
+        },
+        getDevId: function () {
+            let devId = localStorage.getItem('zwx-dev-id');
+            if (!devId) {
+                devId = Math.random().toString().slice(2);
+                localStorage.setItem('zwx-dev-id', devId);
+            }
+            return devId;
         },
     }
 }
