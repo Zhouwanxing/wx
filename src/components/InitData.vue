@@ -1,13 +1,18 @@
 <template>
     <div class="init-page">
-        <input v-model="formData.url" placeholder="请输入" style="width: 80%;"/>
+        <input v-model.trim="formData.url" placeholder="请输入网站地址" style="width: 80%;"/>
         <div style="margin-top: 10px;">
             <button @click="saveData">保存</button>
         </div>
 
+        <input v-model.trim="devName" placeholder="请输入设备名称" style="width: 80%;"/>
+        <div style="margin-top: 10px;">
+            <button @click="saveDevName">保存</button>
+        </div>
+
 
         <div style="margin-top: 10px;">
-            <input v-model="checkKey" placeholder="请输入" style="width: 80%;"/>
+            <input v-model.trim="checkKey" placeholder="请输入获取密钥" style="width: 80%;"/>
             <div style="margin-top: 20px;">
                 <button @click="getUrls">获取</button>
             </div>
@@ -48,10 +53,14 @@ export default {
             checkKey: "",
             showUrls: [],
             showAlert: false,
-            alertMessage: ""
+            alertMessage: "",
+            devName: ""
         };
     },
     methods: {
+        saveDevName: function () {
+            localStorage.setItem('zwx-dev-name', this.devName);
+        },
         saveData: function () {
             const self = this;
             Http.sendPost("/initData", self.formData, function (res) {
