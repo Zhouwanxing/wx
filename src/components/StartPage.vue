@@ -4,6 +4,9 @@
             <button @click="toGold('gold')">金价</button>
         </div>
         <div style="margin-top: 20px;text-align: center; ">
+            <button @click="toGold('newGold')">新金价</button>
+        </div>
+        <div style="margin-top: 20px;text-align: center; ">
             <button @click="toGold('initData')">初始化</button>
         </div>
     </div>
