@@ -2,7 +2,7 @@
     <div class="mp4" style="background-color: #ccc;padding: 5px; border-radius: 20px;">
         <div v-show="!selectMp4._id">
             <div style="display: flex;height: 40px;text-align: center;">
-                <div style="flex: 1;"><input type="checkbox" v-model="isShowLike"/></div>
+                <div style="flex: 1;border-right: 1px solid blue;"><input type="checkbox" v-model="isShowLike"/></div>
                 <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
                      @click="page = 0;list = [];getList();">刷新
                 </div>
@@ -21,12 +21,10 @@
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭</div>
             <div style="padding: 10px;">{{ selectMp4.name }}</div>
-            <video controls="controls" :src="selectMp4.name ? selectMp4.url : ''"
-                   style="width: 100%;height: 100%;"></video>
             <video controls webkit-playsinline style="width: 100%;height: 100%;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
-            <div style="display: flex;">
+            <div style="display: flex;text-align: center;">
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4, false)">不喜欢</button>
                 </div>
@@ -57,6 +55,13 @@ export default {
         setTimeout(function () {
             self.getList();
         }, 1);
+    },
+    watch:{
+        isShowLike:function () {
+            this.page = 0;
+            this.list = [];
+            this.getList();
+        }
     },
     methods: {
         updateLike: function (item, like) {
