@@ -20,7 +20,7 @@
         </div>
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭</div>
-            <div style="padding: 10px;">{{ selectMp4.name }}</div>
+            <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" }}</div>
             <video controls webkit-playsinline style="width: 100%;height: 100%;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
@@ -56,8 +56,8 @@ export default {
             self.getList();
         }, 1);
     },
-    watch:{
-        isShowLike:function () {
+    watch: {
+        isShowLike: function () {
             this.page = 0;
             this.list = [];
             this.getList();
