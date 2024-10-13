@@ -13,7 +13,7 @@
                     <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
                 </div>
                 <div style="padding: 10px;">
-                    <button @click="updateLike(item,false)">不喜欢</button>
+                    <button @click="updateLike(item,false,'noFresh')">不喜欢</button>
                 </div>
             </div>
             <div style="text-align: center;padding: 10px;color: blue;" @click="getList">加载更多</div>
@@ -64,7 +64,7 @@ export default {
         }
     },
     methods: {
-        updateLike: function (item, like) {
+        updateLike: function (item, like, fresh) {
             const self = this;
             Http.sendGet("/mp4/updateLike?id=" + item._id + "&like=" + like, function (data) {
                 if (data.error) {
@@ -77,14 +77,16 @@ export default {
                     self.list.splice(index, 1);
                 }
                 self.selectMp4 = {};
-                if (self.list[index]) {
-                    self.$nextTick(function () {
-                        self.selectMp4 = self.list[index];
-                    });
-                } else {
-                    self.page = 0;
-                    self.list = [];
-                    self.getList();
+                if (fresh !== "fresh") {
+                    if (self.list[index]) {
+                        self.$nextTick(function () {
+                            self.selectMp4 = self.list[index];
+                        });
+                    } else {
+                        self.page = 0;
+                        self.list = [];
+                        self.getList();
+                    }
                 }
             });
         },
