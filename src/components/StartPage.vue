@@ -53,6 +53,7 @@ export default {
             this.$router.push({path: '/' + page});
         },
         loginOut: function () {
+            const self = this;
             Http.sendGet("/user/logout", function (data) {
                 localStorage.removeItem("tokenName");
                 localStorage.removeItem("tokenValue");
