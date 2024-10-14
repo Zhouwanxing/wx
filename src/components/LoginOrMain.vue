@@ -1,9 +1,15 @@
 <template>
-    <div class="login" v-if="showLogin">
-        <input v-model.trim="formData.username" placeholder="请输入用户名" style="width: 80%;"/>
-
-        <input v-model.trim="formData.password" placeholder="请输入密码" style="width: 80%;"/>
-        <div style="margin-top: 10px;">
+    <div class="login-container" v-if="showLogin">
+        <div style="text-align: center;margin: 10px;">
+            <img src="/Jerry.svg" width="60px" alt="1"/>
+        </div>
+        <div class="form-group">
+            <input v-model.trim="formData.username" placeholder="请输入用户名"/>
+        </div>
+        <div class="form-group">
+            <input v-model.trim="formData.password" placeholder="请输入密码"/>
+        </div>
+        <div class="form-group">
             <button @click="login">登录</button>
         </div>
 
@@ -57,6 +63,9 @@ export default {
         },
         login: function () {
             const self = this;
+            if (!self.formData.username || !self.formData.password) {
+                return;
+            }
             Http.sendGet(`/user/login?username=${self.formData.username}&password=${self.formData.password}`, function (data) {
                 if (data.code !== 200) {
                     self.alertMessage = "用户名/密码错误";
@@ -71,5 +80,71 @@ export default {
 </script>
 
 <style scoped>
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #74b9ff, #ff7777);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
 
+input:focus {
+    outline: 2px solid #ccc; /* 自定义焦点轮廓样式 */
+}
+
+.login-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.form-group button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #74b9ff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.form-group button:hover {
+    background-color: #5a98fb;
+}
+
+.form-group a {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    color: #74b9ff;
+    text-decoration: none;
+}
+
+.form-group a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        border-radius: 0;
+        box-shadow: none;
+    }
+}
 </style>

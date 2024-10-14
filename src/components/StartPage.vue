@@ -12,6 +12,10 @@
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
             <button @click="toGold('mp4')">视频</button>
         </div>
+
+        <div style="margin-top: 20px;text-align: center; ">
+            <button @click="loginOut">退出</button>
+        </div>
     </div>
 </template>
 
@@ -47,6 +51,13 @@ export default {
         },
         toGold: function (page) {
             this.$router.push({path: '/' + page});
+        },
+        loginOut: function () {
+            Http.sendGet("/user/logout", function (data) {
+                localStorage.removeItem("tokenName");
+                localStorage.removeItem("tokenValue");
+                self.$router.replace({path: "/"});
+            });
         },
     }
 }
