@@ -50,7 +50,7 @@ export default {
     methods: {
         initPage() {
             const self = this;
-            Http.sendGet("/allGold", function (data) {
+            Http.sendGet("/gold/allGold", function (data) {
                 if (data.error) {
                     return;
                 }

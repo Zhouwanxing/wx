@@ -77,7 +77,7 @@ export default {
                     self.list.splice(index, 1);
                 }
                 self.selectMp4 = {};
-                if (fresh !== "fresh") {
+                if (fresh !== "noFresh") {
                     if (self.list[index]) {
                         self.$nextTick(function () {
                             self.selectMp4 = self.list[index];

@@ -5,7 +5,16 @@ const routes = [
     {
         //默认展示，这是主页面路由必须加斜杠 /
         path: "/",
+        // component: () => import("../components/StartPage.vue"),
+        component: () => import("../components/LoginOrMain.vue"),
+    },
+    {
+        path: "/main",
         component: () => import("../components/StartPage.vue"),
+    },
+    {
+        path: "/mp4",
+        component: () => import("../components/Mp4.vue"),
     },
     {
         path: "/hello",

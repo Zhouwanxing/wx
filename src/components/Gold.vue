@@ -26,7 +26,7 @@ export default {
         },
         initPage() {
             const self = this, myChart = echarts.init(document.getElementById('container'));
-            Http.sendGet("/allGold", function (data) {
+            Http.sendGet("/gold/allGold", function (data) {
                 if (data.error) {
                     return;
                 }

@@ -1,29 +1,50 @@
 <template>
     <div class="start-page">
-        <div style="margin-top: 20px;text-align: center; ">
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
             <button @click="toGold('gold')">金价</button>
         </div>
-        <div style="margin-top: 20px;text-align: center; ">
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
             <button @click="toGold('newGold')">新金价</button>
         </div>
-        <div style="margin-top: 20px;text-align: center; ">
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('admin')">
             <button @click="toGold('initData')">初始化</button>
+        </div>
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
+            <button @click="toGold('mp4')">视频</button>
         </div>
     </div>
 </template>
 
 <script>
 
+import Http from "../js/Http.js";
+import Cache from "../js/Cache.js";
+
 export default {
     name: "StartPage",
     components: {},
     data() {
-        return {}
+        return {
+            roles: []
+        }
     },
     mounted() {
-
+        const self = this;
+        setTimeout(function () {
+            self.checkLogin();
+        }, 1);
     },
     methods: {
+        checkLogin: function () {
+            const self = this;
+            Http.sendGet("/user/isLogin", function (data) {
+                if (data.code === 200) {
+                    Cache.roles = self.roles = (data.data || {}).roles || [];
+                } else {
+                    self.$router.replace({path: "/"});
+                }
+            });
+        },
         toGold: function (page) {
             this.$router.push({path: '/' + page});
         },
