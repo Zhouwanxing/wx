@@ -21,7 +21,7 @@
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭</div>
             <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" }}</div>
-            <video controls webkit-playsinline style="width: 100%;height: 100%;">
+            <video controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
             <div style="display: flex;text-align: center;">
