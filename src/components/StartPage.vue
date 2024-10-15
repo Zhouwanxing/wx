@@ -53,11 +53,11 @@ export default {
             this.$router.push({path: '/' + page});
         },
         loginOut: function () {
-            const self = this;
-            Http.sendGet("/user/logout", function (data) {
+            Http.sendGet("/user/logout", function () {
                 localStorage.removeItem("tokenName");
                 localStorage.removeItem("tokenValue");
-                self.$router.replace({path: "/"});
+                // self.$router.replace({path: "/"});
+                window.location.href = "./"
             });
         },
     }
