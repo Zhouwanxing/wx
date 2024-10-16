@@ -27,10 +27,10 @@ export default {
         initPage() {
             const self = this, myChart = echarts.init(document.getElementById('container'));
             Http.sendGet("/gold/allGold", function (data) {
-                if (data.error) {
+                if (data.error || data.code !== 200) {
                     return;
                 }
-                let {list = []} = data;
+                let {list = []} = data.data || {};
                 let min = self.showAll ? list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
                         return Math.min(item.zss, pre);
