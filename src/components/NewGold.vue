@@ -15,7 +15,7 @@
                  style="display: flex;border-bottom: 1px solid #ccc;padding:5px 0;"
                  :style="{height: showZdf && showZss ? '50px' : '25px'}">
                 <div style="width: 150px;"
-                     :style="{'line-height': showZdf && showZss ? '50px':'25px' }">{{ item.date }}
+                     :style="{'line-height': showZdf && showZss ? '50px':'25px' }">{{ item._id }}
                 </div>
                 <div style="width: 100%;">
                     <div v-if="showZdf" class="zdf-div" :style="{width: (item.zdf - min) / (max - min) * 100 + '%'}"

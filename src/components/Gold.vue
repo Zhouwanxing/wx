@@ -75,7 +75,7 @@ export default {
                     ]
                 };
                 list.forEach(item => {
-                    option.yAxis.data.push(item.date);
+                    option.yAxis.data.push(item._id);
                     option.series[0].data.push(item.zdf - min);
                     option.series[1].data.push(item.zss - min);
                 });
