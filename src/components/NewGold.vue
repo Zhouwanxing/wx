@@ -51,10 +51,10 @@ export default {
         initPage() {
             const self = this;
             Http.sendGet("/gold/allGold", function (data) {
-                if (data.error || data.code !== 200) {
+                if (data.code !== 200) {
                     return;
                 }
-                let {list = []} = data.data || {};
+                let list = data.data || [];
                 self.min = list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
                         return Math.min(item.zss, pre);

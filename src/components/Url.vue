@@ -55,7 +55,8 @@ export default {
             if (!self.url) {
                 return;
             }
-            Http.sendPost("/mp4/saveUrl", {url: self.url}, function () {
+            Http.sendPost("/mp4/saveUrl", {url: self.url}, function (res) {
+                self.showUrls = res.data || [];
             });
         },
         getUrls: function () {

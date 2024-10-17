@@ -9,11 +9,16 @@ export default {
         document.getElementById("loading-indicator-id").style.display = "block";
         axios.get(import.meta.env.VITE_BASE_URL + path).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
-            callback(response.data || {});
+            let data = response.data || {};
+            if (data.code === 401) {
+                window.location.href = "./"
+                return;
+            }
+            callback(data);
         }).catch((e) => {
             console.error(e);
             document.getElementById("loading-indicator-id").style.display = "none";
-            callback({error: true, code: 500});
+            callback({code: 501});
         });
     },
     sendPost: function (path, data, callback) {
@@ -24,11 +29,16 @@ export default {
         document.getElementById("loading-indicator-id").style.display = "block";
         axios.post(import.meta.env.VITE_BASE_URL + path, data).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
-            callback(response.data || {});
-        }).catch((err) => {
+            let data = response.data || {};
+            if (data.code === 401) {
+                window.location.href = "./"
+                return;
+            }
+            callback(data);
+        }).catch((e) => {
             console.error(e);
             document.getElementById("loading-indicator-id").style.display = "none";
-            callback({error: true, code: 500});
+            callback({code: 501});
         });
     }
 }

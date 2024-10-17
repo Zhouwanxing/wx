@@ -67,7 +67,7 @@ export default {
         updateLike: function (item, like, fresh) {
             const self = this;
             Http.sendGet("/mp4/updateLike?id=" + item._id + "&like=" + like, function (data) {
-                if (data.error) {
+                if (data.code !== 200) {
                     return;
                 }
                 let index = self.list.findIndex(function (item2) {
@@ -95,22 +95,14 @@ export default {
         },
         getList: function () {
             const self = this;
-            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&devId=" + self.getDevId() + "&showLike=" + self.isShowLike, function (data) {
-                if (data.error) {
+            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&showLike=" + self.isShowLike, function (data) {
+                if (data.code !== 200) {
                     return;
                 }
                 self.list = self.list.concat(data.list);
                 self.count = data.count;
                 document.title = data.count + "=" + self.page;
             });
-        },
-        getDevId: function () {
-            let devId = localStorage.getItem('zwx-dev-id');
-            if (!devId) {
-                devId = Math.random().toString().slice(2);
-                localStorage.setItem('zwx-dev-id', devId);
-            }
-            return devId;
         },
     }
 }
