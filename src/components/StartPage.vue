@@ -6,11 +6,11 @@
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
             <button @click="toGold('newGold')">新金价</button>
         </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('admin')">
-            <button @click="toGold('initData')">初始化</button>
-        </div>
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
             <button @click="toGold('mp4')">视频</button>
+        </div>
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('url')">
+            <button @click="toGold('url')">地址</button>
         </div>
 
         <div style="margin-top: 20px;text-align: center; ">

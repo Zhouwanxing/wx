@@ -27,6 +27,11 @@ const routes = [
         component: () => import("../components/Gold.vue"),
     },
     {
+        path: "/url",
+        //路由懒加载
+        component: () => import("../components/Url.vue"),
+    },
+    {
         path: "/newGold",
         //路由懒加载
         component: () => import("../components/NewGold.vue"),
