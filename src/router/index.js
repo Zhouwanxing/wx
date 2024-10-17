@@ -35,11 +35,6 @@ const routes = [
         path: "/newGold",
         //路由懒加载
         component: () => import("../components/NewGold.vue"),
-    },
-    {
-        path: "/initData",
-        //路由懒加载
-        component: () => import("../components/InitData.vue"),
     }
 ];
 
