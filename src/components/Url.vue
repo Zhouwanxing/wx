@@ -1,9 +1,18 @@
 <template>
     <div class="url">
-        <div style="height: 40px;text-align: center; background-color: #ccc; border-radius: 10px; line-height: 40px;"
-             @click.stop="getUrls()">
-            刷新
+        <div style="width: 80%;padding: 10px;">
+            <input v-model.trim="url" placeholder="请输入网站地址" style="width: 100%;"/>
         </div>
+        <div style="display: flex;height: 40px;text-align: center;">
+            <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                 @click.stop="saveUrl()">
+                保存
+            </div>
+            <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                 @click.stop="getUrls()">刷新
+            </div>
+        </div>
+
         <div style="padding: 10px;">
             <table border="1" cellspacing="0" style="margin-left: auto; margin-right: auto;">
                 <tr>
@@ -30,7 +39,8 @@ export default {
     name: "Url",
     data() {
         return {
-            showUrls: []
+            showUrls: [],
+            url: ""
         };
     },
     mounted() {
@@ -40,6 +50,14 @@ export default {
         }, 1);
     },
     methods: {
+        saveUrl: function () {
+            const self = this;
+            if (!self.url) {
+                return;
+            }
+            Http.sendPost("/mp4/saveUrl", {url: self.url}, function () {
+            });
+        },
         getUrls: function () {
             const self = this;
             Http.sendPost("/mp4/getUrls", {}, function (res) {
