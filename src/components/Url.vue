@@ -1,6 +1,6 @@
 <template>
     <div class="url">
-        <div style="height: 40px; text-align: center; background-color: #ccc; border-radius: 10px; line-height: 40px;"
+        <div style="height: 40px;text-align: center; background-color: #ccc; border-radius: 10px; line-height: 40px;"
              @click.stop="getUrls()">
             刷新
         </div>
