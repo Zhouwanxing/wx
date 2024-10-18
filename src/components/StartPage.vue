@@ -9,6 +9,9 @@
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
             <button @click="toGold('mp4')">视频</button>
         </div>
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
+            <button @click="toGold('collect')">收藏</button>
+        </div>
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('url')">
             <button @click="toGold('url')">地址</button>
         </div>

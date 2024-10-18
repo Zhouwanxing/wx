@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>video</title>
+</head>
+<body>
+<video id="myVideo" controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
+    <source src="" type="video/mp4">
+</video>
+<script>
+    const paramValue = new URL(window.location.href).searchParams.get('url');
+    const videoElement = document.getElementById('myVideo');
+    videoElement.src = paramValue;
+    // 加载并播放视频
+    videoElement.load();
+    videoElement.play();
+</script>
+</body>
+</html>

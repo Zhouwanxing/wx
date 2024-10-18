@@ -109,13 +109,5 @@ export default {
 </script>
 
 <style scoped>
-.one-mp4 {
-    background-color: white;
-    border-radius: 15px;
-    margin-top: 5px;
-}
 
-.one-mp4 .img-div {
-    height: 150px;
-}
 </style>
