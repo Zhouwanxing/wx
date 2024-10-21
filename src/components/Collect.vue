@@ -1,11 +1,12 @@
 <template>
     <div class="collect" style="background-color: #ccc;padding: 5px; border-radius: 20px;">
         <div style="border-bottom: 1px solid #ccc;">
-            <select v-model="formData.path" @change="list = [];searchPath()"
+            <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
                     style="width: 60%;height: 30px;border: 1px solid #ccc;margin: 8px">
                 <option :value="''">请选择</option>
                 <option v-for="item in paths" :value="item">{{ item }}</option>
             </select>
+            {{count}}
         </div>
         <div style="overflow-y: auto; max-height: calc(100vh - 100px);">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
@@ -35,6 +36,7 @@ export default {
             paths: [],
             list: [],
             showLoad: true,
+            count: 0
         }
     },
     mounted() {
@@ -59,6 +61,7 @@ export default {
             const self = this;
             Http.sendGet("/mp4/getAllPath", function (data) {
                 self.paths = data.data || [];
+                self.count = data.count || 0;
             });
         }
     }
