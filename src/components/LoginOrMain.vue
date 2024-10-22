@@ -7,7 +7,7 @@
             <input v-model.trim="formData.username" placeholder="请输入用户名"/>
         </div>
         <div class="form-group">
-            <input v-model.trim="formData.password" placeholder="请输入密码"/>
+            <input v-model.trim="formData.password" placeholder="请输入密码" type="password"/>
         </div>
         <div class="form-group">
             <button @click="login">登录</button>
@@ -39,6 +39,7 @@ export default {
     mounted() {
         const self = this;
         setTimeout(function () {
+            self.formData.username = localStorage.getItem("username") || "";
             self.checkLogin();
         }, 1);
     },
@@ -72,6 +73,7 @@ export default {
                     self.showAlert = true;
                     return;
                 }
+                localStorage.setItem("username", self.formData.username);
                 self.toMain(data);
             });
         },
