@@ -55,13 +55,13 @@ export default {
                 let list = data.data || [];
                 self.showLoad = list.length > 0;
                 self.list = self.list.concat(list);
+                self.count = data.count || 0;
             });
         },
         getAllPath: function () {
             const self = this;
             Http.sendGet("/mp4/getAllPath", function (data) {
                 self.paths = data.data || [];
-                self.count = data.count || 0;
             });
         }
     }
