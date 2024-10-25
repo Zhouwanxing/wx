@@ -1,14 +1,14 @@
 <template>
-    <div class="collect" style="background-color: #ccc;padding: 5px; border-radius: 20px;">
-        <div style="border-bottom: 1px solid #ccc;">
+    <div class="collect" style="background-color: #ccc; border-radius: 20px;">
+        <div style="border-bottom: 1px solid #ccc;height: 50px;line-height: 50px;">
             <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
                     style="width: 60%;height: 30px;border: 1px solid #ccc;margin: 8px">
                 <option :value="''">请选择</option>
                 <option v-for="item in paths" :value="item">{{ item }}</option>
             </select>
-            {{count}}
+            {{ count }}
         </div>
-        <div style="overflow-y: auto; max-height: calc(100vh - 100px);">
+        <div style="overflow-y: auto; max-height: calc(100vh - 105px);">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
                 <div class="img-div" @click="clickImg(item)" style="padding-bottom: 10px;">
@@ -16,7 +16,8 @@
                 </div>
             </div>
         </div>
-        <div style="text-align: center;padding: 10px;color: blue;" @click="formData.page++;searchPath();"
+        <div style="text-align: center;padding: 10px;color: blue;height: 30px;line-height: 30px;"
+             @click="formData.page++;searchPath();"
              v-if="showLoad">加载更多
         </div>
     </div>
