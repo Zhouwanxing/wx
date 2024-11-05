@@ -7,7 +7,7 @@ export default {
             axios.defaults.headers.common[tokenName] = tokenValue;
         }
         document.getElementById("loading-indicator-id").style.display = "block";
-        axios.get(import.meta.env.VITE_BASE_URL + path).then((response) => {
+        axios.get(import.meta.env.VITE_BASE_URL + path, {timeout: 10000}).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
             let data = response.data || {};
             if (data.code === 401) {
@@ -27,7 +27,7 @@ export default {
             axios.defaults.headers.common[tokenName] = tokenValue;
         }
         document.getElementById("loading-indicator-id").style.display = "block";
-        axios.post(import.meta.env.VITE_BASE_URL + path, data).then((response) => {
+        axios.post(import.meta.env.VITE_BASE_URL + path, data, {timeout: 10000}).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
             let data = response.data || {};
             if (data.code === 401) {
