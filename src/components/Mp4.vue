@@ -21,7 +21,7 @@
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭</div>
             <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" }}</div>
-            <video controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
+            <video controls webkit-playsinline playsinline style="width: 100vw;height: 80vh;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
             <div style="display: flex;text-align: center;">
@@ -78,22 +78,28 @@ export default {
                 }
                 self.selectMp4 = {};
                 if (fresh !== "noFresh") {
-                    if (self.list[index]) {
-                        self.$nextTick(function () {
-                            self.selectMp4 = self.list[index];
-                        });
+                    if (self.list[0]) {
+                        self.showFirst();
                     } else {
                         self.page = 0;
                         self.list = [];
-                        self.getList();
+                        self.getList(self.showFirst);
                     }
                 }
             });
         },
+        showFirst: function () {
+            const self = this;
+            if (self.list[0]) {
+                self.$nextTick(function () {
+                    self.selectMp4 = self.list[0];
+                });
+            }
+        },
         clickImg: function (item) {
             this.selectMp4 = item;
         },
-        getList: function () {
+        getList: function (callback) {
             const self = this;
             Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&showLike=" + self.isShowLike, function (data) {
                 if (data.code !== 200) {
@@ -101,7 +107,9 @@ export default {
                 }
                 self.list = self.list.concat(data.list);
                 self.count = data.count;
-                document.title = data.count + "=" + self.page;
+                if (callback) {
+                    callback();
+                }
             });
         },
     }
