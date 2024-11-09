@@ -4,7 +4,7 @@
             <div style="display: flex;height: 40px;text-align: center;">
                 <div style="flex: 1;border-right: 1px solid blue;"><input type="checkbox" v-model="isShowLike"/></div>
                 <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
-                     @click="page = 0;list = [];getList();">刷新
+                     @click="page = 0;list = [];getList();">刷新({{count}})
                 </div>
             </div>
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
@@ -19,7 +19,7 @@
             <div style="text-align: center;padding: 10px;color: blue;" @click="getList">加载更多</div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭</div>
+            <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{count}})</div>
             <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" }}</div>
             <video controls webkit-playsinline playsinline style="width: 100%;height: 70vh;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
@@ -27,6 +27,9 @@
             <div style="display: flex;text-align: center;">
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4, false)">不喜欢</button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click="refreshVideo">刷新</button>
                 </div>
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4,true)">收藏</button>
@@ -64,6 +67,14 @@ export default {
         }
     },
     methods: {
+        refreshVideo: function () {
+            const self = this;
+            let url = self.selectMp4.url + "";
+            self.selectMp4.url = "";
+            self.$nextTick(function () {
+                self.selectMp4.url = url;
+            });
+        },
         updateLike: function (item, like, fresh) {
             const self = this;
             Http.sendGet("/mp4/updateLike?id=" + item._id + "&like=" + like, function (data) {
@@ -76,6 +87,7 @@ export default {
                 if (index !== -1) {
                     self.list.splice(index, 1);
                 }
+                self.count--;
                 self.selectMp4 = {};
                 if (fresh !== "noFresh") {
                     if (self.list[0]) {
