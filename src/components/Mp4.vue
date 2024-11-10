@@ -69,11 +69,8 @@ export default {
     methods: {
         refreshVideo: function () {
             const self = this;
-            let url = self.selectMp4.url + "";
-            self.selectMp4.url = "";
-            self.$nextTick(function () {
-                self.selectMp4.url = url;
-            });
+            self.selectMp4 = {};
+            self.showFirst();
         },
         updateLike: function (item, like, fresh) {
             const self = this;
