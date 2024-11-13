@@ -7,14 +7,14 @@
                      @click="page = 0;list = [];getList();">刷新({{count}})
                 </div>
             </div>
-            <div v-for="(item) in list" :key="item._id" class="one-mp4">
+            <div v-for="(item) in list" :key="item._id" class="one-mp4" @click="clickImg(item)">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
-                <div class="img-div" @click="clickImg(item)">
+<!--                <div class="img-div" @click="clickImg(item)">
                     <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
                 </div>
                 <div style="padding: 10px;">
                     <button @click="updateLike(item,false,'noFresh')">不喜欢</button>
-                </div>
+                </div>-->
             </div>
             <div style="text-align: center;padding: 10px;color: blue;" @click="getList">加载更多</div>
         </div>
