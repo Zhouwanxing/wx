@@ -8,7 +8,7 @@
             </select>
             {{ count }}
         </div>
-        <div style="overflow-y: auto; max-height: calc(100vh - 115px);">
+        <div style="overflow-y: auto; max-height: calc(100vh - 120px);">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
                 <div class="img-div" @click="clickImg(item)" style="padding-bottom: 10px;">
