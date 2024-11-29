@@ -1,13 +1,24 @@
 <template>
     <div class="collect" style="background-color: #ccc; border-radius: 20px;">
-        <div style="border-bottom: 1px solid #ccc;height: 50px;line-height: 50px;">
-            <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
-                    style="width: 60%;height: 30px;border: 1px solid #ccc;margin: 8px">
-                <option :value="''">请选择</option>
-                <option v-for="item in paths" :value="item">{{ item }}</option>
-            </select>
-            {{ count }}
+        <div style="display: flex;height: 50px;text-align: center;">
+            <div style="flex: 3;border-right: 1px solid blue;">
+                <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
+                        style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                    <option :value="''">请选择</option>
+                    <option v-for="item in paths" :value="item">{{ item }}</option>
+                </select>
+            </div>
+            <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;">
+                {{ count }}
+            </div>
+            <div style="flex: 2;">
+                <div style="text-align: center;padding: 10px;color: blue;height: 30px;line-height: 30px;"
+                     @click="formData.page++;searchPath();"
+                     v-if="showLoad">加载更多
+                </div>
+            </div>
         </div>
+
         <div style="overflow-y: auto; max-height: calc(100vh - 120px);">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
@@ -15,10 +26,6 @@
                     <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
                 </div>
             </div>
-        </div>
-        <div style="text-align: center;padding: 10px;color: blue;height: 30px;line-height: 30px;"
-             @click="formData.page++;searchPath();"
-             v-if="showLoad">加载更多
         </div>
     </div>
 </template>
