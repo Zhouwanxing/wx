@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        <div style="overflow-y: auto; max-height: calc(100vh - 50px);">
+        <div style="overflow-y: auto; max-height: calc(100vh - 80px);">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
                 <div class="img-div" @click="clickImg(item)" style="padding-bottom: 10px;">
