@@ -56,19 +56,19 @@ export default {
                 return;
             }
             Http.sendPost("/mp4/saveUrl", {url: self.url}, function (res) {
-                self.showUrls = res.data || [];
+                self.showUrls = (res.data || []).filter(item => !item.includes("154.88.28.8"));
             });
         },
         getUrls: function () {
             const self = this;
             Http.sendPost("/mp4/getUrls", {}, function (res) {
-                self.showUrls = res.data || [];
+                self.showUrls = (res.data || []).filter(item => !item.includes("154.88.28.8"));
             });
         },
         deleteUrl: function (url) {
             const self = this;
             Http.sendPost("/mp4/deleteUrl", {url: url}, function (res) {
-                self.showUrls = res.data || [];
+                self.showUrls = (res.data || []).filter(item => !item.includes("154.88.28.8"));
             });
         }
     }
