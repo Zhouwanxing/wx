@@ -1,6 +1,6 @@
 <template>
-    <div class="collect" style="background-color: #ccc; border-radius: 20px;">
-        <div style="display: flex;height: 50px;text-align: center;">
+    <div class="collect" style="background-color: #ccc; border-radius: 20px;height: 100vh;">
+        <div style="display: flex;height: 50px;text-align: center;position: fixed;top: 0;width: 100vw;">
             <div style="flex: 3;border-right: 1px solid blue;">
                 <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
                         style="height: 30px;border: 1px solid #ccc;margin: 8px">
@@ -8,7 +8,7 @@
                     <option v-for="item in paths" :value="item">{{ item }}</option>
                 </select>
             </div>
-            <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;">
+            <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;" @click="formData.page = 1;searchPath();">
                 {{ count }}
             </div>
             <div style="flex: 2;">
@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        <div style="overflow-y: auto; max-height: calc(100vh - 80px);">
+        <div style="overflow-y: auto; position: absolute;top: 50px;height: calc( 100vh - 65px);">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
                 <div class="img-div" @click="clickImg(item)" style="padding-bottom: 10px;">
