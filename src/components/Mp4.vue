@@ -26,13 +26,16 @@
             </video>
             <div style="display: flex;text-align: center;">
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4, false)">不喜欢</button>
+                    <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
                 </div>
                 <div style="flex: 1;">
                     <button @click="refreshVideo">刷新</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4,true)">收藏</button>
+                    <button @click="updateLike(selectMp4,'good')">收藏</button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click="updateLike(selectMp4,'best')">最爱</button>
                 </div>
             </div>
         </div>
@@ -72,9 +75,9 @@ export default {
             self.selectMp4 = {};
             self.showFirst();
         },
-        updateLike: function (item, like, fresh) {
+        updateLike: function (item, flag, fresh) {
             const self = this;
-            Http.sendGet("/mp4/updateLike?id=" + item._id + "&like=" + like, function (data) {
+            Http.sendGet("/mp4/updateLike?id=" + item._id + "&flag=" + flag, function (data) {
                 if (data.code !== 200) {
                     return;
                 }
