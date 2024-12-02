@@ -1,6 +1,6 @@
 <template>
     <div class="url">
-        <div style="width: 80%;padding: 10px;">
+<!--        <div style="width: 80%;padding: 10px;">
             <input v-model.trim="url" placeholder="请输入网站地址" style="width: 100%;"/>
         </div>
         <div style="display: flex;height: 40px;text-align: center;">
@@ -11,7 +11,7 @@
             <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
                  @click.stop="getUrls()">刷新
             </div>
-        </div>
+        </div>-->
 
         <div style="padding: 10px;">
             <table border="1" cellspacing="0" style="margin-left: auto; margin-right: auto;">
@@ -24,7 +24,7 @@
                     <td>{{ index + 1 }}</td>
                     <td>{{ item }}</td>
                     <td>
-                        <button @click="deleteUrl(item)">删除</button>
+                        <button @click="openUrl(item)">打开</button>
                     </td>
                 </tr>
             </table>
@@ -64,6 +64,10 @@ export default {
             Http.sendPost("/mp4/getUrls", {}, function (res) {
                 self.showUrls = (res.data || []).filter(item => !item.includes("154.88.28.8"));
             });
+        },
+        openUrl: function (url) {
+            //新打开url地址
+            window.open(url, '_blank');
         },
         deleteUrl: function (url) {
             const self = this;
