@@ -20,7 +20,7 @@
         </div>
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{count}})</div>
-            <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" }}</div>
+            <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" + "(" + selectMp4.date + ")" }}</div>
             <video controls webkit-playsinline playsinline style="width: 100%;height: 60vh;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
