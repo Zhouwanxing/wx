@@ -27,6 +27,7 @@ export default defineConfig(({command, mode}) => {
                     zwx: path.resolve(__dirname, "./zwx.html"),
                     l: path.resolve(__dirname, "./l.html"),
                     mp4: path.resolve(__dirname, "./mp4.html"),
+                    s: path.resolve(__dirname, "./s.html"),
                     video: path.resolve(__dirname, "./video.html")
                 },
             }
