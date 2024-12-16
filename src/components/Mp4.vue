@@ -2,7 +2,12 @@
     <div class="mp4" style="background-color: #ccc;padding: 5px; border-radius: 20px;">
         <div v-show="!selectMp4._id">
             <div style="display: flex;height: 40px;text-align: center;">
-                <div style="flex: 1;border-right: 1px solid blue;"><input type="checkbox" v-model="isShowLike"/></div>
+                <div style="flex: 1;border-right: 1px solid blue;">
+                    <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option :value="''">请选择</option>
+                        <option v-for="item in paths" :value="item">{{ item }}</option>
+                    </select>
+                </div>
                 <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
                      @click="page = 0;list = [];getList();">刷新({{count}})
                 </div>
@@ -53,23 +58,29 @@ export default {
             count: 0,
             list: [],
             selectMp4: {},
-            isShowLike: false
+            isShowLike: false,
+            paths: [],
+            path: ""
         }
     },
     mounted() {
         const self = this;
         setTimeout(function () {
-            self.getList();
+            self.initPaths(function () {
+                self.getList();
+            });
         }, 1);
     },
     watch: {
-        isShowLike: function () {
-            this.page = 0;
-            this.list = [];
-            this.getList();
-        }
     },
     methods: {
+        initPaths: function (callback) {
+            const self = this;
+            Http.sendGet("/mp4/getAllPath", function (data) {
+                self.paths = data.data || [];
+                callback();
+            });
+        },
         refreshVideo: function () {
             const self = this;
             self.selectMp4 = {};
@@ -113,7 +124,7 @@ export default {
         },
         getList: function (callback) {
             const self = this;
-            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&showLike=" + self.isShowLike, function (data) {
+            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&showLike=" + self.isShowLike + "&path=" + self.path, function (data) {
                 if (data.code !== 200) {
                     return;
                 }
