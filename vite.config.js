@@ -28,6 +28,7 @@ export default defineConfig(({command, mode}) => {
                     l: path.resolve(__dirname, "./l.html"),
                     mp4: path.resolve(__dirname, "./mp4.html"),
                     s: path.resolve(__dirname, "./s.html"),
+                    c: path.resolve(__dirname, "./c.html"),
                     video: path.resolve(__dirname, "./video.html")
                 },
             }
