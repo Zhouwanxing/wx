@@ -45,7 +45,7 @@ export default {
             formData: {
                 path: "",
                 page: 1,
-                isShowBest: false
+                isShowBest: true
             },
             paths: [],
             list: [],
