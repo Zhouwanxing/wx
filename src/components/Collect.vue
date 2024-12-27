@@ -1,5 +1,5 @@
 <template>
-    <div class="collect" style="background-color: #ccc; border-radius: 20px;height: 100vh;">
+    <div class="collect" style="background-color: #ccc; border-radius: 20px;height: 100%;">
         <div style="display: flex;height: 50px;text-align: center;position: fixed;top: 0;width: 100vw;">
             <div style="flex: 2;border-right: 1px solid blue;">
                 <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
