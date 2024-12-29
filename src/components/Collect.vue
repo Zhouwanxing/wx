@@ -13,7 +13,7 @@
                     <input type="checkbox" v-model="formData.isShowBest"
                            @change="list = [];formData.page = 1;searchPath()"/>
                 </div>
-                <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;"
+                <div style="flex: 1;line-height: 50px;height: 50px;"
                      @click="formData.page = 1;searchPath();">
                     {{ count }}
                 </div>
@@ -28,7 +28,7 @@
             </div>
         </div>
         <div class="footer">
-            <div style="text-align: center;padding: 10px;color: blue;height: 30px;line-height: 30px;"
+            <div style="color: blue;"
                  @click="formData.page++;searchPath();"
                  v-if="showLoad">加载更多
             </div>
@@ -88,27 +88,30 @@ export default {
     background-color: #ccc;
     color: white;
     text-align: center;
-    height: 50px;
-    line-height: 50px;
     font-size: 20px;
     left: 0;
     right: 0;
+    border-bottom: 1px solid white;
 }
 
 .header {
     position: fixed;
     top: 0;
+    height: 50px;
+    line-height: 50px;
 }
 
 .footer {
     position: fixed;
     bottom: 0;
+    height: 60px;
+    padding-top: 5px;
 }
 
 .content {
     position: absolute;
     top: 50px;
-    bottom: 50px;
+    bottom: 60px;
     left: 0;
     right: 0;
     overflow-y: auto;
