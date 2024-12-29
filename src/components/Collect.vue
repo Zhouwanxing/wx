@@ -1,35 +1,36 @@
 <template>
-    <div class="collect" style="background-color: #ccc; border-radius: 20px;height: 100%;">
-        <div style="display: flex;height: 50px;text-align: center;position: fixed;top: 0;width: 100vw;">
-            <div style="flex: 2;border-right: 1px solid blue;">
-                <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
-                        style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                    <option :value="''">请选择</option>
-                    <option v-for="item in paths" :value="item">{{ item }}</option>
-                </select>
-            </div>
-            <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;">
-                <input type="checkbox" v-model="formData.isShowBest"
-                       @change="list = [];formData.page = 1;searchPath()"/>
-            </div>
-            <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;"
-                 @click="formData.page = 1;searchPath();">
-                {{ count }}
-            </div>
-            <div style="flex: 2;">
-                <div style="text-align: center;padding: 10px;color: blue;height: 30px;line-height: 30px;"
-                     @click="formData.page++;searchPath();"
-                     v-if="showLoad">加载更多
+    <div class="collect">
+        <div class="header">
+            <div style="display: flex;height: 50px;text-align: center;position: fixed;top: 0;width: 100vw;">
+                <div style="flex: 2;border-right: 1px solid blue;">
+                    <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
+                            style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option :value="''">请选择</option>
+                        <option v-for="item in paths" :value="item">{{ item }}</option>
+                    </select>
+                </div>
+                <div style="flex: 1;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;  ">
+                    <input type="checkbox" v-model="formData.isShowBest"
+                           @change="list = [];formData.page = 1;searchPath()"/>
+                </div>
+                <div style="flex: 1;line-height: 50px;height: 50px;border-right: 1px solid blue;"
+                     @click="formData.page = 1;searchPath();">
+                    {{ count }}
                 </div>
             </div>
         </div>
-
-        <div style="overflow-y: auto; position: absolute;top: 50px;height: calc( 100vh - 128px);width: 100vw;">
+        <div class="content">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
-                <div class="img-div" @click="clickImg(item)" style="padding-bottom: 10px;">
+                <div class="img-div" @click="clickImg(item)" style="">
                     <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
                 </div>
+            </div>
+        </div>
+        <div class="footer">
+            <div style="text-align: center;padding: 10px;color: blue;height: 30px;line-height: 30px;"
+                 @click="formData.page++;searchPath();"
+                 v-if="showLoad">加载更多
             </div>
         </div>
     </div>
@@ -81,3 +82,36 @@ export default {
     }
 }
 </script>
+
+<style>
+.header, .footer {
+    background-color: #ccc;
+    color: white;
+    text-align: center;
+    height: 50px;
+    line-height: 50px;
+    font-size: 20px;
+    left: 0;
+    right: 0;
+}
+
+.header {
+    position: fixed;
+    top: 0;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+}
+
+.content {
+    position: absolute;
+    top: 50px;
+    bottom: 50px;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+    background-color: #ccc;
+}
+</style>
