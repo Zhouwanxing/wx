@@ -19,11 +19,11 @@
                 </div>
             </div>
         </div>
-        <div class="content">
+        <div class="content" @scroll="handleScroll">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;">{{ item.name || item.date }}</div>
                 <div class="img-div" @click="clickImg(item)" style="">
-                    <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
+                    <img style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                 </div>
             </div>
         </div>
@@ -38,6 +38,7 @@
 
 <script>
 import Http from "../js/Http.js";
+import axios from "axios";
 
 export default {
     name: "Collect",
@@ -52,6 +53,7 @@ export default {
             list: [],
             showLoad: true,
             count: 0,
+            loadImg: false
         }
     },
     mounted() {
@@ -61,6 +63,28 @@ export default {
         }, 1);
     },
     methods: {
+        handleScroll: function () {
+            const self = this;
+            if (self.loadImg) {
+                return;
+            }
+            self.loadImg = true;
+            let one = self.list.find(item => !item.base64 && !item.err);
+            if (one) {
+                axios.get(one.img, {timeout: 10000}).then((response) => {
+                    if (response.data) {
+                        one.base64 = response.data;
+                        document.getElementById(one._id).src = response.data;
+                    }
+                    self.loadImg = false;
+                }).catch((e) => {
+                    one.err = true;
+                    self.loadImg = false;
+                });
+            } else {
+                self.loadImg = false;
+            }
+        },
         clickImg: function (item) {
             window.open("./video.html?url=" + item.url);
         },
