@@ -12,14 +12,16 @@
                      @click="page = 0;list = [];getList();">刷新({{count}})
                 </div>
             </div>
-            <div v-for="(item) in list" :key="item._id" class="one-mp4" @click="clickImg(item)">
-                <div style="padding: 10px;">{{ item.name || item.date }}</div>
-<!--                <div class="img-div" @click="clickImg(item)">
-                    <img :src="item.img" style="width: 100%;height: 100%;" alt=""/>
+            <div @scroll="handleScroll">
+                <div v-for="(item) in list" :key="item._id" class="one-mp4">
+                    <div style="padding: 10px;" @click.stop="clickImg(item)">{{ item.name || item.date }}</div>
+                    <div class="img-div" @click.stop="clickImg(item)">
+                        <img src="" style="width: 100%;height: 100%;" alt=""/>
+                    </div>
+                    <div style="padding: 10px;">
+                        <button @click.stop="updateLike(item,'delete','noFresh')">不喜欢</button>
+                    </div>
                 </div>
-                <div style="padding: 10px;">
-                    <button @click="updateLike(item,false,'noFresh')">不喜欢</button>
-                </div>-->
             </div>
             <div style="text-align: center;padding: 10px;color: blue;" @click="getList">加载更多</div>
         </div>
@@ -49,6 +51,7 @@
 
 <script>
 import Http from "../js/Http.js";
+import axios from "axios";
 
 export default {
     name: "Mp4.vue",
@@ -60,7 +63,8 @@ export default {
             selectMp4: {},
             isShowLike: false,
             paths: [],
-            path: ""
+            path: "",
+            loadImg: false
         }
     },
     mounted() {
@@ -74,6 +78,28 @@ export default {
     watch: {
     },
     methods: {
+        handleScroll: function () {
+            const self = this;
+            if (self.loadImg) {
+                return;
+            }
+            self.loadImg = true;
+            let one = self.list.find(item => !item.base64 && !item.err);
+            if (one) {
+                axios.get(one.img, {timeout: 10000}).then((response) => {
+                    if (response.data) {
+                        one.base64 = response.data;
+                        document.getElementById(one._id).src = response.data;
+                    }
+                    self.loadImg = false;
+                }).catch((e) => {
+                    one.err = true;
+                    self.loadImg = false;
+                });
+            } else {
+                self.loadImg = false;
+            }
+        },
         initPaths: function (callback) {
             const self = this;
             Http.sendGet("/mp4/getAllPath", function (data) {
