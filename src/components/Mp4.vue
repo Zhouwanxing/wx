@@ -1,18 +1,20 @@
 <template>
-    <div class="mp4" style="background-color: #ccc;padding: 5px; border-radius: 20px;" @scroll="handleScroll">
+    <div class="mp4">
         <div v-show="!selectMp4._id">
-            <div style="display: flex;height: 40px;text-align: center;">
-                <div style="flex: 1;border-right: 1px solid blue;">
-                    <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option :value="''">请选择</option>
-                        <option v-for="item in paths" :value="item">{{ item }}</option>
-                    </select>
-                </div>
-                <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
-                     @click="page = 0;list = [];getList();">刷新({{count}})
+            <div class="header">
+                <div style="display: flex;height: 40px;text-align: center;">
+                    <div style="flex: 1;border-right: 1px solid blue;">
+                        <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                            <option :value="''">请选择</option>
+                            <option v-for="item in paths" :value="item">{{ item }}</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                         @click="page = 0;list = [];getList();">刷新({{ count }})
+                    </div>
                 </div>
             </div>
-            <div>
+            <div class="content" @scroll="handleScroll">
                 <div v-for="(item) in list" :key="item._id" class="one-mp4">
                     <div style="padding: 10px;" @click.stop="clickImg(item)">{{ item.name || item.date }}</div>
                     <div class="img-div" @click.stop="clickImg(item)">
@@ -23,11 +25,13 @@
                     </div>
                 </div>
             </div>
-            <div style="text-align: center;padding: 10px;color: blue;" @click="getList">加载更多</div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{count}})</div>
-            <div style="padding: 10px;">{{ selectMp4.name + "(" + selectMp4.path + ")" + "(" + selectMp4.date + ")" }}</div>
+            <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
+            <div style="padding: 10px;">{{
+                    selectMp4.name + "(" + selectMp4.path + ")" + "(" + selectMp4.date + ")"
+                }}
+            </div>
             <video controls webkit-playsinline playsinline style="width: 100%;height: 60vh;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
@@ -75,8 +79,7 @@ export default {
             });
         }, 1);
     },
-    watch: {
-    },
+    watch: {},
     methods: {
         handleScroll: function () {
             const self = this;
@@ -166,5 +169,27 @@ export default {
 </script>
 
 <style scoped>
+.mp4 .header {
+    background-color: #ccc;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid white;
+    position: fixed;
+    top: 0;
+    height: 50px;
+    line-height: 50px;
+}
 
+.mp4 .content {
+    position: absolute;
+    top: 50px;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+    background-color: #ccc;
+}
 </style>

@@ -108,7 +108,7 @@ export default {
 </script>
 
 <style>
-.header, .footer {
+.collect .header, .footer {
     background-color: #ccc;
     color: white;
     text-align: center;
@@ -118,21 +118,21 @@ export default {
     border-bottom: 1px solid white;
 }
 
-.header {
+.collect .header {
     position: fixed;
     top: 0;
     height: 50px;
     line-height: 50px;
 }
 
-.footer {
+.collect .footer {
     position: fixed;
     bottom: 0;
     height: 60px;
     padding-top: 5px;
 }
 
-.content {
+.collect .content {
     position: absolute;
     top: 50px;
     bottom: 60px;
