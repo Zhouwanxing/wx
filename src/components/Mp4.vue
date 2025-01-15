@@ -25,6 +25,9 @@
                     </div>
                 </div>
             </div>
+            <div class="footer">
+                <div style="color: blue;" @click="getList">加载更多</div>
+            </div>
         </div>
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
@@ -181,6 +184,20 @@ export default {
     top: 0;
     height: 50px;
     line-height: 50px;
+}
+
+.mp4 .footer {
+    background-color: #ccc;
+    color: white;
+    text-align: center;
+    font-size: 20px;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid white;
+    position: fixed;
+    bottom: 0;
+    height: 60px;
+    padding-top: 5px;
 }
 
 .mp4 .content {
