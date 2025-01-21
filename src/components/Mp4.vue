@@ -16,7 +16,7 @@
             </div>
             <div class="content" @scroll="handleScroll">
                 <div v-for="(item) in list" :key="item._id" class="one-mp4">
-                    <div style="padding: 10px;" @click.stop="clickImg(item)">{{ item.name || item.date }}</div>
+                    <div style="padding: 10px;white-space: pre-wrap;" @click.stop="clickImg(item)">{{ item.name || item.date }}</div>
                     <div class="img-div" @click.stop="clickImg(item)">
                         <img src="" style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                     </div>
@@ -31,11 +31,14 @@
         </div>
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
-            <div style="padding: 10px;">{{
+            <div style="padding: 10px;white-space: pre-wrap;">{{
                     selectMp4.name + "(" + selectMp4.path + ")" + "(" + selectMp4.date + ")"
                 }}
             </div>
-            <video controls webkit-playsinline playsinline style="width: 100%;height: 60vh;">
+            <div style="height: 20vh;">
+                <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
+            </div>
+            <video controls webkit-playsinline playsinline style="width: 100%;height: 45vh;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
             <div style="display: flex;text-align: center;">
@@ -148,11 +151,32 @@ export default {
             if (self.list[0]) {
                 self.$nextTick(function () {
                     self.selectMp4 = self.list[0];
+                    self.$nextTick(function () {
+                        self.setOneImg(self.selectMp4, "one-img-id");
+                    });
                 });
             }
         },
+        setOneImg: function (item, id) {
+            if (item.base64) {
+                document.getElementById(id).src = item.base64;
+                return;
+            }
+            axios.get(item.img, {timeout: 10000}).then((response) => {
+                if (response.data) {
+                    document.getElementById(id).src = response.data;
+                }
+            }).catch((e) => {
+            });
+        },
         clickImg: function (item) {
-            this.selectMp4 = item;
+            const self = this;
+            self.selectMp4 = item;
+            if (item.img) {
+                self.$nextTick(function () {
+                    self.setOneImg(item, "one-img-id");
+                });
+            }
         },
         getList: function (callback) {
             const self = this;
