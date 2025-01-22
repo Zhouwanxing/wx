@@ -39,6 +39,10 @@ const routes = [
     {
         path: "/collect",
         component: () => import("../components/Collect.vue"),
+    },
+    {
+        path: "/auto",
+        component: () => import("../components/Auto.vue"),
     }
 ];
 
