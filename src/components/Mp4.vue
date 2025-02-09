@@ -38,10 +38,10 @@
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
             </div>
-            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;marin-top:10px;">
+            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;margin-top:10px;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
-            <div style="display: flex;text-align: center;">
+            <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
                 </div>
