@@ -38,7 +38,7 @@
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
             </div>
-            <video controls webkit-playsinline playsinline style="width: 100%;height: 45vh;">
+            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;marin-top:10px;">
                 <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
             <div style="display: flex;text-align: center;">
