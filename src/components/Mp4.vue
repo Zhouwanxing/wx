@@ -31,10 +31,8 @@
         </div>
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
-            <div style="padding: 10px;white-space: pre-wrap;">{{
-                    selectMp4.name + "(" + selectMp4.path + ")" + "(" + selectMp4.date + ")"
-                }}
-            </div>
+            <div style="padding: 10px;white-space: pre-wrap;font-size: 6px;">{{ selectMp4.name }}</div>
+            <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
             </div>
