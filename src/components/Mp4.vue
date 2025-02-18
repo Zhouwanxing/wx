@@ -16,7 +16,9 @@
             </div>
             <div class="content" @scroll="handleScroll">
                 <div v-for="(item) in list" :key="item._id" class="one-mp4">
-                    <div style="padding: 10px;white-space: pre-wrap;" @click.stop="clickImg(item)">{{ item.name || item.date }}</div>
+                    <div style="padding: 10px;white-space: pre-wrap;" @click.stop="clickImg(item)">
+                        {{ item.name || item.date }}
+                    </div>
                     <div class="img-div" @click.stop="clickImg(item)">
                         <img src="" style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                     </div>
@@ -47,10 +49,13 @@
                     <button @click="refreshVideo">刷新</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4,'good')">收藏</button>
+                    <button @click="updateLike(selectMp4,'good')">good</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4,'best')">最爱</button>
+                    <button @click="updateLike(selectMp4,'better')">better</button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click="updateLike(selectMp4,'best')">best</button>
                 </div>
             </div>
         </div>

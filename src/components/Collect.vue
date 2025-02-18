@@ -9,9 +9,22 @@
                         <option v-for="item in paths" :value="item">{{ item }}</option>
                     </select>
                 </div>
-                <div style="flex: 1;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;  ">
-                    <input type="checkbox" v-model="formData.isShowBest"
-                           @change="list = [];formData.page = 1;searchPath()"/>
+                <div
+                    style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
+                    <select v-model="formData.showBest" @change="list = [];formData.page = 1;searchPath()"
+                            style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option :value="'good'">good</option>
+                        <option :value="'better'">better</option>
+                        <option :value="'best'">best</option>
+                    </select>
+                </div>
+                <div
+                    style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
+                    <select v-model="formData.beforeMonth" @change="list = [];formData.page = 1;searchPath()"
+                            style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option :value="''">请选择</option>
+                        <option v-for="item in months" :value="item">{{ item }}</option>
+                    </select>
                 </div>
                 <div style="flex: 1;line-height: 50px;height: 50px;"
                      @click="formData.page = 1;searchPath();">
@@ -47,10 +60,12 @@ export default {
             formData: {
                 path: "",
                 page: 1,
-                isShowBest: true
+                showBest: "best",
+                beforeMonth: ""
             },
             paths: [],
             list: [],
+            months: [],
             showLoad: true,
             count: 0,
             loadImg: false
@@ -59,10 +74,22 @@ export default {
     mounted() {
         const self = this;
         setTimeout(function () {
+            self.initMonth();
             self.getAllPath();
         }, 1);
     },
     methods: {
+        initMonth() {
+            //从当前月20个月前的yyyy-MM
+            const self = this;
+            const currentDate = new Date();
+            self.months = [];
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(currentDate);
+                date.setMonth(date.getMonth() - i * 2);
+                self.months.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+            }
+        },
         handleScroll: function () {
             const self = this;
             if (self.loadImg) {
