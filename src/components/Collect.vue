@@ -28,7 +28,7 @@
                 </div>
                 <div style="flex: 1;line-height: 50px;height: 50px;"
                      @click="formData.page = 1;searchPath();">
-                    {{ count }}
+                    {{ count }}/{{ formData.page }}
                 </div>
             </div>
         </div>
@@ -76,6 +76,7 @@ export default {
         setTimeout(function () {
             self.initMonth();
             self.getAllPath();
+            self.searchPath();
         }, 1);
     },
     methods: {
