@@ -16,7 +16,7 @@
             </div>
             <div class="content" @scroll="handleScroll">
                 <div v-for="(item) in list" :key="item._id" class="one-mp4">
-                    <div style="padding: 10px;white-space: pre-wrap;" @click.stop="clickImg(item)">
+                    <div style="padding: 10px;white-space: pre-wrap;overflow-wrap: break-word;" @click.stop="clickImg(item)">
                         {{ item.name || item.date }}
                     </div>
                     <div class="img-div" @click.stop="clickImg(item)">
