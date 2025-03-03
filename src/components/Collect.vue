@@ -15,6 +15,7 @@
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
                         <option :value="'good'">good</option>
                         <option :value="'better'">better</option>
+                        <option :value="'better_bak'">better_bak</option>
                         <option :value="'best'">best</option>
                     </select>
                 </div>
