@@ -1,6 +1,6 @@
 <template>
     <div class="start-page">
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
+        <div style="padding-top: 20px;text-align: center; " v-if="roles.includes('gold')">
             <button @click="toGold('gold')">金价</button>
         </div>
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
