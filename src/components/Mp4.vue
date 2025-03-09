@@ -187,7 +187,13 @@ export default {
                 if (data.code !== 200) {
                     return;
                 }
-                self.list = self.list.concat(data.list);
+                let list = data.list || [];
+                list.forEach(item => {
+                    if (!item.img) {
+                        item.img = `https://pppp.642p.com/images/${item._id}/cover.txt`;
+                    }
+                });
+                self.list = self.list.concat(list);
                 self.count = data.count;
                 if (callback) {
                     callback();
