@@ -43,6 +43,10 @@ const routes = [
     {
         path: "/auto",
         component: () => import("../components/Auto.vue"),
+    },
+    {
+        path: "/tangyue",
+        component: () => import("../components/TangYue.vue"),
     }
 ];
 

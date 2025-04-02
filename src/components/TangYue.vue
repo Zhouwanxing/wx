@@ -1,0 +1,86 @@
+<template>
+    <div class="tangyue">
+        <div class="header">
+            <div style="display: flex;height: 40px;text-align: center;padding: 5px;">
+                <div style="flex: 1;padding: 0 3px;">
+                    <select v-model="formData.xq" style="height: 30px;border: 1px solid #ccc;width: 100%;">
+                        <option :value="'ty'">唐樾</option>
+                        <option :value="'yt'">悦庭</option>
+                    </select>
+                </div>
+                <div style="flex: 1;padding: 0 3px;">
+                    <select v-model="formData.building" style="height: 30px;border: 1px solid #ccc;width: 100%;">
+                        <option v-for="item in builds" :value="item">{{ item }}</option>
+                    </select>
+                </div>
+                <div style="flex: 1;padding: 0 3px;">
+                    <select v-model="formData.unit" style="height: 30px;border: 1px solid #ccc;width: 100%;">
+                        <option :value="'1'">一单元</option>
+                        <option :value="'2'">二单元</option>
+                    </select>
+                </div>
+                <div style="flex: 1;line-height: 30px;background-color: #ccc;border-radius: 10px;"
+                     @click="searchAll">查询
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            <table border="1" style="padding: 15px 5px;width: 100%;">
+                <tr v-for="(oneRow,index) in table" :key="index">
+                    <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;">{{ item }}</th>
+                </tr>
+            </table>
+        </div>
+    </div>
+</template>
+
+<script>
+import Http from "../js/Http.js";
+
+export default {
+    name: "TangYue.vue",
+    data: function () {
+        return {
+            formData: {
+                xq: "ty",
+                building: "A6",
+                unit: "1"
+            },
+            builds: ["A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16"],
+            table: []
+        }
+    },
+    mounted() {
+        const self = this;
+        setTimeout(function () {
+
+        }, 1);
+    },
+    watch: {
+        "formData.xq": function () {
+            console.log("change");
+            this.formData.unit = "1";
+            if (this.formData.xq === "ty") {
+                this.builds = ["A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16"];
+                this.formData.building = "A6";
+            } else {
+                this.builds = ["1", "2", "3", "4", "5", "6", "7", "8"];
+                this.formData.building = "1";
+            }
+        }
+    },
+    computed: {},
+    methods: {
+        searchAll: function () {
+            const self = this;
+            Http.sendPost("/tangyue/getList", self.formData, function (res) {
+                self.table = res.data || [];
+            });
+        }
+    }
+}
+</script>
+
+<style scoped>
+
+</style>

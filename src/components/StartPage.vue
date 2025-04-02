@@ -6,6 +6,9 @@
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
             <button @click="toGold('newGold')">新金价</button>
         </div>
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('tangyue')">
+            <button @click="toGold('tangyue')">房价</button>
+        </div>
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
             <button @click="toGold('mp4')">视频</button>
         </div>
