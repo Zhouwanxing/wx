@@ -26,6 +26,11 @@
         </div>
         <div class="content">
             <table border="1" style="padding: 15px 5px;width: 100%;">
+                <tr>
+                    <th v-for="(oneRow,index) in firstRow" :key="index">
+                        {{ oneRow }}
+                    </th>
+                </tr>
                 <tr v-for="(oneRow,index) in table" :key="index">
                     <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;">{{ item }}</th>
                 </tr>
@@ -51,10 +56,6 @@ export default {
         }
     },
     mounted() {
-        const self = this;
-        setTimeout(function () {
-
-        }, 1);
     },
     watch: {
         "formData.xq": function () {
@@ -69,7 +70,21 @@ export default {
             }
         }
     },
-    computed: {},
+    computed: {
+        firstRow: function () {
+            const self = this;
+            let one = self.table[0] || [];
+            if (one.length === 0) {
+                return [];
+            }
+            let list = [""];
+            for (let i = 0; i < one.length; i++) {
+                list.push((i + 1) + "");
+            }
+            return list;
+
+        }
+    },
     methods: {
         searchAll: function () {
             const self = this;
