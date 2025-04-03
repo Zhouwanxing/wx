@@ -78,7 +78,7 @@ export default {
                 return [];
             }
             let list = [""];
-            for (let i = 0; i < one.length; i++) {
+            for (let i = 0; i < one.length - 1; i++) {
                 list.push((i + 1) + "");
             }
             return list;
