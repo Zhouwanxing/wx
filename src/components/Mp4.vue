@@ -6,7 +6,7 @@
                     <div style="flex: 1;border-right: 1px solid blue;">
                         <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px">
                             <option :value="''">请选择</option>
-                            <option v-for="item in paths" :value="item">{{ item }}</option>
+                            <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
                         </select>
                     </div>
                     <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
@@ -114,7 +114,7 @@ export default {
         },
         initPaths: function (callback) {
             const self = this;
-            Http.sendGet("/mp4/getAllPath", function (data) {
+            Http.sendGet("/mp4/getAllCountAndPath", function (data) {
                 self.paths = data.data || [];
                 callback();
             });
