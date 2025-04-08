@@ -116,7 +116,6 @@ export default {
             const self = this;
             Http.sendGet("/mp4/getAllCountAndPath", function (data) {
                 self.paths = data.data || [];
-
                 callback();
             });
         },
