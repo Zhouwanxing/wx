@@ -24,16 +24,25 @@
                 </div>
             </div>
         </div>
-        <div class="content">
-            <table border="1" style="padding: 15px 5px;width: 100%;">
+        <div class="content scrollable-table">
+            <table border="1" style="padding: 0px 5px 15px 5px;width: 100%;">
+                <thead>
                 <tr>
                     <th v-for="(oneRow,index) in firstRow" :key="index">
                         {{ oneRow }}
                     </th>
                 </tr>
+                <tr>
+                    <th v-for="(oneRow,index) in (table[0] || [])" :key="index">
+                        {{ oneRow }}
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
                 <tr v-for="(oneRow,index) in table" :key="index">
                     <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;">{{ item }}</th>
                 </tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -97,5 +106,16 @@ export default {
 </script>
 
 <style scoped>
+/* 设置表头固定 */
+.tangyue thead {
+    position: sticky;
+    top: 0;
+    background-color: #f2f2f2;
+}
 
+/* 设置表格内容区域可滚动 */
+.tangyue .scrollable-table {
+    height: calc(100vh - 40px); /* 设置表格内容的最大高度 */
+    overflow-y: auto; /* 垂直方向可滚动 */
+}
 </style>
