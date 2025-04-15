@@ -115,7 +115,7 @@ export default {
 
 /* 设置表格内容区域可滚动 */
 .tangyue .scrollable-table {
-    height: calc(100vh - 50px); /* 设置表格内容的最大高度 */
+    height: calc(100vh - 60px); /* 设置表格内容的最大高度 */
     overflow-y: auto; /* 垂直方向可滚动 */
 }
 </style>
