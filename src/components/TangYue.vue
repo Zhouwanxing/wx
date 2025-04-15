@@ -25,21 +25,21 @@
             </div>
         </div>
         <div class="content scrollable-table">
-            <table border="1" style="padding: 0px 5px 15px 5px;width: 100%;">
+            <table border="1" style="width: 100%;">
                 <thead>
                 <tr>
-                    <th v-for="(oneRow,index) in firstRow" :key="index">
-                        {{ oneRow }}
+                    <th v-for="(oneRow,index) in (table[0] || [])" :key="index" :rowspan="index === 0 ? 2 : 1">
+                        {{ index === 0 ? '楼层' : index }}
                     </th>
                 </tr>
                 <tr>
-                    <th v-for="(oneRow,index) in (table[0] || [])" :key="index">
+                    <th v-for="(oneRow,index) in (table[0] || []).slice(1)" :key="index">
                         {{ oneRow }}
                     </th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(oneRow,index) in table" :key="index">
+                <tr v-for="(oneRow,index) in table.slice(1)" :key="index">
                     <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;">{{ item }}</th>
                 </tr>
                 </tbody>
@@ -109,13 +109,13 @@ export default {
 /* 设置表头固定 */
 .tangyue thead {
     position: sticky;
-    top: 0;
+    top: 2px;
     background-color: #f2f2f2;
 }
 
 /* 设置表格内容区域可滚动 */
 .tangyue .scrollable-table {
-    height: calc(100vh - 40px); /* 设置表格内容的最大高度 */
+    height: calc(100vh - 50px); /* 设置表格内容的最大高度 */
     overflow-y: auto; /* 垂直方向可滚动 */
 }
 </style>
