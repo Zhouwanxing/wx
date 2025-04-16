@@ -121,7 +121,7 @@ export default {
             if (selectRow !== -1) {
                 let price = table[selectRow + 1][selectCel];
                 let area = table[0][selectCel];
-                s += price + "*" + area + "=" + (price * area);
+                s += price + "*" + area + "=" + ((price * (area * 100)) / 100);
             }
             return s;
         }
