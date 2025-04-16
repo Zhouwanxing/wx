@@ -16,7 +16,8 @@
                 <div style="flex: 1;padding: 0 3px;">
                     <select v-model="formData.unit" style="height: 30px;border: 1px solid #ccc;width: 100%;">
                         <option :value="'1'">一单元</option>
-                        <option :value="'2'" v-if="['3','4','A12','A15','A7','A9'].includes(formData.building)">二单元</option>
+                        <option :value="'2'" v-if="['3','4','A12','A15','A7','A9'].includes(formData.building)">二单元
+                        </option>
                     </select>
                 </div>
                 <div style="flex: 1;line-height: 50px;background-color: #ccc;border-radius: 10px;"
@@ -88,6 +89,9 @@ export default {
                 this.builds = ["1", "2", "3", "4", "5", "6", "7", "8"];
                 this.formData.building = "1";
             }
+        },
+        "formData.building": function () {
+            this.formData.unit = "1";
         }
     },
     computed: {
@@ -144,7 +148,7 @@ export default {
                 return "";
             }
             const self = this, table = self.table;
-            let cels = table.slice(1).map((oneRow) => oneRow[cIndex]);
+            let cels = table.slice(1).map((oneRow) => oneRow[cIndex]).filter((item) => item !== 0);
             let max = Math.max(...cels);
             let min = Math.min(...cels);
             let current = table[index + 1][cIndex];
