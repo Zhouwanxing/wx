@@ -16,7 +16,7 @@
                 <div style="flex: 1;padding: 0 3px;">
                     <select v-model="formData.unit" style="height: 30px;border: 1px solid #ccc;width: 100%;">
                         <option :value="'1'">一单元</option>
-                        <option :value="'2'">二单元</option>
+                        <option :value="'2'" v-if="['3','4','A12','A15','A7','A9'].includes(formData.building)">二单元</option>
                     </select>
                 </div>
                 <div style="flex: 1;line-height: 50px;background-color: #ccc;border-radius: 10px;"
