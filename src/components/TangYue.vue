@@ -1,7 +1,7 @@
 <template>
     <div class="tangyue">
         <div class="header">
-            <div style="display: flex;height: 40px;text-align: center;padding: 5px;">
+            <div style="display: flex;text-align: center;">
                 <div style="flex: 1;padding: 0 3px;">
                     <select v-model="formData.xq" style="height: 30px;border: 1px solid #ccc;width: 100%;">
                         <option :value="'ty'">唐樾</option>
@@ -19,7 +19,7 @@
                         <option :value="'2'">二单元</option>
                     </select>
                 </div>
-                <div style="flex: 1;line-height: 30px;background-color: #ccc;border-radius: 10px;"
+                <div style="flex: 1;line-height: 50px;background-color: #ccc;border-radius: 10px;"
                      @click="searchAll">查询
                 </div>
             </div>
@@ -40,10 +40,17 @@
                 </thead>
                 <tbody>
                 <tr v-for="(oneRow,index) in table.slice(1)" :key="index">
-                    <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;">{{ item }}</th>
+                    <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;"
+                        :class="getTop(index,cIndex)"
+                        @click="clickTh(index,cIndex)">{{ item }}
+                    </th>
                 </tr>
                 </tbody>
             </table>
+        </div>
+        <div class="footer">
+            <div>{{ showText1 }}</div>
+            <div>{{ showText2 }}</div>
         </div>
     </div>
 </template>
@@ -61,7 +68,11 @@ export default {
                 unit: "1"
             },
             builds: ["A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15", "A16"],
-            table: []
+            table: [],
+            showText1: "",
+            showText2: "",
+            selectRow: -1,
+            selectCel: -1,
         }
     },
     mounted() {
@@ -91,21 +102,96 @@ export default {
                 list.push((i + 1) + "");
             }
             return list;
-
+        },
+        showText1: function () {
+            const self = this, {formData, table, selectRow, selectCel} = self, {xq, building, unit} = formData;
+            let s = (xq === "ty" ? "唐樾" : "悦庭") + building + "栋" + unit + "单元";
+            if (selectRow !== -1) {
+                s += table[selectRow + 1][0] + "层" + selectCel + "号";
+            }
+            return s;
+        },
+        showText2: function () {
+            const self = this, {selectRow, table, selectCel} = self;
+            let s = "";
+            if (selectRow !== -1) {
+                let price = table[selectRow + 1][selectCel];
+                let area = table[0][selectCel];
+                s += price + "*" + area + "=" + (price * area);
+            }
+            return s;
         }
     },
     methods: {
         searchAll: function () {
             const self = this;
+            self.selectRow = -1;
+            self.selectCel = -1;
             Http.sendPost("/tangyue/getList", self.formData, function (res) {
                 self.table = res.data || [];
             });
+        },
+        clickTh: function (index, cIndex) {
+            if (cIndex === 0) {
+                return;
+            }
+            const self = this;
+            self.selectRow = index;
+            self.selectCel = cIndex;
+        },
+        getTop: function (index, cIndex) {
+            if (cIndex === 0) {
+                return "";
+            }
+            const self = this, table = self.table;
+            let cels = table.slice(1).map((oneRow) => oneRow[cIndex]);
+            let max = Math.max(...cels);
+            let min = Math.min(...cels);
+            let current = table[index + 1][cIndex];
+            if (current === max) {
+                return "bg-red";
+            } else if (current === min) {
+                return "bg-yellow";
+            }
+            return "";
         }
     }
 }
 </script>
 
 <style scoped>
+.tangyue .header, .footer {
+    text-align: center;
+    font-size: 20px;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid white;
+}
+
+.tangyue .header {
+    position: fixed;
+    top: 0;
+    height: 50px;
+    line-height: 50px;
+}
+
+.tangyue .footer {
+    position: fixed;
+    bottom: 0;
+    height: 60px;
+    padding-top: 5px;
+    border-top: 1px solid black;
+}
+
+.tangyue .content {
+    position: absolute;
+    top: 50px;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+}
+
 /* 设置表头固定 */
 .tangyue thead {
     position: sticky;
@@ -115,7 +201,14 @@ export default {
 
 /* 设置表格内容区域可滚动 */
 .tangyue .scrollable-table {
-    height: calc(100vh - 80px); /* 设置表格内容的最大高度 */
     overflow-y: auto; /* 垂直方向可滚动 */
+}
+
+.tangyue .bg-red {
+    background-color: red;
+}
+
+.tangyue .bg-yellow {
+    background-color: yellow;
 }
 </style>
