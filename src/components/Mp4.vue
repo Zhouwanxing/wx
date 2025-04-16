@@ -154,6 +154,7 @@ export default {
             if (self.list[0]) {
                 self.$nextTick(function () {
                     self.selectMp4 = self.list[0];
+                    self.selectMp4.url = self.list[0].url.replace('https', 'http');
                     self.$nextTick(function () {
                         self.setOneImg(self.selectMp4, "one-img-id");
                     });
