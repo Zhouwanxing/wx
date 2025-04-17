@@ -22,7 +22,8 @@
     function refresh() {
         const paramValue = new URL(window.location.href).searchParams.get('url');
         const videoElement = document.getElementById('myVideo');
-        videoElement.src = isHttps ? paramValue.replace("https", "http") : paramValue.replace("http", "https");
+        videoElement.src = isHttps ? paramValue.replace("https:", "http:") :
+            paramValue.replace("http:", "https:");
         isHttps = !isHttps;
         // 加载并播放视频
         videoElement.load();
