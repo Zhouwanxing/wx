@@ -8,13 +8,26 @@
 <video id="myVideo" controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
     <source src="" type="video/mp4">
 </video>
+<button onclick="refresh()">切换</button>
 <script>
+
     const paramValue = new URL(window.location.href).searchParams.get('url');
     const videoElement = document.getElementById('myVideo');
     videoElement.src = paramValue;
+    var isHttps = paramValue.includes("https");
     // 加载并播放视频
     videoElement.load();
     videoElement.play();
+
+    function refresh() {
+        const paramValue = new URL(window.location.href).searchParams.get('url');
+        const videoElement = document.getElementById('myVideo');
+        videoElement.src = isHttps ? paramValue.replace("https", "http") : paramValue.replace("http", "https");
+        isHttps = !isHttps;
+        // 加载并播放视频
+        videoElement.load();
+        videoElement.play();
+    }
 </script>
 </body>
 </html>
