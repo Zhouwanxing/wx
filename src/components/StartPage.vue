@@ -50,13 +50,14 @@ export default {
     methods: {
         checkLogin: function () {
             const self = this;
-            // Http.sendGet("/user/isLogin", function (data) {
-            //     if (data.code === 200) {
-            self.roles = Cache.roles || [];
-            // } else {
-            //     self.$router.replace({path: "/"});
-            // }
-            // });
+            Http.sendGet("/user/isLogin", function (data) {
+                if (data.code === 200) {
+                    Cache.roles = data.data?.roles || [];
+                    self.roles = Cache.roles || [];
+                } else {
+                    self.$router.replace({path: "/"});
+                }
+            });
         },
         toGold: function (page) {
             this.$router.push({path: '/' + page});
