@@ -34,12 +34,12 @@
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
             <div style="padding: 10px;white-space: pre-wrap;font-size: 6px;">{{ selectMp4.name }}</div>
-            <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }} {{selectMp4.url.replace('https', 'http') }}</div>
+            <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
             </div>
             <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;margin-top:10px;">
-                <source :src="selectMp4.name ? selectMp4.url.replace('https', 'http') : ''" type="video/mp4">
+                <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
             </video>
             <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
                 <div style="flex: 1;">
@@ -154,7 +154,7 @@ export default {
             if (self.list[0]) {
                 self.$nextTick(function () {
                     self.selectMp4 = self.list[0];
-                    self.selectMp4.url = self.list[0].url.replace('https', 'http');
+                    // self.selectMp4.url = self.list[0].url.replace('https', 'http');
                     self.$nextTick(function () {
                         self.setOneImg(self.selectMp4, "one-img-id");
                     });
