@@ -35,11 +35,15 @@
             <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
             <div style="padding: 10px;white-space: pre-wrap;font-size: 6px;">{{ selectMp4.name }}</div>
             <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
+            <div>
+                <button @click="changePlay">切换播放源</button>
+            </div>
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
             </div>
-            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;margin-top:10px;">
-                <source :src="selectMp4.name ? selectMp4.url : ''" type="video/mp4">
+            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;margin-top:10px;"
+                   id="mp4Video">
+                <source src="" type="video/mp4">
             </video>
             <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
                 <div style="flex: 1;">
@@ -77,12 +81,14 @@ export default {
             isShowLike: false,
             paths: [],
             path: "",
-            loadImg: false
+            loadImg: false,
+            playSource: "https"
         }
     },
     mounted() {
         const self = this;
         setTimeout(function () {
+            self.playSource = localStorage.getItem("mp4PlaySource") || "https";
             self.initPaths(function () {
                 self.getList();
             });
@@ -90,6 +96,21 @@ export default {
     },
     watch: {},
     methods: {
+        changePlay: function () {
+            const self = this;
+            let source = localStorage.getItem("mp4PlaySource") || "";
+            self.playSource = source === "https" ? "http" : "https";
+            localStorage.setItem("mp4PlaySource", self.playSource);
+        },
+        playVideo: function (url) {
+            const self = this;
+            self.$nextTick(function () {
+                const videoElement = document.getElementById('mp4Video');
+                videoElement.src = self.playSource === "https" ? url.replace("http", "https") : url.replace("https", "http");
+                videoElement.load();
+                videoElement.play();
+            });
+        },
         handleScroll: function () {
             const self = this;
             if (self.loadImg) {
@@ -154,9 +175,9 @@ export default {
             if (self.list[0]) {
                 self.$nextTick(function () {
                     self.selectMp4 = self.list[0];
-                    // self.selectMp4.url = self.list[0].url.replace('https', 'http');
                     self.$nextTick(function () {
                         self.setOneImg(self.selectMp4, "one-img-id");
+                        self.playVideo(self.selectMp4.url);
                     });
                 });
             }
@@ -181,6 +202,7 @@ export default {
                     self.setOneImg(item, "one-img-id");
                 });
             }
+            self.playVideo(item.url);
         },
         getList: function (callback) {
             const self = this;
