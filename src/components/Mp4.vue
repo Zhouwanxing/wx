@@ -37,6 +37,7 @@
             <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
             <div>
                 <button @click="changePlay">切换播放源</button>
+                <button @click="openNewVideo">打开新地址</button>
             </div>
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
@@ -101,6 +102,10 @@ export default {
             let source = localStorage.getItem("mp4PlaySource") || "";
             self.playSource = source === "https" ? "http" : "https";
             localStorage.setItem("mp4PlaySource", self.playSource);
+        },
+        openNewVideo: function () {
+            const self = this;
+            window.open(self.selectMp4.url);
         },
         playVideo: function (url) {
             const self = this;
