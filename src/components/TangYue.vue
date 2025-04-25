@@ -182,7 +182,7 @@ export default {
 .tangyue .footer {
     position: fixed;
     bottom: 0;
-    height: 60px;
+    height: 70px;
     padding-top: 5px;
     border-top: 1px solid black;
 }
@@ -190,7 +190,7 @@ export default {
 .tangyue .content {
     position: absolute;
     top: 50px;
-    bottom: 60px;
+    bottom: 70px;
     left: 0;
     right: 0;
     overflow-y: auto;

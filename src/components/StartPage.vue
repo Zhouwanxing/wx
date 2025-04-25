@@ -9,6 +9,9 @@
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('tangyue')">
             <button @click="toGold('tangyue')">房价</button>
         </div>
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('tangyue')">
+            <button @click="toGold('erPage')">二手房</button>
+        </div>
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
             <button @click="toGold('mp4')">视频</button>
         </div>

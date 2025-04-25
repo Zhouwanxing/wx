@@ -47,6 +47,10 @@ const routes = [
     {
         path: "/tangyue",
         component: () => import("../components/TangYue.vue"),
+    },
+    {
+        path: "/erPage",
+        component: () => import("../components/ErPage.vue"),
     }
 ];
 
