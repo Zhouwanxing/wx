@@ -43,7 +43,9 @@ export default {
     computed: {},
     methods: {
         clickOne: function (item) {
-
+            if (item.linkUrl) {
+                window.open(item.linkUrl);
+            }
         },
         findAll: function () {
             const self = this;
