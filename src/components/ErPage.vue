@@ -7,7 +7,7 @@
             <div v-for="(item,index) in list" :key="index" @click="clickOne(item)"
                  style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;">
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
-                <div>{{ item.priceStr }}</div>
+                <div>{{ item.priceStr }}{{ item.from }}</div>
                 <div>楼栋:{{ areaPlace(item.area) }}</div>
                 <div v-if="(item.histories || []).length > 0" style="margin-top: 10px;color:red;">
                     <div v-for="(one,oneIndex) in item.histories" :key="'a'+oneIndex">
