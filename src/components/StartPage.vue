@@ -25,6 +25,9 @@
         <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('auto')">
             <button @click="toGold('auto')">打卡</button>
         </div>
+        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('company')">
+            <button @click="toGold('companyPerson')">记录人员</button>
+        </div>
         <div style="margin-top: 20px;text-align: center; ">
             <button @click="loginOut">退出</button>
         </div>

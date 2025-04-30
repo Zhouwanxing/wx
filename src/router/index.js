@@ -51,7 +51,11 @@ const routes = [
     {
         path: "/erPage",
         component: () => import("../components/ErPage.vue"),
-    }
+    },
+    {
+        path: "/companyPerson",
+        component: () => import("../components/CompanyPerson.vue"),
+    },
 ];
 
 // 创建路由
