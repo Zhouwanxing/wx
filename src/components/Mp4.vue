@@ -62,6 +62,9 @@
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4,'best')">best</button>
                 </div>
+                <div style="flex: 1;">
+                    <button @click="updateLike(selectMp4,'top1')">top1</button>
+                </div>
             </div>
         </div>
     </div>
