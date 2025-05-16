@@ -40,6 +40,9 @@
                 <div class="img-div" @click="clickImg(item)" style="">
                     <img style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                 </div>
+                <div>
+                    <button @click="openInXx(item)">官网打开</button>
+                </div>
             </div>
         </div>
         <div class="footer">
@@ -114,6 +117,14 @@ export default {
             } else {
                 self.loadImg = false;
             }
+        },
+        openInXx: function (item) {
+            const self = this;
+            Http.sendGet("/mp4/getInXxUrl?id=" + item._id, function (data) {
+                if (data.data) {
+                    window.open(data.data);
+                }
+            });
         },
         clickImg: function (item) {
             window.open("./video.html?url=" + item.url);
