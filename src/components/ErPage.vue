@@ -15,6 +15,10 @@
                         <span style="margin-left: 20px;">{{ one.price }}</span>
                     </div>
                 </div>
+                <div>
+                    <button @click="updateLike(item, 'delete')">没了</button>
+                    <button @click="updateLike(item, 'notLike')" style="margin-left: 20px;">不喜欢</button>
+                </div>
             </div>
         </div>
         <div class="footer">
@@ -51,6 +55,17 @@ export default {
             const self = this;
             Http.sendPost("/tangyue/getAJK", {}, function (res) {
                 self.list = res.data || [];
+            });
+        },
+        updateLike: function (item, type) {
+            const self = this;
+            Http.sendPost("/tangyue/updateErSF", {id: item._id, type: type}, function (res) {
+                let index = self.list.findIndex(function (item2) {
+                    return item2._id === item._id;
+                });
+                if (index !== -1) {
+                    self.list.splice(index, 1);
+                }
             });
         },
         areaPlace: function (area) {
