@@ -8,7 +8,7 @@ export default {
         }*/
         document.getElementById("loading-indicator-id").style.display = "block";
         axios.get(import.meta.env.VITE_BASE_URL + path, {
-            timeout: 60000,
+            timeout: 10000,
             headers: {[tokenName]: tokenValue}
         }).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
@@ -31,7 +31,7 @@ export default {
         }*/
         document.getElementById("loading-indicator-id").style.display = "block";
         axios.post(import.meta.env.VITE_BASE_URL + path, data, {
-            timeout: 60000,
+            timeout: 10000,
             headers: {[tokenName]: tokenValue}
         }).then((response) => {
             document.getElementById("loading-indicator-id").style.display = "none";
