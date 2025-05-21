@@ -8,7 +8,11 @@
                  style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;">
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
                 <div>{{ item.priceStr }}{{ item.from }}</div>
-                <div>楼栋:{{ areaPlace(item.area) }}</div>
+                <div v-for="(cItem,cIndex) in areaPlace(item.area)" :key="'c' + cIndex">
+                    <span>{{ cItem._id }}</span>
+                    <span style="margin-left: 20px;">{{ cItem.closestArea }}</span>
+                    <span style="margin-left: 20px;">{{ cItem.diff.toFixed(2) }}</span>
+                </div>
                 <div v-if="(item.histories || []).length > 0" style="margin-top: 10px;color:red;">
                     <div v-for="(one,oneIndex) in item.histories" :key="'a'+oneIndex">
                         <span>{{ one.time }}</span>
@@ -34,7 +38,20 @@ export default {
     name: "ErPage",
     data: function () {
         return {
-            list: []
+            list: [],
+            buildings: [
+                {_id: "A11", areas: [117.83, 117.42, 120.07, 119.75]},
+                {_id: "A13", areas: [119.53, 117.54, 117.97, 119.5, 118.42, 120.19]},
+                {_id: "A8", areas: [89.69, 117.24, 85.98]},
+                {_id: "A10", areas: [141.42, 122.81, 141.85, 141.54, 123.11]},
+                {_id: "A15", areas: [91.52, 91.85, 113.36, 113.19]},
+                {_id: "A16", areas: [91.52, 91.85, 113.36, 113.19]},
+                {_id: "A9", areas: [194.29, 159.57]},
+                {_id: "A12", areas: [120.05, 118.94, 114.45]},
+                {_id: "A7", areas: [112.8, 120.99, 118.22, 113.11, 118.42, 120.87, 113.33, 121.32, 117.98, 120.83]},
+                {_id: "A14", areas: [117.99, 119.89]},
+                {_id: "A6", areas: [118.83, 121.38]}
+            ]
         }
     },
     mounted() {
@@ -68,32 +85,24 @@ export default {
                 }
             });
         },
-        areaPlace: function (area) {
-            let map = {
-                85: ["A8"],
-                89: ["A8"],
-                91: ["A15", "A16"],
-                112: ["A7"],
-                113: ["A15", "A7", "A16"],
-                114: ["A12"],
-                117: ["A8", "A13", "A7", "A14", "A11"],
-                118: ["A12", "A13", "A7", "A6"],
-                119: ["A13", "A14", "A11"],
-                120: ["A12", "A13", "A7", "A11"],
-                121: ["A7", "A6"],
-                122: ["A10"],
-                123: ["A10"],
-                141: ["A10"],
-                194: ["A9"],
-                159: ["A9"],
-            };
-            let count = -1;
-            while (count++ < 10) {
-                if (map.hasOwnProperty(parseInt(area) + count)) {
-                    return map[parseInt(area) + count].join(",");
+        areaPlace: function (targetArea) {
+            const self = this;
+            const matches = [];
+            self.buildings.forEach(building => {
+                const closest = building.areas.reduce((closestSoFar, area) => {
+                    const diff = Math.abs(area - targetArea);
+                    return diff < closestSoFar.diff ? {area, diff} : closestSoFar;
+                }, {area: null, diff: Infinity});
+
+                if (closest.diff <= 2) {
+                    matches.push({
+                        _id: building._id,
+                        closestArea: closest.area,
+                        diff: closest.diff
+                    });
                 }
-            }
-            return "";
+            });
+            return matches.sort((a, b) => a.diff - b.diff).slice(0, 5);
         }
     },
     filters: {}
