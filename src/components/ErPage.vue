@@ -16,8 +16,8 @@
                     </div>
                 </div>
                 <div>
-                    <button @click="updateLike(item, 'delete')">没了</button>
-                    <button @click="updateLike(item, 'notLike')" style="margin-left: 20px;">不喜欢</button>
+                    <button @click.stop="updateLike(item, 'delete')">没了</button>
+                    <button @click.stop="updateLike(item, 'notLike')" style="margin-left: 20px;">不喜欢</button>
                 </div>
             </div>
         </div>
