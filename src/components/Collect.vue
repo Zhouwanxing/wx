@@ -6,6 +6,7 @@
                     <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
                         <option :value="'all'">请选择</option>
+
                         <option v-for="item in paths" :value="item">{{ item }}</option>
                     </select>
                 </div>
