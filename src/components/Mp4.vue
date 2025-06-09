@@ -5,7 +5,7 @@
                 <div style="display: flex;height: 40px;text-align: center;">
                     <div style="flex: 1;border-right: 1px solid blue;">
                         <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                            <option :value="''">请选择</option>
+                            <option :value="'all'">请选择</option>
                             <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
                         </select>
                     </div>
@@ -84,7 +84,7 @@ export default {
             selectMp4: {},
             isShowLike: false,
             paths: [],
-            path: "",
+            path: "all",
             loadImg: false,
             playSource: "https"
         }

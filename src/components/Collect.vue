@@ -5,7 +5,7 @@
                 <div style="flex: 2;border-right: 1px solid blue;">
                     <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option :value="''">请选择</option>
+                        <option :value="'all'">请选择</option>
                         <option v-for="item in paths" :value="item">{{ item }}</option>
                     </select>
                 </div>
@@ -63,7 +63,7 @@ export default {
     data() {
         return {
             formData: {
-                path: "",
+                path: "all",
                 page: 1,
                 showBest: "best",
                 beforeMonth: ""
