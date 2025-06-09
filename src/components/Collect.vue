@@ -41,7 +41,7 @@
                     <img style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                 </div>
                 <div>
-                    <button @click="openInXx(item)">官网打开</button>
+                    <button @click.stop="openInXx(item)">官网打开</button>
                 </div>
             </div>
         </div>
