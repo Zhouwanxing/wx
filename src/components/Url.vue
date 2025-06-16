@@ -62,7 +62,7 @@ export default {
         getNewUrl: function () {
             const self = this;
             Http.sendGet("/user/getNewStart", function (res) {
-                self.getNewUrl();
+                self.getUrls();
             });
         },
         getUrls: function () {
