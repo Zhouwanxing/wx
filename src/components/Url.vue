@@ -61,7 +61,7 @@ export default {
         },
         getNewUrl: function () {
             const self = this;
-            Http.sendGet("/mp4/getNewStart", function (res) {
+            Http.sendGet("/user/getNewStart", function (res) {
                 self.getNewUrl();
             });
         },

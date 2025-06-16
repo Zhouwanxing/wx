@@ -5,7 +5,7 @@
         </div>
         <div class="content scrollable-table" style="background-color: white;">
             <div v-for="(item,index) in list" :key="index" @click="clickOne(item)"
-                 style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;">
+                 style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;" :style="selectId === item._id ? 'border:2px solid red;' : ''">
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
                 <div>{{ item.priceStr }}{{ item.from }}</div>
                 <div v-for="(cItem,cIndex) in areaPlace(item.area)" :key="'c' + cIndex">
@@ -51,7 +51,8 @@ export default {
                 {_id: "A7", areas: [112.8, 120.99, 118.22, 113.11, 118.42, 120.87, 113.33, 121.32, 117.98, 120.83]},
                 {_id: "A14", areas: [117.99, 119.89]},
                 {_id: "A6", areas: [118.83, 121.38]}
-            ]
+            ],
+            selectId: ""
         }
     },
     mounted() {
@@ -65,6 +66,7 @@ export default {
     methods: {
         clickOne: function (item) {
             if (item.linkUrl) {
+                this.selectId = item._id;
                 window.open(item.linkUrl);
             }
         },
