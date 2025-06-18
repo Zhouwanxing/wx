@@ -116,8 +116,13 @@ export default {
                 const videoElement = document.getElementById('mp4Video');
                 videoElement.src = self.playSource === "https" ?
                     url.replace("http:", "https:") : url.replace("https:", "http:");
+                videoElement.addEventListener('loadeddata', () => {
+                    // 自动播放
+                    videoElement.play();
+                    // 快进到视频中间位置（假设中间位置是视频时长的一半）
+                    videoElement.currentTime = videoElement.duration / 2;
+                });
                 videoElement.load();
-                videoElement.play();
             });
         },
         handleScroll: function () {
