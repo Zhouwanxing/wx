@@ -113,6 +113,7 @@ export default {
         playVideo: function (url) {
             const self = this;
             self.$nextTick(function () {
+
                 const videoElement = document.getElementById('mp4Video');
                 videoElement.src = self.playSource === "https" ?
                     url.replace("http:", "https:") : url.replace("https:", "http:");
