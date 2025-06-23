@@ -13,11 +13,13 @@
                     style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
                     <select v-model="formData.showBest" @change="list = [];formData.page = 1;searchPath()"
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option :value="'top1'">top1</option>
+                        <option :value="'top2'">top2</option>
+                        <option :value="'top3'">top3</option>
+                        <option :value="'top4'">top4</option>
                         <option :value="'good'">good</option>
                         <option :value="'better'">better</option>
-                        <option :value="'better_bak'">better_bak</option>
                         <option :value="'best'">best</option>
-                        <option :value="'top1'">top1</option>
                     </select>
                 </div>
                 <div

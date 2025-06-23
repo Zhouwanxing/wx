@@ -54,13 +54,13 @@
                     <button @click="refreshVideo">刷新</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4,'good')">good</button>
+                    <button @click="updateLike(selectMp4,'top4')">good</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4,'better')">better</button>
+                    <button @click="updateLike(selectMp4,'top3')">better</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4,'best')">best</button>
+                    <button @click="updateLike(selectMp4,'top2')">best</button>
                 </div>
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4,'top1')">top1</button>
