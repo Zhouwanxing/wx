@@ -26,7 +26,7 @@ export default {
     name: "CompanyPerson",
     data: function () {
         return {
-            list: [{name: "sy", value: ""}, {name: "xy", value: ""}, {name: "hl", value: ""}, {name: "wyl", value: ""}]
+            list: [{name: "sy", value: ""}, {name: "xy", value: ""}, {name: "hl", value: ""}]
         }
     },
     mounted() {
