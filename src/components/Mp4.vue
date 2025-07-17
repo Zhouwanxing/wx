@@ -122,7 +122,7 @@ export default {
                     // 自动播放
                     videoElement.play();
                     // 快进到视频中间位置（假设中间位置是视频时长的一半）
-                    videoElement.currentTime = videoElement.duration / 2;
+                    videoElement.currentTime = videoElement.duration / 3;
                 });
                 // 自动播放
                 videoElement.play();
