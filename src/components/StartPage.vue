@@ -94,7 +94,7 @@ export default {
 </script>
 <style scoped>
 .start-page {
-    min-height: 100vh;
+    height: 100vh;
     background: #f8f9fa;
     display: flex;
     justify-content: center;
