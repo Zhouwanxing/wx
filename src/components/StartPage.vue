@@ -1,35 +1,48 @@
 <template>
     <div class="start-page">
-        <div style="padding-top: 20px;text-align: center; " v-if="roles.includes('gold')">
-            <button @click="toGold('gold')">金价</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('gold')">
-            <button @click="toGold('newGold')">新金价</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('tangyue')">
-            <button @click="toGold('tangyue')">房价</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('tangyue')">
-            <button @click="toGold('erPage')">二手房</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
-            <button @click="toGold('mp4')">视频</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('mp4')">
-            <button @click="toGold('collect')">收藏</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('url')">
-            <button @click="toGold('url')">地址</button>
-        </div>
-
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('auto')">
-            <button @click="toGold('auto')">打卡</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; " v-if="roles.includes('company')">
-            <button @click="toGold('companyPerson')">记录人员</button>
-        </div>
-        <div style="margin-top: 20px;text-align: center; ">
-            <button @click="loginOut">退出</button>
+        <div class="card">
+            <div class="button-grid">
+                <button class="menu-btn" v-if="roles.includes('gold')" @click="toGold('gold')">
+                    <span class="icon">💰</span>
+                    <span class="label">金价</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('gold')" @click="toGold('newGold')">
+                    <span class="icon">✨</span>
+                    <span class="label">新金价</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('tangyue')" @click="toGold('tangyue')">
+                    <span class="icon">🏠</span>
+                    <span class="label">房价</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('tangyue')" @click="toGold('erPage')">
+                    <span class="icon">📦</span>
+                    <span class="label">二手房</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('mp4')" @click="toGold('mp4')">
+                    <span class="icon">🎬</span>
+                    <span class="label">视频</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('mp4')" @click="toGold('collect')">
+                    <span class="icon">⭐</span>
+                    <span class="label">收藏</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('url')" @click="toGold('url')">
+                    <span class="icon">🔗</span>
+                    <span class="label">地址</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('auto')" @click="toGold('auto')">
+                    <span class="icon">⏰</span>
+                    <span class="label">打卡</span>
+                </button>
+                <button class="menu-btn" v-if="roles.includes('company')" @click="toGold('companyPerson')">
+                    <span class="icon">👤</span>
+                    <span class="label">记录人员</span>
+                </button>
+                <button class="menu-btn danger" @click="loginOut">
+                    <span class="icon">🚪</span>
+                    <span class="label">退出</span>
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -80,22 +93,72 @@ export default {
 }
 </script>
 <style scoped>
-.start-page button {
-    width: 150px;
-    /*background-image: linear-gradient(45deg, #f06d06, #f0c040);*/
-    background-image: linear-gradient(45deg, #483e34, #f7f4eb);
-    border: none;
-    color: white;
-    padding: 10px 20px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    transition: background-image 0.2s ease-in-out;
-    border-radius: 15px;
+.start-page {
+    min-height: 100vh;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.start-page button:hover {
-    /*background-image: linear-gradient(45deg, #f08c06, #f0d040);*/
+.card {
+    background: #ffffff;
+    padding: 40px 32px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 24px;
+}
+
+.button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+}
+
+.menu-btn {
+    background-color: #f1f3f5;
+    border: 1px solid #d3dce6;
+    color: #333;
+    border-radius: 12px;
+    padding: 14px;
+    width: 110px;
+    height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+    background-color: #e4e7eb;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+}
+
+.menu-btn .icon {
+    font-size: 26px;
+    margin-bottom: 6px;
+    color: #666;
+}
+
+.menu-btn.danger {
+    background-color: #fef1f1;
+    color: #d9534f;
+    border: 1px solid #f5c6cb;
+}
+
+.menu-btn.danger:hover {
+    background-color: #fae3e3;
 }
 </style>
