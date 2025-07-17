@@ -114,6 +114,8 @@ export default {
             const self = this;
             self.$nextTick(function () {
                 const videoElement = document.getElementById('mp4Video');
+                // 设置倍速（1.5倍速）
+                videoElement.playbackRate = 2; // 可修改为其他值如 0.5、2 等
                 videoElement.src = self.playSource === "https" ?
                     url.replace("http:", "https:") : url.replace("https:", "http:");
                 videoElement.addEventListener('loadeddata', () => {
