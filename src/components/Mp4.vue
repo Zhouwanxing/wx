@@ -122,6 +122,8 @@ export default {
                     // 快进到视频中间位置（假设中间位置是视频时长的一半）
                     videoElement.currentTime = videoElement.duration / 2;
                 });
+                // 自动播放
+                videoElement.play();
                 videoElement.load();
             });
         },
