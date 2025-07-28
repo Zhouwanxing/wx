@@ -1,7 +1,26 @@
 <template>
     <div class="er-page">
         <div class="header">
-            二手房
+            <div style="display: flex;height: 40px;text-align: center;">
+                <div style="flex: 1;border-right: 1px solid blue;">
+                    <select v-model="formData.area" style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option value="100">100</option>
+                        <option value="110">110</option>
+                        <option value="120">120</option>
+                    </select>
+                </div>
+                <div style="flex: 1;border-right: 1px solid blue;">
+                    <select v-model="formData.price" style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option value="250">250</option>
+                        <option value="240">240</option>
+                        <option value="230">230</option>
+                        <option value="220">220</option>
+                    </select>
+                </div>
+                <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                     @click="findAll">查询({{ list.length }})
+                </div>
+            </div>
         </div>
         <div class="content scrollable-table" style="background-color: white;">
             <div v-for="(item,index) in list" :key="index" @click="clickOne(item)"
@@ -52,6 +71,10 @@ export default {
                 {_id: "A14", areas: [117.99, 119.89]},
                 {_id: "A6", areas: [118.83, 121.38]}
             ],
+            formData: {
+                area: 120,
+                price: 240,
+            },
             selectId: ""
         }
     },
@@ -72,7 +95,7 @@ export default {
         },
         findAll: function () {
             const self = this;
-            Http.sendPost("/tangyue/getAJK", {}, function (res) {
+            Http.sendPost("/tangyue/getAJK", self.formData, function (res) {
                 self.list = res.data || [];
             });
         },
