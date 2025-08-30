@@ -67,7 +67,7 @@ export default {
             formData: {
                 path: "all",
                 page: 1,
-                showBest: "best",
+                showBest: "top1",
                 beforeMonth: ""
             },
             paths: [],
