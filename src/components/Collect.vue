@@ -17,9 +17,6 @@
                         <option :value="'top2'">top2</option>
                         <option :value="'top3'">top3</option>
                         <option :value="'top4'">top4</option>
-                        <option :value="'good'">good</option>
-                        <option :value="'better'">better</option>
-                        <option :value="'best'">best</option>
                     </select>
                 </div>
                 <div
