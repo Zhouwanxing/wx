@@ -32,9 +32,10 @@
             </div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="text-align: center;padding: 10px;color: blue;" @click="selectMp4 = {};">关闭({{ count }})</div>
+            <div style="text-align: center;padding: 10px;color: blue;" @click="closeVideo">关闭({{ count }})</div>
             <div style="padding: 10px;white-space: pre-wrap;font-size: 6px;">{{ selectMp4.name }}</div>
             <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
+            <div>{{ selectMp4.url }}</div>
             <div>
                 <button @click="changePlay">切换播放源</button>
                 <button @click="openNewVideo">打开新地址</button>
@@ -160,8 +161,13 @@ export default {
         },
         refreshVideo: function () {
             const self = this;
-            self.selectMp4 = {};
+            self.closeVideo();
             self.showFirst();
+        },
+        closeVideo: function () {
+            const self = this;
+            self.selectMp4 = {};
+            document.getElementById('mp4Video').src = "";
         },
         updateLike: function (item, flag, fresh) {
             const self = this;
@@ -176,7 +182,7 @@ export default {
                     self.list.splice(index, 1);
                 }
                 self.count--;
-                self.selectMp4 = {};
+                self.closeVideo();
                 if (fresh !== "noFresh") {
                     if (self.list[0]) {
                         self.showFirst();
