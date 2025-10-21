@@ -1,32 +1,45 @@
 <template>
     <div class="er-page">
         <div class="header">
-            <div style="display: flex;height: 40px;text-align: center;">
-                <div style="flex: 1;border-right: 1px solid blue;">
-                    <select v-model="formData.area" style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option value="100">100</option>
-                        <option value="110">110</option>
-                        <option value="120">120</option>
-                    </select>
+            <div style="display: flex;height: 40px;text-align: center;width: 100%;">
+                <div style="flex: 1;">
+                    价格：<input type="number" placeholder="最小价格" style="width: 35%;" v-model="formData.priceMin">
+                    <span>~</span>
+                    <input type="number" placeholder="最大价格" style="width: 35%;" v-model="formData.priceMax">
                 </div>
-                <div style="flex: 1;border-right: 1px solid blue;">
-                    <select v-model="formData.price" style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option value="250">250</option>
-                        <option value="240">240</option>
-                        <option value="230">230</option>
-                        <option value="220">220</option>
-                    </select>
+                <div style="flex: 1;">
+                    面积：<input type="number" placeholder="最小面积" style="width: 35%;" v-model="formData.areaMin">
+                    <span>~</span>
+                    <input type="number" placeholder="最大面积" style="width: 35%;" v-model="formData.areaMax">
                 </div>
-                <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
-                     @click="findAll">查询({{ list.length }})
+            </div>
+            <div style="display: flex;height: 40px;text-align: center;width: 100%;">
+                <div style="flex: 1;">
+                    <button @click.stop="formData.sortKey = 'price';formData.sortValue = -formData.sortValue;">
+                        价格{{ formData.sortKey !== 'price' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
+                    </button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click.stop="formData.sortKey = 'area';formData.sortValue = -formData.sortValue;">
+                        面积{{ formData.sortKey !== 'area' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
+                    </button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click.stop="formData.sortKey = 'lastTime';formData.sortValue = -formData.sortValue;">
+                        时间{{ formData.sortKey !== 'lastTime' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
+                    </button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click.stop="findAll">查询({{ list.length }})</button>
                 </div>
             </div>
         </div>
         <div class="content scrollable-table" style="background-color: white;">
             <div v-for="(item,index) in list" :key="index" @click="clickOne(item)"
-                 style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;" :style="selectId === item._id ? 'border:2px solid red;' : ''">
+                 style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;"
+                 :style="selectId === item._id ? 'border:2px solid red;' : ''">
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
-                <div>{{ item.priceStr }}{{ item.from }}</div>
+                <div>{{ item.priceStr }}/{{ item.from }}/{{ item.lastTime || "" }}</div>
                 <div v-for="(cItem,cIndex) in areaPlace(item.area)" :key="'c' + cIndex">
                     <span>{{ cItem._id }}</span>
                     <span style="margin-left: 20px;">{{ cItem.closestArea }}</span>
@@ -72,10 +85,14 @@ export default {
                 {_id: "A6", areas: [118.83, 121.38]}
             ],
             formData: {
-                area: 120,
-                price: 240,
+                areaMin: 110,
+                areaMax: 130,
+                priceMin: 180,
+                priceMax: 240,
+                sortKey: "price",
+                sortValue: 1
             },
-            selectId: ""
+            selectId: "",
         }
     },
     mounted() {
@@ -135,7 +152,7 @@ export default {
 </script>
 
 <style scoped>
-.er-page .header, .footer {
+.er-page .footer {
     text-align: center;
     font-size: 20px;
     left: 0;
@@ -146,8 +163,9 @@ export default {
 .er-page .header {
     position: fixed;
     top: 0;
-    height: 50px;
+    height: 82px;
     line-height: 50px;
+    width: 100%;
 }
 
 .er-page .footer {
@@ -160,7 +178,7 @@ export default {
 
 .er-page .content {
     position: absolute;
-    top: 50px;
+    top: 82px;
     bottom: 60px;
     left: 0;
     right: 0;
