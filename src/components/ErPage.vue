@@ -2,15 +2,20 @@
     <div class="er-page">
         <div class="header">
             <div style="display: flex;height: 40px;text-align: center;width: 100%;">
-                <div style="flex: 1;">
-                    价格：<input type="number" placeholder="最小价格" style="width: 35%;" v-model="formData.priceMin">
+                <div style="flex: 3;">
+                    价格：<input type="number" placeholder="最小价格" style="width: 30%;" v-model="formData.priceMin">
                     <span>~</span>
-                    <input type="number" placeholder="最大价格" style="width: 35%;" v-model="formData.priceMax">
+                    <input type="number" placeholder="最大价格" style="width: 30%;" v-model="formData.priceMax">
+                </div>
+                <div style="flex: 3;">
+                    面积：<input type="number" placeholder="最小面积" style="width: 30%;" v-model="formData.areaMin">
+                    <span>~</span>
+                    <input type="number" placeholder="最大面积" style="width: 30%;" v-model="formData.areaMax">
                 </div>
                 <div style="flex: 1;">
-                    面积：<input type="number" placeholder="最小面积" style="width: 35%;" v-model="formData.areaMin">
-                    <span>~</span>
-                    <input type="number" placeholder="最大面积" style="width: 35%;" v-model="formData.areaMax">
+                    <button @click.stop="formData.showAll = !formData.showAll">
+                        {{ formData.showAll ? '全部' : '低/中' }}
+                    </button>
                 </div>
             </div>
             <div style="display: flex;height: 40px;text-align: center;width: 100%;">
@@ -90,7 +95,8 @@ export default {
                 priceMin: 180,
                 priceMax: 240,
                 sortKey: "price",
-                sortValue: 1
+                sortValue: 1,
+                showAll: false
             },
             selectId: "",
         }
