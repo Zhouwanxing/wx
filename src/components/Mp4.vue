@@ -149,6 +149,7 @@ export default {
                     }
                     self.loadImg = false;
                 }).catch((e) => {
+
                     one.err = true;
                     document.getElementById(one._id).src = one.img;
                     self.loadImg = false;
