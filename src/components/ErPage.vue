@@ -2,20 +2,15 @@
     <div class="er-page">
         <div class="header">
             <div style="display: flex;height: 40px;text-align: center;width: 100%;">
-                <div style="flex: 3;">
+                <div style="flex: 1;">
                     价格：<input type="number" placeholder="最小价格" style="width: 30%;" v-model="formData.priceMin">
                     <span>~</span>
                     <input type="number" placeholder="最大价格" style="width: 30%;" v-model="formData.priceMax">
                 </div>
-                <div style="flex: 3;">
+                <div style="flex: 1;">
                     面积：<input type="number" placeholder="最小面积" style="width: 30%;" v-model="formData.areaMin">
                     <span>~</span>
                     <input type="number" placeholder="最大面积" style="width: 30%;" v-model="formData.areaMax">
-                </div>
-                <div style="flex: 1;">
-                    <button @click.stop="formData.showAll = !formData.showAll">
-                        {{ formData.showAll ? '全部' : '低/中' }}
-                    </button>
                 </div>
             </div>
             <div style="display: flex;height: 40px;text-align: center;width: 100%;">
@@ -32,6 +27,16 @@
                 <div style="flex: 1;">
                     <button @click.stop="formData.sortKey = 'lastTime';formData.sortValue = -formData.sortValue;">
                         时间{{ formData.sortKey !== 'lastTime' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
+                    </button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click.stop="formData.showFloor ++;formData.showFloor = formData.showFloor % 4;">
+                        {{ ['楼层', '低', '中', '高'][formData.showFloor] }}
+                    </button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click.stop="formData.showLike ++;formData.showLike = formData.showLike % 2;">
+                        {{ ['全部', '待处理'][formData.showLike] }}
                     </button>
                 </div>
                 <div style="flex: 1;">
@@ -96,7 +101,8 @@ export default {
                 priceMax: 240,
                 sortKey: "price",
                 sortValue: 1,
-                showAll: false
+                showFloor: 0,
+                showLike: 0
             },
             selectId: "",
         }
