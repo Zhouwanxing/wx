@@ -144,10 +144,13 @@ export default {
                     if (response.data) {
                         one.base64 = response.data;
                         document.getElementById(one._id).src = response.data;
+                    } else {
+                        document.getElementById(one._id).src = one.img;
                     }
                     self.loadImg = false;
                 }).catch((e) => {
                     one.err = true;
+                    document.getElementById(one._id).src = one.img;
                     self.loadImg = false;
                 });
             } else {
