@@ -220,10 +220,10 @@ export default {
                 if (response.data) {
                     document.getElementById(id).src = response.data;
                 } else {
-                    document.getElementById(item._id).src = item.img;
+                    document.getElementById(id).src = item.img;
                 }
             }).catch((e) => {
-                document.getElementById(item._id).src = item.img;
+                document.getElementById(id).src = item.img;
             });
         },
         clickImg: function (item) {
