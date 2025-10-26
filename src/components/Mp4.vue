@@ -218,6 +218,7 @@ export default {
             }
             axios.get(item.img, {timeout: 3000}).then((response) => {
                 if (response.data) {
+
                     document.getElementById(id).src = response.data;
                 } else {
                     document.getElementById(id).src = item.img;
