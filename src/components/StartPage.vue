@@ -34,9 +34,13 @@
                     <span class="icon">⏰</span>
                     <span class="label">打卡</span>
                 </button>
-                <button class="menu-btn" v-if="roles.includes('company')" @click="toGold('companyPerson')">
+<!--                <button class="menu-btn" v-if="roles.includes('company')" @click="toGold('companyPerson')">
                     <span class="icon">👤</span>
                     <span class="label">记录人员</span>
+                </button>-->
+                <button class="menu-btn" v-if="roles.includes('tangyue')" @click="toGold('fdjsq')">
+                    <span class="icon">🐓</span>
+                    <span class="label">房贷计算器</span>
                 </button>
                 <button class="menu-btn danger" @click="loginOut">
                     <span class="icon">🚪</span>

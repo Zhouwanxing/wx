@@ -56,6 +56,10 @@ const routes = [
         path: "/companyPerson",
         component: () => import("../components/CompanyPerson.vue"),
     },
+    {
+        path: "/fdjsq",
+        component: () => import("../components/FangDaiCalc.vue"),
+    },
 ];
 
 // 创建路由
