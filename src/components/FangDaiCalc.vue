@@ -107,7 +107,6 @@ export default {
 </script>
 
 <style scoped>
-
 .fang-dai-calc {
     background-color: #fff;
     padding: 20px;
