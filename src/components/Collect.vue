@@ -21,7 +21,7 @@
                 </div>
                 <div
                     style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
-                    <select v-model="formData.beforeMonth" @change="list = [];formData.page = 1;searchPath()"
+                    <select v-model="formData.beforeMonth" @change="list = [];searchPath(true)"
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
                         <option :value="''">请选择</option>
                         <option v-for="item in months" :value="item">{{ item }}</option>
@@ -89,10 +89,11 @@ export default {
             const self = this;
             const currentDate = new Date();
             self.months = [];
-            for (let i = 0; i < 30; i++) {
-                const date = new Date(currentDate);
-                date.setMonth(date.getMonth() - i * 2);
-                self.months.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+            for (let i = 0; i < 10; i++) {
+                // const date = new Date(currentDate);
+                // date.setMonth(date.getMonth() - i * 2);
+                // self.months.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+                self.months.push(`${i + 1}`);
             }
         },
         handleScroll: function () {
@@ -131,9 +132,14 @@ export default {
         clickImg: function (item) {
             window.open("./video.html?url=" + item.url);
         },
-        searchPath: function () {
+        searchPath: function (flag) {
             const self = this;
-            Http.sendPost("/mp4/getLikeList", self.formData, function (data) {
+            let all = {...self.formData};
+            if (flag && all.beforeMonth) {
+                self.formData.page = all.page = parseInt(self.count / 10 / 10 * parseInt(self.formData.beforeMonth));
+            }
+            all.beforeMonth = "";
+            Http.sendPost("/mp4/getLikeList", all, function (data) {
                 let list = data.data || [];
                 self.showLoad = list.length > 0;
                 self.list = self.list.concat(list);
