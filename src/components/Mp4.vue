@@ -32,7 +32,7 @@
             </div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="text-align: center;padding: 10px;color: blue;" @click="closeVideo">关闭({{ count }})</div>
+            <div style="text-align: center;padding: 10px;color: blue;" @click="closeVideo">关闭({{ count }}/{{list.length}})</div>
             <div style="padding: 2px;white-space: pre-wrap;font-size: 8px;">
                 <div>{{ selectMp4.name }}</div>
                 <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
