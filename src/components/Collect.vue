@@ -13,6 +13,7 @@
                     style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
                     <select v-model="formData.showBest" @change="list = [];formData.page = 1;searchPath()"
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <option :value="'best'">best</option>
                         <option :value="'top1'">top1</option>
                         <option :value="'top2'">top2</option>
                         <option :value="'top3'">top3</option>
@@ -41,6 +42,7 @@
                 </div>
                 <div>
                     <button @click.stop="openInXx(item)">官网打开</button>
+                    <button @click.stop="updateLike(item,'best')" style="margin-left: 10px;">best</button>
                 </div>
             </div>
         </div>
@@ -84,6 +86,12 @@ export default {
         }, 1);
     },
     methods: {
+        updateLike: function (item, flag) {
+            const self = this;
+            Http.sendGet("/mp4/updateLike?id=" + item._id + "&flag=" + flag, function (data) {
+
+            });
+        },
         initMonth() {
             //从当前月20个月前的yyyy-MM
             const self = this;
