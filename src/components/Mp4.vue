@@ -10,7 +10,7 @@
                         </select>
                     </div>
                     <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
-                         @click="page = 0;list = [];getList();">刷新({{ count }})
+                         @click="page = 0;list = [];getList();">刷新({{ count }})/{{ list.length }}
                     </div>
                 </div>
             </div>
