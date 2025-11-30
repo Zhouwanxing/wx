@@ -4,7 +4,7 @@
             <div class="header">
                 <div style="display: flex;height: 40px;text-align: center;">
                     <div style="flex: 1;border-right: 1px solid blue;">
-                        <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px">
+                        <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px" @change="changePath">
                             <option :value="'all'">请选择</option>
                             <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
                         </select>
@@ -95,6 +95,7 @@ export default {
     mounted() {
         const self = this;
         setTimeout(function () {
+            self.getInitPath();
             self.playSource = localStorage.getItem("mp4PlaySource") || "https";
             self.initPaths(function () {
                 self.getList();
@@ -103,6 +104,14 @@ export default {
     },
     watch: {},
     methods: {
+        changePath: function () {
+            const self = this;
+            localStorage.setItem("mp4Path", self.path);
+        },
+        getInitPath: function () {
+            const self = this;
+            self.path = localStorage.getItem("mp4Path") || "all";
+        },
         changePlay: function () {
             const self = this;
             let source = localStorage.getItem("mp4PlaySource") || "";
