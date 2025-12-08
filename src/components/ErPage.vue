@@ -95,11 +95,11 @@ export default {
                 {_id: "A6", areas: [118.83, 121.38]}
             ],
             formData: {
-                areaMin: 110,
-                areaMax: 130,
-                priceMin: 180,
-                priceMax: 240,
-                sortKey: "price",
+                areaMin: 80,
+                areaMax: 200,
+                priceMin: 80,
+                priceMax: 600,
+                sortKey: "lastTime",
                 sortValue: 1,
                 showFloor: 0,
                 showLike: 0
