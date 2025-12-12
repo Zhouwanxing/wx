@@ -9,6 +9,12 @@
         <div class="form-group">
             <input v-model.trim="formData.password" placeholder="请输入密码" type="password"/>
         </div>
+        <div class="radio-group">
+            <div v-for="(one,index) in host" :key="index" class="radio-item">
+                <input type="radio" name="repayType" v-model="selectHost" :value="one.id" @change="radioChange"/>
+                <label>{{ one.id }}({{ (one.key.split('/')[2] || "").split(":")[0] }})</label>
+            </div>
+        </div>
         <div class="form-group">
             <button @click="login">登录</button>
         </div>
@@ -33,7 +39,9 @@ export default {
             },
             showAlert: false,
             alertMessage: "",
-            showLogin: false
+            showLogin: false,
+            host: [],
+            selectHost:""
         }
     },
     mounted() {
@@ -44,6 +52,13 @@ export default {
         }, 1);
     },
     methods: {
+        radioChange: function () {
+            const self = this;
+            let find = self.host.find((one) => one.id === self.selectHost);
+            if (find) {
+                Http.currentHost = find.key;
+            }
+        },
         checkLogin: function () {
             const self = this;
             Http.sendGet("/user/isLogin", function (data) {
@@ -51,6 +66,10 @@ export default {
                     self.toMain(data);
                     return;
                 }
+                if (data.data) {
+                    self.host = data.data;
+                }
+                self.host.push({id: "云", key: import.meta.env.VITE_BASE_URL});
                 self.showLogin = true;
             });
         },
@@ -148,5 +167,20 @@ input:focus {
         border-radius: 0;
         box-shadow: none;
     }
+}
+
+.login-container .radio-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.login-container .radio-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.login-container .radio-item input[type="radio"] {
+    margin-right: 8px;
 }
 </style>

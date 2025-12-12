@@ -1,13 +1,14 @@
 import axios from 'axios'
 
 export default {
+    currentHost: "",
     sendGet: function (path, callback) {
         let tokenName = localStorage.getItem("tokenName"), tokenValue = localStorage.getItem("tokenValue");
         /*if (tokenName && tokenValue) {
             axios.defaults.headers.common[tokenName] = tokenValue;
         }*/
         document.getElementById("loading-indicator-id").style.display = "block";
-        axios.get(import.meta.env.VITE_BASE_URL + path, {
+        axios.get((this.currentHost || import.meta.env.VITE_BASE_URL) + path, {
             timeout: 5000,
             headers: {[tokenName]: tokenValue}
         }).then((response) => {
@@ -30,7 +31,7 @@ export default {
             axios.defaults.headers.common[tokenName] = tokenValue;
         }*/
         document.getElementById("loading-indicator-id").style.display = "block";
-        axios.post(import.meta.env.VITE_BASE_URL + path, data, {
+        axios.post((this.currentHost || import.meta.env.VITE_BASE_URL) + path, data, {
             timeout: 5000,
             headers: {[tokenName]: tokenValue}
         }).then((response) => {
