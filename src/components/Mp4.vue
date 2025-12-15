@@ -16,8 +16,9 @@
             </div>
             <div class="content" @scroll="handleScroll">
                 <div v-for="(item) in list" :key="item._id" class="one-mp4">
-                    <div style="padding: 10px;white-space: pre-wrap;overflow-wrap: break-word;" @click.stop="clickImg(item)">
-                        {{ item.name || item.date }}
+                    <div style="padding: 10px;white-space: pre-wrap;overflow-wrap: break-word;"
+                         @click.stop="clickImg(item)">
+                        {{ item.name || item.date }}{{ item.duration | formatDuration }}
                     </div>
                     <div class="img-div" @click.stop="clickImg(item)">
                         <img src="" style="width: 100%;height: 100%;" :id="item._id" alt=""/>
@@ -34,7 +35,7 @@
         <div v-if="selectMp4._id">
             <div style="text-align: center;padding: 10px;color: blue;" @click="closeVideo">关闭({{ count }}/{{list.length}})</div>
             <div style="padding: 2px;white-space: pre-wrap;font-size: 8px;">
-                <div>{{ selectMp4.name }}</div>
+                <div>{{ selectMp4.name }}({{ selectMp4.duration | formatDuration }})</div>
                 <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
                 <div>{{ selectMp4.url }}</div>
             </div>
@@ -264,7 +265,19 @@ export default {
                 }
             });
         },
-    }
+    },
+    filters: {
+        formatDuration: function (time) {
+            if(!time){
+                return "";
+            }
+            let seconds = parseInt(time);
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h}:${m}:${s}`;
+        }
+    },
 }
 </script>
 
