@@ -7,5 +7,4 @@ import VueAxios from 'vue-axios'
 import VConsole from 'vconsole'
 
 new VConsole();
-
 createApp(App).use(router).use(VueAxios, axios).mount('#app')
