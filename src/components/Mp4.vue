@@ -270,6 +270,12 @@ export default {
                 return "";
             }
             let seconds = parseInt(time);
+            if (seconds === 0) {
+                return "0";
+            }
+            if (seconds === -1) {
+                return "-1";
+            }
             const h = Math.floor(seconds / 3600);
             const m = Math.floor((seconds % 3600) / 60);
             const s = seconds % 60;
