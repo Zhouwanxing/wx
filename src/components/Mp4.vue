@@ -70,6 +70,11 @@
                     <button @click="updateLike(selectMp4,'top1')">top1</button>
                 </div>
             </div>
+            <div style="display: flex;text-align: center;padding: 10px 0 20px 0;" v-if="currentDuration > 0">
+                <div style="flex: 1;">
+                    <button @click="">{{ formatDuration(currentDuration) }}</button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -90,7 +95,8 @@ export default {
             paths: [],
             path: "all",
             loadImg: false,
-            playSource: "https"
+            playSource: "https",
+            currentDuration: 0,
         }
     },
     mounted() {
@@ -126,20 +132,22 @@ export default {
         playVideo: function (url) {
             const self = this;
             self.$nextTick(function () {
+                self.currentDuration = 0;
                 const videoElement = document.getElementById('mp4Video');
-                // 设置倍速（1.5倍速）
-                videoElement.playbackRate = 2; // 可修改为其他值如 0.5、2 等
-                videoElement.src = self.playSource === "https" ?
-                    url.replace("http:", "https:") : url.replace("https:", "http:");
-                videoElement.addEventListener('loadeddata', () => {
-                    // 自动播放
-                    videoElement.play();
+                videoElement.muted = true;
+                videoElement.playsInline = true;
+                videoElement.src = self.playSource === "https" ? url.replace("http:", "https:") : url.replace("https:", "http:");
+                videoElement.addEventListener('loadedmetadata', () => {
                     // 快进到视频中间位置（假设中间位置是视频时长的一半）
                     videoElement.currentTime = videoElement.duration / 3;
                 });
+                videoElement.addEventListener('playing', () => {
+                    self.currentDuration = videoElement.duration;
+                    videoElement.playbackRate = 2; //设置倍速 可修改为其他值如 0.5、2 等
+                });
                 // 自动播放
-                videoElement.play();
                 videoElement.load();
+                videoElement.play();
             });
         },
         handleScroll: function () {
