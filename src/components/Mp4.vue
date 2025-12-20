@@ -72,7 +72,7 @@
             </div>
             <div style="display: flex;text-align: center;padding: 10px 0 20px 0;" v-if="currentDuration > 0">
                 <div style="flex: 1;">
-                    <button @click="">{{ formatDuration(currentDuration) }}</button>
+                    <button @click="updateDuration">{{ formatDuration(currentDuration) }}</button>
                 </div>
             </div>
         </div>
@@ -134,7 +134,7 @@ export default {
             self.$nextTick(function () {
                 self.currentDuration = 0;
                 const videoElement = document.getElementById('mp4Video');
-                videoElement.muted = true;
+                // videoElement.muted = true;
                 videoElement.playsInline = true;
                 videoElement.src = self.playSource === "https" ? url.replace("http:", "https:") : url.replace("https:", "http:");
                 videoElement.addEventListener('loadedmetadata', () => {
@@ -191,6 +191,12 @@ export default {
             const self = this;
             self.selectMp4 = {};
             document.getElementById('mp4Video').src = "";
+        },
+        updateDuration: function () {
+            const self = this;
+            Http.sendGet("/mp4/updateDuration?id=" + self.selectMp4._id + "&duration=" + self.currentDuration, function (data) {
+
+            });
         },
         updateLike: function (item, flag, fresh) {
             const self = this;
