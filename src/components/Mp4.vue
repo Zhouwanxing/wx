@@ -195,8 +195,8 @@ export default {
         updateDuration: function () {
             const self = this;
             Http.sendGet("/mp4/updateDuration?id=" + self.selectMp4._id + "&duration=" + self.currentDuration, function (data) {
-
-            });
+                self.currentDuration = -1;
+            }, true);
         },
         updateLike: function (item, flag, fresh) {
             const self = this;
