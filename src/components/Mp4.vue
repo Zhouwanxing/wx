@@ -139,11 +139,11 @@ export default {
                 videoElement.src = self.playSource === "https" ? url.replace("http:", "https:") : url.replace("https:", "http:");
                 videoElement.addEventListener('loadedmetadata', () => {
                     // 快进到视频中间位置（假设中间位置是视频时长的一半）
+                    self.currentDuration = videoElement.duration;
                     videoElement.currentTime = videoElement.duration / 3;
                 });
                 videoElement.addEventListener('playing', () => {
-                    self.currentDuration = videoElement.duration;
-                    videoElement.playbackRate = 2; //设置倍速 可修改为其他值如 0.5、2 等
+                    videoElement.playbackRate = 1.5; //设置倍速 可修改为其他值如 0.5、2 等
                 });
                 // 自动播放
                 videoElement.load();
