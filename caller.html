@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>WebRTC + MQTT 采集端</title>
+    <style>video { width: 45%; border: 1px solid #ccc; }</style>
+</head>
+<body>
+<h3>本地摄像头</h3>
+<video id="localVideo" autoplay muted playsinline></video>
+
+<h3>远程视频</h3>
+<video id="remoteVideo" autoplay playsinline></video>
+
+<button onclick="start()">开始传输</button>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+    const client = mqtt.connect("ws://broker.emqx.io:8083");
+    let pc;
+    let localStream;
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+
+    // ICE 服务器配置
+    const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    client.on("connect", () => {
+        console.log("MQTT connected");
+        client.subscribe("webrtc/signaling/caller"); // 接收被叫端消息
+    });
+
+    client.on("message", async (topic, message) => {
+        const data = JSON.parse(message.toString());
+        if (!pc) return;
+
+        if (data.type === "answer") {
+            await pc.setRemoteDescription(data.sdp);
+        } else if (data.type === "candidate") {
+            await pc.addIceCandidate(data.candidate);
+        }
+    });
+
+    async function start() {
+        // 获取摄像头
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+
+        pc = new RTCPeerConnection(onfig);
+
+        // 推送本地流
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        // 接收远程流
+        pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
+
+        // 监听 ICE
+        pc.onicecandidate = e => {
+            if (e.candidate) {
+                client.publish("webrtc/signaling/callee", JSON.stringify({ type: "candidate", candidate: e.candidate }));
+            }
+        };
+
+        // 创建 Offer
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        client.publish("webrtc/signaling/callee", JSON.stringify({ type: "offer", sdp: offer }));
+    }
+</script>
+</body>
+</html>
