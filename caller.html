@@ -16,7 +16,7 @@
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-    const client = mqtt.connect("wss://broker.emqx.io:8084");
+    const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt");
     let pc;
     let localStream;
     const localVideo = document.getElementById("localVideo");
