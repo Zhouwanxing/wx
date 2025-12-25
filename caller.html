@@ -46,7 +46,7 @@
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localVideo.srcObject = localStream;
 
-        pc = new RTCPeerConnection(onfig);
+        pc = new RTCPeerConnection(config);
 
         // 推送本地流
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
