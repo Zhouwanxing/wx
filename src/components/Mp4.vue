@@ -200,7 +200,7 @@ export default {
         },
         updateLike: function (item, flag, fresh) {
             const self = this;
-            Http.sendGet("/mp4/updateLike?id=" + item._id + "&flag=" + flag, function (data) {
+            Http.sendGet("/mp4/updateLike?id=" + item._id + "&flag=" + flag + "&duration=" + self.currentDuration, function (data) {
                 if (data.code !== 200) {
                     return;
                 }
