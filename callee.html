@@ -14,24 +14,27 @@
     const client = mqtt.connect("wss://broker.emqx.io:8084/mqtt");
     let pc;
     const remoteVideo = document.getElementById("remoteVideo");
-
     const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
+    // MQTT 连接
     client.on("connect", () => {
         console.log("MQTT connected");
-        client.subscribe("webrtc/signaling/callee"); // 接收主叫端消息
+        client.subscribe("webrtc/signaling/callee");
     });
 
+    // 接收 Caller 消息
     client.on("message", async (topic, message) => {
         const data = JSON.parse(message.toString());
         if (!pc) createPeerConnection();
 
         if (data.type === "offer") {
+            console.log("收到 offer");
             await pc.setRemoteDescription(data.sdp);
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             client.publish("webrtc/signaling/caller", JSON.stringify({ type: "answer", sdp: answer }));
         } else if (data.type === "candidate") {
+            console.log("收到 candidate");
             await pc.addIceCandidate(data.candidate);
         }
     });
@@ -39,8 +42,16 @@
     function createPeerConnection() {
         pc = new RTCPeerConnection(config);
 
-        pc.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
+        // 远端流
+        pc.ontrack = e => {
+            remoteVideo.srcObject = e.streams[0];
+            console.log("收到远程流");
+        };
 
+        // 主动接收视频
+        pc.addTransceiver('video', { direction: 'recvonly' });
+
+        // ICE candidate
         pc.onicecandidate = e => {
             if (e.candidate) {
                 client.publish("webrtc/signaling/caller", JSON.stringify({ type: "candidate", candidate: e.candidate }));
