@@ -113,7 +113,9 @@ export default {
             });
         }, 1);
     },
-    watch: {},
+    watch: {
+
+    },
     methods: {
         changePath: function () {
             const self = this;
