@@ -70,9 +70,12 @@
                     <button @click="updateLike(selectMp4,'top1')">top1</button>
                 </div>
             </div>
-            <div style="display: flex;text-align: center;padding: 10px 0 20px 0;" v-if="currentDuration > 0">
-                <div style="flex: 1;">
+            <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
+                <div style="flex: 1;" v-if="currentDuration > 0">
                     <button @click="updateDuration">{{ formatDuration(currentDuration) }}</button>
+                </div>
+                <div style="flex: 1;">
+                    <button @click="rotateVideo">旋转</button>
                 </div>
             </div>
         </div>
@@ -97,6 +100,7 @@ export default {
             loadImg: false,
             playSource: "https",
             currentDuration: 0,
+            rotateDeg: 0
         }
     },
     mounted() {
@@ -131,12 +135,20 @@ export default {
             const self = this;
             window.open(self.selectMp4.url);
         },
+        rotateVideo: function () {
+            const self = this;
+            self.rotateDeg = (self.rotateDeg + 90) % 360;
+            const video = document.getElementById('mp4Video');
+            video.style.transform = `rotate(${self.rotateDeg}deg)`;
+        },
         playVideo: function (url) {
             const self = this;
             self.$nextTick(function () {
                 self.currentDuration = 0;
+                self.rotateDeg = 0;
                 const videoElement = document.getElementById('mp4Video');
                 // videoElement.muted = true;
+                videoElement.style.transform = "rotate(0deg)";
                 videoElement.playsInline = true;
                 videoElement.src = self.playSource === "https" ? url.replace("http:", "https:") : url.replace("https:", "http:");
                 videoElement.addEventListener('loadedmetadata', () => {
