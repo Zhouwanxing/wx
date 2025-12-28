@@ -126,7 +126,7 @@ export default {
             const self = this;
             Http.sendPost("/tangyue/getAJK", self.formData, function (res) {
                 self.list = res.data || [];
-            });
+            }, 10000);
         },
         updateLike: function (item, type) {
             const self = this;
