@@ -148,6 +148,9 @@ export default {
                 return "";
             }
             const self = this, table = self.table;
+            if(self.selectRow === index && self.selectCel === cIndex){
+                return "bg-blue color-crimson";
+            }
             let cels = table.slice(1).map((oneRow) => oneRow[cIndex]).filter((item) => item !== 0);
             let max = Math.max(...cels);
             let min = Math.min(...cels);
@@ -155,7 +158,7 @@ export default {
             if (current === max) {
                 return "bg-red";
             } else if (current === min) {
-                return "bg-yellow";
+                return "bg-yellow color-crimson";
             }
             return "";
         }
@@ -214,5 +217,11 @@ export default {
 
 .tangyue .bg-yellow {
     background-color: yellow;
+}
+.tangyue .bg-blue {
+    background-color: blue;
+}
+.tangyue .color-crimson {
+    color: crimson;
 }
 </style>
