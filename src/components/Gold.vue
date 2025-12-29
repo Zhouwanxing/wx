@@ -24,13 +24,29 @@ export default {
             this.showAll = !this.showAll;
             this.initPage();
         },
+        handleList: function (list) {
+            if (!list || list.length === 0) {
+                return [];
+            }
+            if (list.length < 20) {
+                return list;
+            }
+            let length = list.length, a = Math.floor(length / 20);
+            let newList = [];
+            for (let i = 0; i < length; i++) {
+                if (i % a === 0) {
+                    newList.push(list[i]);
+                }
+            }
+            return newList;
+        },
         initPage() {
             const self = this, myChart = echarts.init(document.getElementById('container'));
             Http.sendGet("/gold/allGold", function (data) {
                 if (data.code !== 200) {
                     return;
                 }
-                let list = data.data || [];
+                let list = self.handleList(data.data || []);
                 let min = self.showAll ? list.reduce((pre, item) => {
                     if (item.zdf > item.zss) {
                         return Math.min(item.zss, pre);

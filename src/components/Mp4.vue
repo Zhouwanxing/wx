@@ -71,9 +71,9 @@
                 </div>
             </div>
             <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
-                <div style="flex: 1;" v-if="currentDuration > 0">
+<!--                <div style="flex: 1;" v-if="currentDuration > 0">
                     <button @click="updateDuration">{{ formatDuration(currentDuration) }}</button>
-                </div>
+                </div>-->
                 <div style="flex: 1;">
                     <button @click="rotateVideo">旋转</button>
                 </div>
