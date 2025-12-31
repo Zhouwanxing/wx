@@ -119,7 +119,7 @@ export default {
         clickOne: function (item) {
             if (item.linkUrl) {
                 this.selectId = item._id;
-                window.open(item.linkUrl);
+                window.open(item.linkUrl, '_blank');
             }
         },
         findAll: function () {
