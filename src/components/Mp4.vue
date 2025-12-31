@@ -78,6 +78,10 @@
                     <button @click="rotateVideo">旋转</button>
                 </div>
             </div>
+            <div v-for="(tag,tagIn) in (selectMp4.tags || [])" :key="tagIn + '_tag'"
+                 style="border:1px solid blue;padding: 5px;">
+                {{ tag }}
+            </div>
         </div>
     </div>
 </template>
