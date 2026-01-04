@@ -32,7 +32,7 @@ export default defineConfig(({command, mode}) => {
                     video: path.resolve(__dirname, "./video.html"),
                     caller: path.resolve(__dirname, "./caller.html"),
                     callee: path.resolve(__dirname, "./callee.html"),
-
+                    f: path.resolve(__dirname, "./f.html")
                 },
             }
         }

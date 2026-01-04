@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>房价趋势分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+</head>
+<body>
+
+<h2>面积 vs 总价（按楼层）</h2>
+<div id="scatter" style="width:100%;height:500px;"></div>
+
+<h2>楼层 vs 单价分布</h2>
+<div id="box" style="width:100%;height:500px;"></div>
+<div id="boxStr"></div>
+
+<h2>面积 / 总价 / 单价 / 楼层（气泡图）</h2>
+<div id="bubble" style="width:100%;height:520px;"></div>
+
+<h2>面积 vs 单价（按楼层）</h2>
+<div id="areaUnitChart" style="width:100%;height:520px;"></div>
+
+
+
+<script>
+    const API_URL = 'https://goldtask.onrender.com/house/list'; // ← 换成你的接口
+
+    fetch(API_URL)
+        .then(res => res.json())
+        .then(res => {
+            const list = res.data || [];
+            renderScatter(list);
+            renderBox(list);
+            renderBubble(list);
+            renderAreaUnitPrice(list);
+        });
+
+    /**
+     * 散点图：面积 vs 总价
+     */
+    function renderScatter(list) {
+        const floorMap = { 低: [], 中: [], 高: [] };
+
+        list.forEach(i => {
+            if (floorMap[i.floor]) {
+                floorMap[i.floor].push([
+                    i.area,
+                    i.price,
+                    i.unitPrice
+                ]);
+            }
+        });
+
+        const chart = echarts.init(document.getElementById('scatter'));
+
+        chart.setOption({
+            tooltip: {
+                formatter: p => `
+        面积：${p.value[0]}㎡<br>
+        总价：${p.value[1]}万<br>
+        单价：${p.value[2]}元/㎡
+      `
+            },
+            legend: { top: 10 },
+            xAxis: { name: '面积（㎡）' },
+            yAxis: { name: '总价（万）' },
+            series: Object.keys(floorMap).map(floor => ({
+                name: floor + '楼层',
+                type: 'scatter',
+                data: floorMap[floor],
+                symbolSize: val => val[2] / 2000   // 单价决定气泡大小
+            }))
+        });
+    }
+
+    /**
+     * 箱线图：楼层 vs 单价
+     */
+    function renderBox(list) {
+        const floors = { 低: [], 中: [], 高: [] };
+
+        list.forEach(i => {
+            if (floors[i.floor]) {
+                floors[i.floor].push(i.unitPrice);
+            }
+        });
+
+        const boxData = Object.values(floors).map(arr => {
+            arr.sort((a, b) => a - b);
+            return [
+                quantile(arr, 0),
+                quantile(arr, 0.25),
+                quantile(arr, 0.5),
+                quantile(arr, 0.75),
+                quantile(arr, 1)
+            ];
+        });
+
+        const chart = echarts.init(document.getElementById('box'));
+
+        chart.setOption({
+            xAxis: { type: 'category', data: ['低', '中', '高'] },
+            yAxis: { name: '单价（元/㎡）' },
+            tooltip: { trigger: 'item' },
+            series: [{
+                type: 'boxplot',
+                data: boxData
+            }]
+        });
+    }
+
+    /**
+     * 分位数计算
+     */
+    function quantile(arr, q) {
+        const pos = (arr.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        return arr[base + 1]
+            ? arr[base] + rest * (arr[base + 1] - arr[base])
+            : arr[base];
+    }
+
+    function renderBubble(list) {
+        const floorColorMap = {
+            低: '#5470C6',
+            中: '#91CC75',
+            高: '#EE6666'
+        };
+
+        const seriesMap = { 低: [], 中: [], 高: [] };
+
+        list.forEach(i => {
+            if (seriesMap[i.floor]) {
+                seriesMap[i.floor].push({
+                    value: [i.area, i.price, i.unitPrice],
+                    name: i.title
+                });
+            }
+        });
+
+        const chart = echarts.init(document.getElementById('bubble'));
+
+        chart.setOption({
+            tooltip: {
+                formatter: p => `
+        <b>${p.name || ''}</b><br>
+        面积：${p.value[0]}㎡<br>
+        总价：${p.value[1]}万<br>
+        单价：${p.value[2]}元/㎡
+      `
+            },
+            legend: { top: 10 },
+            xAxis: {
+                name: '面积（㎡）',
+                scale: true
+            },
+            yAxis: {
+                name: '总价（万）',
+                scale: true
+            },
+            series: Object.keys(seriesMap).map(floor => ({
+                name: floor + '楼层',
+                type: 'scatter',
+                data: seriesMap[floor],
+                symbolSize: val => {
+                    // 单价映射为气泡大小（可调）
+                    return Math.sqrt(val[2]) / 2;
+                },
+                itemStyle: {
+                    color: floorColorMap[floor],
+                    opacity: 0.75
+                }
+            }))
+        });
+    }
+
+    function renderAreaUnitPrice(list) {
+        const seriesMap = { 低: [], 中: [], 高: [] };
+
+        list.forEach(i => {
+            if (seriesMap[i.floor]) {
+                seriesMap[i.floor].push({
+                    value: [i.area, i.unitPrice],
+                    name: i.title,
+                    extra: i
+                });
+            }
+        });
+
+        const chart = echarts.init(document.getElementById('areaUnitChart'));
+
+        chart.setOption({
+            tooltip: {
+                formatter: p => {
+                    const d = p.data.extra;
+                    return `
+          <b>${d.title}</b><br>
+          楼层：${d.floor}<br>
+          面积：${d.area}㎡<br>
+          单价：${d.unitPrice} 元/㎡<br>
+          总价：${d.price} 万
+        `;
+                }
+            },
+            legend: { top: 10 },
+            xAxis: {
+                name: '面积（㎡）',
+                scale: true
+            },
+            yAxis: {
+                name: '单价（元/㎡）',
+                scale: true
+            },
+            series: Object.keys(seriesMap).map(floor => ({
+                name: floor + '楼层',
+                type: 'scatter',
+                data: seriesMap[floor],
+                symbolSize: 12,
+                emphasis: {
+                    focus: 'series'
+                }
+            }))
+        });
+    }
+</script>
+
+</body>
+</html>
