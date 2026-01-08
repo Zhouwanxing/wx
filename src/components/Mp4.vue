@@ -28,8 +28,13 @@
                     </div>
                 </div>
             </div>
-            <div class="footer">
-                <div style="color: blue;" @click="getList">加载更多</div>
+            <div class="footer" style="display: flex;">
+                <div style="color: blue;flex: 1;">
+                    <button @click="getList">加载更多</button>
+                </div>
+                <div style="color: blue;flex: 1;">
+                    <button @click="page++;">{{ page }}</button>
+                </div>
             </div>
         </div>
         <div v-if="selectMp4._id">
