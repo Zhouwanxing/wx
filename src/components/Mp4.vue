@@ -287,7 +287,7 @@ export default {
                 if (data.code !== 200) {
                     return;
                 }
-                let list = /*data.list || */[];
+                let list = data.list || [];
                 list.forEach(item => {
                     if (!item.img) {
                         item.img = `https://pppp.642p.com/images/${item._id}/cover.txt`;
