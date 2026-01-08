@@ -30,10 +30,10 @@
             </div>
             <div class="footer" style="display: flex;">
                 <div style="color: blue;flex: 1;">
-                    <button @click="getList">加载更多</button>
+                    <button @click="page++;" style="width: 100%;height: 100%;">页码:{{ page }}</button>
                 </div>
                 <div style="color: blue;flex: 1;">
-                    <button @click="page++;">{{ page }}</button>
+                    <button @click="getList" style="width: 100%;height: 100%;">加载更多</button>
                 </div>
             </div>
         </div>
@@ -287,7 +287,7 @@ export default {
                 if (data.code !== 200) {
                     return;
                 }
-                let list = data.list || [];
+                let list = /*data.list || */[];
                 list.forEach(item => {
                     if (!item.img) {
                         item.img = `https://pppp.642p.com/images/${item._id}/cover.txt`;
