@@ -82,6 +82,9 @@
                 <div style="flex: 1;">
                     <button @click="rotateVideo">旋转</button>
                 </div>
+                <div style="flex: 1;">
+                    <button @click="getList" style="width: 100%;height: 100%;">加载更多</button>
+                </div>
             </div>
             <div v-for="(tag,tagIn) in (selectMp4.tags || [])" :key="tagIn + '_tag'"
                  style="border:1px solid blue;padding: 5px;">
