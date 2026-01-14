@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>成交趋势分析</title>
+    <script src="https://cdn.staticfile.org/echarts/5.4.3/echarts.min.js"></script>
+<!--    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>-->
+    <style>
+        body {
+            font-family: Arial;
+        }
+
+        .chart {
+            width: 900px;
+            height: 420px;
+            margin: 40px auto;
+        }
+    </style>
+</head>
+<body>
+
+<div id="trend" class="chart"></div>
+<div id="heatmap" class="chart" style="height: 1600px;"></div>
+<div id="bar" class="chart"></div>
+<div id="bubble" class="chart"></div>
+
+
+<script>
+    const API_URL = 'https://goldtask.onrender.com/house/cj'; // ← 换成你的接口
+
+    fetch(API_URL)
+        .then(res => res.json())
+        .then(res => {
+            const data = res.data || [];
+            handleTrend(data);
+            handleHeatmap(data);
+        });
+
+    function handleTrend(rawData) {
+        const map = {};
+        rawData.forEach(item => {
+            const key = item.createTime + '_' + item.floor;
+            if (!map[key] || item.unitPrice < map[key].unitPrice) {
+                map[key] = item;
+            }
+        });
+
+// 2. 转数组并按时间排序
+        const data = Object.values(map).sort((a, b) =>
+            a.createTime.localeCompare(b.createTime)
+        );
+
+// 3. 获取完整的时间轴
+        const dates = [...new Set(data.map(i => i.createTime))];
+
+// 4. 按楼层组装三条线
+        function buildSeries(floor) {
+            return dates.map(date => {
+                const item = data.find(d => d.createTime === date && d.floor === floor);
+                return item ? item.unitPrice : null;
+            });
+        }
+
+        const option = {
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ['低', '中', '高']
+            },
+            grid: {
+                left: '8%',
+                right: '5%',
+                bottom: '10%'
+            },
+            xAxis: {
+                type: 'category',
+                data: dates,
+                name: '成交时间'
+            },
+            yAxis: {
+                type: 'value',
+                name: '单价（元/㎡）'
+            },
+            series: [
+                {
+                    name: '低',
+                    type: 'line',
+                    connectNulls: true,
+                    data: buildSeries('低')
+                },
+                {
+                    name: '中',
+                    type: 'line',
+                    connectNulls: true,
+                    data: buildSeries('中')
+                },
+                {
+                    name: '高',
+                    type: 'line',
+                    connectNulls: true,
+                    data: buildSeries('高')
+                }
+            ]
+        };
+
+        const chart = echarts.init(document.getElementById('trend'));
+        chart.setOption(option);
+    }
+
+    function handleHeatmap(rawData) {
+        var lastMap = {};
+        rawData.forEach(one => {
+            var year = one.createTime.substring(0, 4);
+            var day = one.createTime.replaceAll(".", "-");
+
+            if (lastMap.hasOwnProperty(year)) {
+                let yearList = lastMap[year];
+                var find = yearList.find(oneYear => oneYear[0] === day);
+                if (find) {
+                    find[1]++;
+                } else {
+                    yearList.push([day, 1]);
+                }
+            } else {
+                lastMap[year] = [[day, 1]];
+            }
+        });
+        console.log(lastMap);
+        const option = {
+            tooltip: {
+                position: 'top'
+            },
+            visualMap: {
+                min: 0,
+                max: 4,
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                top: 'top'
+            },
+            calendar: [],
+            series: []
+        };
+        let count = 0;
+        for (let key in lastMap) {
+            option.calendar.push({
+                top: 150 * count + 70,
+                range: key,
+                cellSize: ['auto', 15]
+            });
+            option.series.push({
+                type: 'heatmap',
+                coordinateSystem: 'calendar',
+                calendarIndex: count++,
+                data: lastMap[key]
+            });
+        }
+        const chart = echarts.init(document.getElementById('heatmap'));
+        chart.setOption(option);
+    }
+</script>
+
+</body>
+</html>
