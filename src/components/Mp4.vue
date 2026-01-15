@@ -38,8 +38,8 @@
             </div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="text-align: center;padding: 10px;color: blue;" @click="closeVideo">关闭({{ count }}/{{list.length}})</div>
-            <div style="padding: 2px;white-space: pre-wrap;font-size: 8px;">
+            <div style="text-align: center;padding: 2px;color: blue;" @click="closeVideo">关闭({{ count }}/{{list.length}})</div>
+            <div style="padding: 1px;white-space: pre-wrap;font-size: 8px;">
                 <div>{{ selectMp4.name }}（{{ formatDuration(selectMp4.duration) }}）</div>
                 <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
                 <div>{{ selectMp4.url }}</div>
@@ -55,7 +55,7 @@
                    id="mp4Video">
                 <source src="" type="video/mp4">
             </video>
-            <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
+            <div style="display: flex;text-align: center;padding: 10px 0;">
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
                 </div>
@@ -75,12 +75,12 @@
                     <button @click="updateLike(selectMp4,'top1')">top1</button>
                 </div>
             </div>
-            <div style="display: flex;text-align: center;padding: 10px 0 20px 0;">
+            <div style="display: flex;text-align: center;padding: 10px 0;">
 <!--                <div style="flex: 1;" v-if="currentDuration > 0">
                     <button @click="updateDuration">{{ formatDuration(currentDuration) }}</button>
                 </div>-->
                 <div style="flex: 1;">
-                    <button @click="rotateVideo">旋转</button>
+                    <button @click="rotateVideo" style="width: 100%;height: 100%;">旋转</button>
                 </div>
                 <div style="flex: 1;">
                     <button @click="getList" style="width: 100%;height: 100%;">加载更多</button>
@@ -237,7 +237,7 @@ export default {
                 self.count--;
                 self.closeVideo();
                 if (fresh !== "noFresh") {
-                    if (self.list[0]) {
+                    if (self.list.length > 0) {
                         self.showFirst();
                     } else {
                         self.page = 0;
@@ -249,9 +249,9 @@ export default {
         },
         showFirst: function () {
             const self = this;
-            if (self.list[0]) {
+            if (self.list.length > 0 && self.list[self.list.length - 1]) {
                 self.$nextTick(function () {
-                    self.selectMp4 = self.list[0];
+                    self.selectMp4 = self.list[self.list.length - 1];
                     self.$nextTick(function () {
                         self.setOneImg(self.selectMp4, "one-img-id");
                         self.playVideo(self.selectMp4.url);
