@@ -45,7 +45,7 @@
             </div>
         </div>
         <div class="content scrollable-table" style="background-color: white;">
-            <div v-for="(item,index) in list" :key="index" @click="clickOne(item)"
+            <div v-for="(item,index) in list" :key="index" @click.stop="clickOne(item)"
                  style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;"
                  :style="selectId === item._id ? 'border:2px solid red;' : ''">
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
@@ -95,10 +95,10 @@ export default {
                 {_id: "A6", areas: [118.83, 121.38]}
             ],
             formData: {
-                areaMin: 80,
-                areaMax: 200,
+                areaMin: 100,
+                areaMax: 130,
                 priceMin: 80,
-                priceMax: 600,
+                priceMax: 500,
                 sortKey: "lastTime",
                 sortValue: 1,
                 showFloor: 0,
