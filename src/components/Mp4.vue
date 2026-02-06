@@ -57,10 +57,10 @@
             </video>
             <div style="display: flex;text-align: center;padding: 10px 0;">
                 <div style="flex: 1;">
-                    <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
+                    <button @click="refreshVideo">刷新</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="refreshVideo">刷新</button>
+                    <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
                 </div>
                 <div style="flex: 1;">
                     <button @click="updateLike(selectMp4,'top4')">top4</button>
