@@ -12,21 +12,36 @@
                  @click.stop="getNewUrl">刷新
             </div>
         </div>
+        <div style="display: flex;height: 40px;text-align: center; margin-top: 5px;">
+            <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                 @click.stop="restart(1)">重启1次
+            </div>
+            <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                 @click.stop="restart(10)">重启10次
+            </div>
+            <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                 @click.stop="restart(0)">重置
+            </div>
+        </div>
 
         <div style="padding: 10px;">
             <table border="1" cellspacing="0" style="margin-left: auto; margin-right: auto;">
-                <tr>
-                    <td>/</td>
-                    <td>地址</td>
-                    <td>操作</td>
-                </tr>
-                <tr v-for="(item,index) in showUrls" :key="index">
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ item }}</td>
-                    <td>
-                        <button @click="openUrl(item)">打开</button>
-                    </td>
-                </tr>
+                <thead>
+                    <tr>
+                        <td>/</td>
+                        <td>地址</td>
+                        <td>操作</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(item,index) in showUrls" :key="index">
+                        <td>{{ index + 1 }}</td>
+                        <td>{{ item }}</td>
+                        <td>
+                            <button @click="openUrl(item)">打开</button>
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -50,6 +65,11 @@ export default {
         }, 1);
     },
     methods: {
+        restart: function (times) {
+            Http.sendGet("/user/sendToMq?message=restart_" + times, function (res) {
+
+            });
+        },
         saveUrl: function () {
             const self = this;
             if (!self.url) {
