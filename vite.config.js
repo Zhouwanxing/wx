@@ -30,6 +30,7 @@ export default defineConfig(({command, mode}) => {
                     s: path.resolve(__dirname, "./s.html"),
                     c: path.resolve(__dirname, "./c.html"),
                     video: path.resolve(__dirname, "./video.html"),
+                    v2: path.resolve(__dirname, "./v2.html"),
                     caller: path.resolve(__dirname, "./caller.html"),
                     callee: path.resolve(__dirname, "./callee.html"),
                     f: path.resolve(__dirname, "./f.html"),

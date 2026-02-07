@@ -40,9 +40,16 @@
                 <div class="img-div" @click="clickImg(item)" style="">
                     <img style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                 </div>
-                <div>
-                    <button @click.stop="openInXx(item)">官网打开</button>
-                    <button @click.stop="updateLike(item,'best')" style="margin-left: 10px;">best</button>
+                <div style="display: flex;text-align: center;padding: 10px 0;">
+                    <div style="flex: 1;">
+                        <button @click.stop="openInXx(item)">官网打开</button>
+                    </div>
+                    <div style="flex: 1;">
+                        <button @click.stop="updateLike(item,'best')" style="margin-left: 10px;">best</button>
+                    </div>
+                    <div style="flex: 1;">
+                        <button @click.stop="clickImgNew(item)" style="margin-left: 10px;">最新播放</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -139,6 +146,9 @@ export default {
         },
         clickImg: function (item) {
             window.open("./video.html?url=" + item.url);
+        },
+        clickImgNew: function (item) {
+            window.open("./v2.html?id=" + item._id);
         },
         searchPath: function (flag) {
             const self = this;
