@@ -83,6 +83,9 @@
                     <button @click="rotateVideo" style="width: 100%;height: 100%;">旋转</button>
                 </div>
                 <div style="flex: 1;">
+                    <button @click="updateLike(selectMp4,'best')" style="width: 100%;height: 100%;">best</button>
+                </div>
+                <div style="flex: 1;">
                     <button @click="getList" style="width: 100%;height: 100%;">加载更多</button>
                 </div>
             </div>
