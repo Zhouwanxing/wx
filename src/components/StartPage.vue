@@ -102,6 +102,7 @@ export default {
 </script>
 <style scoped>
 .start-page {
+    height: 100%;
     background: #f8f9fa;
     display: flex;
     justify-content: center;
@@ -137,9 +138,8 @@ export default {
     border: 1px solid #d3dce6;
     color: #333;
     border-radius: 12px;
-    padding: 14px;
     width: 110px;
-    height: 90px;
+    height: 70px;
     display: flex;
     flex-direction: column;
     align-items: center;
