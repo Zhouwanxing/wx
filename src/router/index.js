@@ -53,6 +53,10 @@ const routes = [
         component: () => import("../components/ErPage.vue"),
     },
     {
+        path: "/chengjiao",
+        component: () => import("../components/Chengjiao.vue"),
+    },
+    {
         path: "/companyPerson",
         component: () => import("../components/CompanyPerson.vue"),
     },

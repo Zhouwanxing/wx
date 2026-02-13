@@ -18,6 +18,10 @@
                     <span class="icon">📦</span>
                     <span class="label">二手房</span>
                 </button>
+                <button class="menu-btn" v-if="roles.includes('tangyue')" @click="toGold('chengjiao')">
+                    <span class="icon">📦</span>
+                    <span class="label">成交</span>
+                </button>
                 <button class="menu-btn" v-if="roles.includes('mp4')" @click="toGold('mp4')">
                     <span class="icon">🎬</span>
                     <span class="label">视频</span>
