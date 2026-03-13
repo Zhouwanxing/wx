@@ -34,6 +34,7 @@ export default defineConfig(({command, mode}) => {
                     caller: path.resolve(__dirname, "./caller.html"),
                     callee: path.resolve(__dirname, "./callee.html"),
                     f: path.resolve(__dirname, "./f.html"),
+                    r: path.resolve(__dirname, "./r.html"),
                     f1: path.resolve(__dirname, "./f1.html")
                 },
             }

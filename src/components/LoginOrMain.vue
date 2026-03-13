@@ -19,6 +19,11 @@
             <button @click="login">登录</button>
         </div>
 
+
+        <div class="form-group" style="margin-top: 30px;">
+            <button @click="toOther('./r.html')">随机数</button>
+        </div>
+
         <alert v-if="showAlert" :visible="showAlert" :message="alertMessage" @close="showAlert = false"></alert>
     </div>
 </template>
@@ -52,6 +57,9 @@ export default {
         }, 1);
     },
     methods: {
+        toOther: function (route) {
+            window.open(route);
+        },
         radioChange: function () {
             const self = this;
             let find = self.host.find((one) => one.id === self.selectHost);
