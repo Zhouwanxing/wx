@@ -67,18 +67,14 @@
         }
 
         button {
-            width: 30px;
-            height: 30px;
-            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            font-size: 25px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
         }
-
-        button:hover {
-            background: #ddd;
-        }
-
     </style>
 </head>
 
@@ -119,7 +115,7 @@
         main.style.background = randomColor()
     }
 
-    main.addEventListener("touchstart", randomNumber)
+    // main.addEventListener("touchstart", randomNumber)
     main.addEventListener("click", randomNumber)
 
     function changeMin(step) {

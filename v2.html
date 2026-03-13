@@ -9,13 +9,17 @@
     <source src="" type="video/mp4">
 </video>
 <script>
+    const id = new URL(window.location.href).searchParams.get('id');
+    if (id) {
 
-    /*const paramValue = new URL(window.location.href).searchParams.get('url');
+    }
+
+
     const videoElement = document.getElementById('myVideo');
     videoElement.src = paramValue;
     // 加载并播放视频
     videoElement.load();
-    videoElement.play();*/
+    videoElement.play();
 </script>
 </body>
 </html>
