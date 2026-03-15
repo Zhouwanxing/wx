@@ -87,13 +87,13 @@
 <div id="range">
     <div class="control">
         <button onclick="changeMin(-1)">-</button>
-        <span id="min">1</span>
+        <span id="numMin"></span>
         <button onclick="changeMin(1)">+</button>
     </div>
     ~
     <div class="control">
         <button onclick="changeMax(-1)">-</button>
-        <span id="max">18</span>
+        <span id="numMax"></span>
         <button onclick="changeMax(1)">+</button>
     </div>
 </div>
@@ -112,7 +112,8 @@
 
     function randomNumber() {
         numberEl.innerText = Math.floor(Math.random() * (max - min + 1)) + min
-        main.style.background = randomColor()
+        main.style.background = randomColor();
+        new Audio("https://xm-uap-common.oss-cn-beijing.aliyuncs.com/newmsg.wav").play();
     }
 
     // main.addEventListener("touchstart", randomNumber)
@@ -123,18 +124,20 @@
         if (min < 0) min = 0
         if (min >= max) min = max - 1
         localStorage.setItem("numMin", min + "");
-        document.getElementById("min").innerText = min
+        document.getElementById("numMin").innerText = min
     }
 
     function changeMax(step) {
         max += step
         if (max <= min) max = min + 1
         localStorage.setItem("numMax", max + "");
-        document.getElementById("max").innerText = max
+        document.getElementById("numMax").innerText = max
     }
 
     function getDef(key, def) {
-        return localStorage.getItem(key) ? parseInt(localStorage.getItem(key)) : def;
+        var curr = localStorage.getItem(key) ? parseInt(localStorage.getItem(key)) : def;
+        document.getElementById(key).innerText = curr + "";
+        return curr;
     }
 
 </script>
