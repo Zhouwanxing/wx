@@ -35,8 +35,8 @@
                     </button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click.stop="formData.showLike ++;formData.showLike = formData.showLike % 2;">
-                        {{ ['全部', '待处理'][formData.showLike] }}
+                    <button @click.stop="formData.showLike ++;formData.showLike = formData.showLike % 3;">
+                        {{ ['全部', '待处理','关注'][formData.showLike] }}
                     </button>
                 </div>
                 <div style="flex: 1;">
