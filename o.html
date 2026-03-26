@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拉面馆点单</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont;
+            background: #f7f7f7
+        }
+
+        .header {
+            background: #ffd100;
+            padding: 12px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 18px
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 50px)
+        }
+
+        .left {
+            width: 90px;
+            background: #f0f0f0;
+            overflow: auto
+        }
+
+        .left div {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer
+        }
+
+        .left .active {
+            background: #fff;
+            font-weight: bold
+        }
+
+        .right {
+            flex: 1;
+            overflow: auto;
+            padding: 10px
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        .card img {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px
+        }
+
+        .info {
+            flex: 1
+        }
+
+        .title {
+            font-size: 15px;
+            font-weight: bold
+        }
+
+        .price {
+            color: #ff4d4f;
+            margin-top: 5px
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 50%;
+            background: #ffd100
+        }
+
+        .cart-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid #ddd
+        }
+
+        .cart-btn {
+            background: #ffd100;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, .8);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: .3s
+        }
+
+        .toast.show {
+            opacity: 1;
+            bottom: 100px
+        }
+    </style>
+</head>
+<body>
+<div class="header">🍜 拉面馆</div>
+<div class="container">
+    <div class="left">
+        <div class="active">拉面</div>
+<!--        <div>小吃</div>-->
+    </div>
+    <div class="right" id="menu"></div>
+</div>
+
+<div class="cart-bar">
+    <div id="total">￥0</div>
+    <button class="cart-btn" onclick="submitOrder()">去结算</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    const menuData = [
+        {name: '豚骨拉面', price: 25, img: 'https://picsum.photos/100?1'},
+        {name: '牛肉拉面', price: 28, img: 'https://picsum.photos/100?2'},
+        {name: '鸡汤拉面', price: 22, img: 'https://picsum.photos/100?3'},
+        {name: '加蛋', price: 5, img: 'https://picsum.photos/100?4'},
+        {name: '叉烧', price: 8, img: 'https://picsum.photos/100?5'}
+    ];
+
+    let cart = {};
+
+    function renderMenu() {
+        const el = document.getElementById('menu');
+        el.innerHTML = '';
+        menuData.forEach(item => {
+            const count = cart[item.name]?.count || 0;
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+<img src="${item.img}" />
+<div class="info">
+<div class="title">${item.name}</div>
+<div class="price">￥${item.price}</div>
+</div>
+<div class="actions">
+<button class="btn" onclick="change('${item.name}',-1)">-</button>
+<span>${count}</span>
+<button class="btn" onclick="change('${item.name}',1)">+</button>
+</div>
+`;
+            el.appendChild(div);
+        });
+    }
+
+    function change(name, delta) {
+        const item = menuData.find(i => i.name === name);
+        if (!cart[name]) cart[name] = {...item, count: 0};
+        cart[name].count += delta;
+        if (cart[name].count <= 0) delete cart[name];
+        updateTotal();
+        renderMenu();
+        showToast(delta > 0 ? '已添加' : '已减少');
+    }
+
+    function updateTotal() {
+        let total = 0;
+        Object.values(cart).forEach(i => {
+            total += i.price * i.count
+        });
+        document.getElementById('total').innerText = '￥' + total;
+    }
+
+    function submitOrder() {
+        if (Object.keys(cart).length === 0) {
+            showToast('请先选商品');
+            return
+        }
+        showToast('🎉 下单成功');
+        cart = {};
+        updateTotal();
+        renderMenu();
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    renderMenu();
+</script>
+</body>
+</html>
