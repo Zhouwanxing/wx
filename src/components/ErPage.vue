@@ -48,6 +48,9 @@
             <div v-for="(item,index) in list" :key="index" @click.stop="clickOne(item)"
                  style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;"
                  :style="selectId === item._id ? 'border:2px solid red;' : ''">
+                <div v-if="item.imgUrl">
+                    <img :src="item.imgUrl" style="width: 100%;height: 100%;"/>
+                </div>
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
                 <div>{{ item.priceStr }}/{{ item.from }}/{{ item.lastTime || "" }}</div>
                 <div v-for="(cItem,cIndex) in areaPlace(item.area)" :key="'c' + cIndex">
