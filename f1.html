@@ -21,8 +21,6 @@
 
 <div id="trend" class="chart"></div>
 <div id="heatmap" class="chart" style="height: 1600px;"></div>
-<div id="bar" class="chart"></div>
-<div id="bubble" class="chart"></div>
 
 
 <script>
@@ -109,7 +107,7 @@
     }
 
     function handleHeatmap(rawData) {
-        var lastMap = {};
+        var lastMap = {},otherMap = {};
         rawData.forEach(one => {
             var year = one.createTime.substring(0, 4);
             var day = one.createTime.replaceAll(".", "-");
@@ -119,17 +117,39 @@
                 var find = yearList.find(oneYear => oneYear[0] === day);
                 if (find) {
                     find[1]++;
+                    otherMap[day].push(one);
                 } else {
                     yearList.push([day, 1]);
+                    otherMap[day] = [one];
                 }
             } else {
                 lastMap[year] = [[day, 1]];
+                otherMap[day] = [one];
             }
         });
         console.log(lastMap);
         const option = {
             tooltip: {
                 position: 'top'
+            },
+            formatter: function (params) {
+                if (!params.data) return '';
+                const [date, count] = params.data.value || params.data;
+                let str = "";
+                otherMap[date].forEach(one => {
+                    str += `<tr><th>${one.floor}</th><th>${one.area}</th><th>${one.price}</th><th>${one.unitPrice}</th></tr>`;
+                });
+                return `<div style="padding:5px 10px">
+                            <div style="font-weight:bold;margin-bottom:5px;text-align: center;">${date}</div>
+                            <table border="1">
+                                <thead>
+                                <tr><th>楼层</th><th>面积</th><th>总价</th><th>单价</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${str}
+                                </tbody>
+                            </table>
+                        </div>`;
             },
             visualMap: {
                 min: 0,
