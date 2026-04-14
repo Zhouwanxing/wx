@@ -2,24 +2,64 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>video</title>
 </head>
 <body>
+<div id="name_id" style="text-align: center;"></div>
 <video id="myVideo" controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
     <source src="" type="video/mp4">
 </video>
-<script>
-    const id = new URL(window.location.href).searchParams.get('id');
-    if (id) {
+<div style="text-align: center;width: 100%;">
+    <button onclick="addOne()" style="width: 50%;padding: 5px;border-radius: 5px;">+1</button>
+</div>
+<div style="text-align: center;width: 100%;" id="res_id">
 
+</div>
+<script>
+    const searchParams = new URL(window.location.href).searchParams;
+    const id = searchParams.get('id'),
+        baseUrl = searchParams.get('baseUrl'),
+        tokenName = searchParams.get('tokenName'),
+        tokenValue = searchParams.get('tokenValue');
+
+    if (id) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', baseUrl + "/mp4/findOneMp4?id=" + id, true);
+        xhr.setRequestHeader(tokenName, tokenValue);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                let data = JSON.parse(xhr.responseText).data || {};
+                document.getElementById('name_id').innerHTML = data.name;
+                const videoElement = document.getElementById('myVideo');
+                videoElement.src = data.url;
+                // 加载并播放视频
+                videoElement.load();
+                videoElement.play();
+            } else {
+                console.error('Error:', xhr.statusText);
+            }
+        };
+        xhr.onerror = () => console.error('Request failed');
+        xhr.send();
     }
 
-
-    const videoElement = document.getElementById('myVideo');
-    videoElement.src = paramValue;
-    // 加载并播放视频
-    videoElement.load();
-    videoElement.play();
+    function addOne() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', baseUrl + "/mp4/useOneMp4?id=" + id, true);
+        xhr.setRequestHeader(tokenName, tokenValue);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                document.getElementById('res_id').innerHTML = xhr.responseText;
+            } else {
+                document.getElementById('res_id').innerHTML = xhr.statusText;
+            }
+        };
+        xhr.onerror = function () {
+            document.getElementById('res_id').innerHTML = "error";
+        };
+        xhr.send();
+    }
 </script>
 </body>
 </html>

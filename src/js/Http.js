@@ -2,6 +2,13 @@ import axios from 'axios'
 
 export default {
     currentHost: "",
+    getBaseInfo: function () {
+        return {
+            baseUrl: (this.currentHost || import.meta.env.VITE_BASE_URL),
+            tokenName: localStorage.getItem("tokenName"),
+            tokenValue: localStorage.getItem("tokenValue")
+        };
+    },
     sendGet: function (path, callback, isNotShowLoading) {
         let tokenName = localStorage.getItem("tokenName"), tokenValue = localStorage.getItem("tokenValue");
         /*if (tokenName && tokenValue) {

@@ -54,9 +54,13 @@
             </div>
         </div>
         <div class="footer">
-            <div style="color: blue;"
-                 @click="formData.page++;searchPath();"
-                 v-if="showLoad">加载更多
+            <div style="display:flex;">
+                <div style="flex: 1;border-right: 1px solid white;" v-if="showLoad">
+                    <div style="color: blue;" @click="formData.page++;searchPath();">加载更多</div>
+                </div>
+                <div style="flex: 1;" v-if="formData.showBest === 'best' && count > 0">
+                    <div style="color: blue;" @click="randomMp4">随机</div>
+                </div>
             </div>
         </div>
     </div>
@@ -73,7 +77,7 @@ export default {
             formData: {
                 path: "all",
                 page: 1,
-                showBest: "top1",
+                showBest: "best",
                 beforeMonth: ""
             },
             paths: [],
@@ -93,6 +97,14 @@ export default {
         }, 1);
     },
     methods: {
+        randomMp4: function () {
+            const self = this;
+            Http.sendGet("/mp4/getRandomMp4Id?count=" + self.count, function (data) {
+                if (data.data) {
+                    self.clickImgNew({_id: data.data});
+                }
+            });
+        },
         updateLike: function (item, flag) {
             const self = this;
             Http.sendGet("/mp4/updateLike?id=" + item._id + "&flag=" + flag, function (data) {
@@ -148,7 +160,12 @@ export default {
             window.open("./video.html?url=" + item.url);
         },
         clickImgNew: function (item) {
-            window.open("./v2.html?id=" + item._id);
+            let url = "./v2.html?id=" + item._id;
+            let baseInfo = Http.getBaseInfo();
+            for (let key in baseInfo) {
+                url += "&" + key + "=" + baseInfo[key];
+            }
+            window.open(url);
         },
         searchPath: function (flag) {
             const self = this;
