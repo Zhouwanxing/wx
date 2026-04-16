@@ -44,13 +44,13 @@
                 </div>
             </div>
         </div>
-        <div class="content scrollable-table" style="background-color: white;">
+        <div class="content scrollable-table" style="background-color: white;" @scroll="handleScroll">
             <div v-for="(item,index) in list" :key="index" @click.stop="clickOne(item)"
                  style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;"
                  :style="selectId === item._id ? 'border:2px solid red;' : ''">
-<!--                <div v-if="item.imgUrl">
-                    <img :src="item.imgUrl" style="width: 100%;height: 100%;"/>
-                </div>-->
+                <div v-if="item.imgUrl">
+                    <img src="" :id="item._id" style="width: 100%;height: 100%;"/>
+                </div>
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
                 <div>{{ item.priceStr }}/{{ item.from }}/{{ item.lastTime || "" }}</div>
                 <div v-for="(cItem,cIndex) in areaPlace(item.area)" :key="'c' + cIndex">
@@ -78,6 +78,7 @@
 
 <script>
 import Http from "../js/Http.js";
+import axios from "axios";
 
 export default {
     name: "ErPage",
@@ -108,6 +109,7 @@ export default {
                 showLike: 0
             },
             selectId: "",
+            loadImg: false
         }
     },
     mounted() {
@@ -119,6 +121,31 @@ export default {
     watch: {},
     computed: {},
     methods: {
+        handleScroll: function () {
+            const self = this;
+            if (self.loadImg) {
+                return;
+            }
+            self.loadImg = true;
+            let one = self.list.find(item => item.imgUrl && item.imgUrl.includes("http") && !item.imgUrl.includes("gif") && !item.base64 && !item.err);
+            if (one) {
+                axios.get(one.imgUrl, {timeout: 10000}).then((response) => {
+                    if (response.data) {
+                        one.base64 = response.data;
+                        document.getElementById(one._id).src = response.data;
+                    } else {
+                        document.getElementById(one._id).src = one.img;
+                    }
+                    self.loadImg = false;
+                }).catch((e) => {
+                    one.err = true;
+                    document.getElementById(one._id).src = one.img;
+                    self.loadImg = false;
+                });
+            } else {
+                self.loadImg = false;
+            }
+        },
         clickOne: function (item) {
             if (item.linkUrl) {
                 this.selectId = item._id;
