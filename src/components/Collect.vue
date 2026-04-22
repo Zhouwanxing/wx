@@ -37,7 +37,7 @@
         <div class="content" @scroll="handleScroll">
             <div v-for="(item) in list" :key="item._id" class="one-mp4">
                 <div style="padding: 10px;white-space: pre-wrap;overflow-wrap:break-word;">{{ item.name || item.date }}</div>
-                <div class="img-div" @click="clickImg(item)" style="">
+                <div class="img-div" @click="clickImgNew(item)" style="">
                     <img style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                 </div>
                 <div style="display: flex;text-align: center;padding: 10px 0;">
@@ -48,7 +48,7 @@
                         <button @click.stop="updateLike(item,'best')" style="margin-left: 10px;">best</button>
                     </div>
                     <div style="flex: 1;">
-                        <button @click.stop="clickImgNew(item)" style="margin-left: 10px;">最新播放</button>
+                        <button @click.stop="clickImg(item)" style="margin-left: 10px;">旧播放</button>
                     </div>
                 </div>
             </div>
