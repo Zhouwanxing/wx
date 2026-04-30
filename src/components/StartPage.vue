@@ -155,10 +155,11 @@ export default {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(0, 255, 255, 0.3);
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 8px 32px rgba(0, 255, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 0 20px rgba(0, 255, 255, 0.2);
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -185,13 +186,14 @@ export default {
     aspect-ratio: 1;
     border: none;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.25);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.3) 0%, rgba(255, 0, 255, 0.3) 100%);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.4);
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        0 4px 12px rgba(0, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 0 15px rgba(0, 255, 255, 0.15);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -203,29 +205,30 @@ export default {
 }
 
 .btn:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.5) 0%, rgba(255, 0, 255, 0.5) 100%);
     transform: translateY(-2px);
     box-shadow:
-        0 6px 16px rgba(0, 0, 0, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        0 6px 16px rgba(0, 255, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 0 25px rgba(0, 255, 255, 0.3);
 }
 
 .btn:active {
     transform: translateY(0) scale(0.96);
-    background: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(255, 0, 255, 0.2) 100%);
 }
 
 .icon {
     font-size: 26px;
     line-height: 1;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    filter: drop-shadow(0 1px 2px rgba(0, 255, 255, 0.3));
 }
 
 .text {
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
 }
 
 /* 退出按钮 */
@@ -233,11 +236,11 @@ export default {
     margin-top: 16px;
     padding: 14px 24px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(239, 68, 68, 0.25);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    background: rgba(255, 215, 0, 0.25);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15), 0 0 20px rgba(255, 215, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -248,8 +251,9 @@ export default {
 }
 
 .logout-btn:hover {
-    background: rgba(239, 68, 68, 0.35);
+    background: rgba(255, 215, 0, 0.35);
     transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(255, 215, 0.3);
 }
 
 .logout-btn:active {
@@ -263,7 +267,8 @@ export default {
 .logout-btn .text {
     font-size: 14px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
+    color: #ffd700;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
 /* iPad 适配 */

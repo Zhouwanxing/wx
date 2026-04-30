@@ -174,15 +174,16 @@ export default {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(0, 255, 255, 0.3);
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 8px 32px rgba(0, 255, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 0 20px rgba(0, 255, 255, 0.2);
     padding: 32px 28px;
 }
 
 .logo-img {
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    filter: drop-shadow(0 2px 4px rgba(0, 255, 255, 0.3));
 }
 
 .form-group {
@@ -193,25 +194,26 @@ export default {
 .glass-input {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.4);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    color: rgba(255, 255, 255, 0.95);
+    color: #00ffff;
     font-size: 14px;
     transition: all 0.25s ease;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
 .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 255, 255, 0.6);
 }
 
 .glass-input:focus {
     outline: none;
     background: rgba(255, 255, 255, 0.35);
-    border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+    border-color: #00ffff;
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2), 0 0 20px rgba(0, 255, 255, 0.3);
 }
 
 /* 单选组 */
@@ -228,21 +230,23 @@ export default {
     padding: 8px 12px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 0, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.1);
 }
 
 .radio-item label {
-    color: rgba(255, 255, 255, 0.9);
+    color: #ff00ff;
     font-size: 13px;
     margin-left: 8px;
     cursor: pointer;
+    text-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 .glass-radio {
     width: 16px;
     height: 16px;
     cursor: pointer;
-    accent-color: rgba(99, 102, 241, 0.8);
+    accent-color: #ff00ff;
 }
 
 /* 主按钮 */
@@ -251,28 +255,31 @@ export default {
     padding: 14px 24px;
     border: none;
     border-radius: 12px;
-    background: rgba(99, 102, 241, 0.6);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.4) 0%, rgba(255, 0, 255, 0.4) 100%);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.5);
     box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        0 4px 12px rgba(0, 255, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 20px rgba(0, 255, 255, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     cursor: pointer;
     transition: all 0.25s ease;
-    color: white;
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
 }
 
 .primary-btn:hover {
-    background: rgba(99, 102, 241, 0.75);
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.6) 0%, rgba(255, 0, 255, 0.6) 100%);
     transform: translateY(-2px);
     box-shadow:
-        0 6px 16px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        0 6px 16px rgba(0, 255, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 0 30px rgba(0, 255, 255, 0.4);
 }
 
 .primary-btn:active {
@@ -284,11 +291,11 @@ export default {
     margin-top: 16px;
     padding: 14px 24px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    background: rgba(255, 215, 0, 0.25);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15), 0 0 20px rgba(255, 215, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -296,13 +303,15 @@ export default {
     cursor: pointer;
     transition: all 0.25s ease;
     flex-shrink: 0;
-    color: white;
+    color: #ffd700;
     font-size: 14px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
 }
 
 .secondary-btn:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 215, 0, 0.35);
     transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(255, 215, 0.3);
 }
 
 .secondary-btn:active {
@@ -317,7 +326,7 @@ export default {
 .text {
     font-size: 14px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
+    color: #00ffff;
 }
 
 /* 响应式适配 */
