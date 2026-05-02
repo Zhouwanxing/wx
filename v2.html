@@ -11,6 +11,9 @@
     <source src="" type="video/mp4">
 </video>
 <div style="text-align: center;width: 100%;">
+    <button onclick="openInXx()" style="width: 50%;padding: 5px;border-radius: 5px;">官网打开</button>
+</div>
+<div style="text-align: center;width: 100%;">
     <button onclick="addOne()" style="width: 50%;padding: 5px;border-radius: 5px;">+1</button>
 </div>
 <div style="text-align: center;width: 100%;" id="res_id">
@@ -51,6 +54,24 @@
         xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
                 document.getElementById('res_id').innerHTML = xhr.responseText;
+            } else {
+                document.getElementById('res_id').innerHTML = xhr.statusText;
+            }
+        };
+        xhr.onerror = function () {
+            document.getElementById('res_id').innerHTML = "error";
+        };
+        xhr.send();
+    }
+
+    function openInXx() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', baseUrl + "/mp4/getInXxUrl?id=" + id, true);
+        xhr.setRequestHeader(tokenName, tokenValue);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                let data = JSON.parse(xhr.responseText).data || {};
+                window.open(data.data);
             } else {
                 document.getElementById('res_id').innerHTML = xhr.statusText;
             }
