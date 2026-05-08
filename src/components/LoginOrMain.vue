@@ -38,6 +38,11 @@
                 <span class="icon">🎲</span>
                 <span class="text">随机数</span>
             </button>
+
+            <button class="secondary-btn" @click="toOther('./c.html')">
+                <span class="icon">🧮</span>
+                <span class="text">计算器</span>
+            </button>
         </div>
 
         <alert v-if="showAlert" :visible="showAlert" :message="alertMessage" @close="showAlert = false"></alert>
@@ -282,6 +287,7 @@ export default {
 
 /* 次要按钮 */
 .secondary-btn {
+    width: 100%;
     margin-top: 16px;
     padding: 14px 24px;
     border-radius: 12px;
