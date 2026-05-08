@@ -94,6 +94,7 @@ export default {
                     self.host = data.data;
                 }
                 self.host.push({id: "云", key: import.meta.env.VITE_BASE_URL});
+                self.host.push({id: "电脑", key: import.meta.env.COMPANY_BASE_URL});
                 self.showLogin = true;
             });
         },
