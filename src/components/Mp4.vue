@@ -89,7 +89,7 @@
                     <button @click="getList" style="width: 100%;height: 100%;">加载更多</button>
                 </div>
                 <div style="flex: 1;">
-                    <button @click="openInXx" style="width: 100%;height: 100%;">官网</button>
+                    <button @click="openInXx(selectMp4)" style="width: 100%;height: 100%;">官网</button>
                 </div>
             </div>
             <div v-for="(tag,tagIn) in (selectMp4.tags || [])" :key="tagIn + '_tag'"
