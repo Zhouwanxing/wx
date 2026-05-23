@@ -43,11 +43,13 @@
                 <div>{{ selectMp4.name }}（{{ formatDuration(selectMp4.duration) }}）</div>
                 <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
                 <div>{{ selectMp4.url }}</div>
+                <div v-if="selectMp4.m3u8">m3u8: {{ selectMp4.m3u8 }}</div>
             </div>
-<!--            <div>
-                <button @click="changePlay">切换播放源</button>
+            <div>
+                <button @click="changePlayMode">{{ useM3u8 ? '切换URL播放' : '切换M3U8播放' }}</button>
+                <button @click="changePlay">切换协议({{ playSource }})</button>
                 <button @click="openNewVideo">打开新地址</button>
-            </div>-->
+            </div>
             <div style="height: 20vh;">
                 <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
             </div>
@@ -76,9 +78,6 @@
                 </div>
             </div>
             <div style="display: flex;text-align: center;padding: 10px 0;">
-<!--                <div style="flex: 1;" v-if="currentDuration > 0">
-                    <button @click="updateDuration">{{ formatDuration(currentDuration) }}</button>
-                </div>-->
                 <div style="flex: 1;">
                     <button @click="rotateVideo" style="width: 100%;height: 100%;">旋转</button>
                 </div>
@@ -103,6 +102,7 @@
 <script>
 import Http from "../js/Http.js";
 import axios from "axios";
+import Hls from 'hls.js';
 
 export default {
     name: "Mp4.vue",
@@ -118,7 +118,9 @@ export default {
             loadImg: false,
             playSource: "https",
             currentDuration: 0,
-            rotateDeg: 0
+            rotateDeg: 0,
+            useM3u8: false,
+            hls: null
         }
     },
     mounted() {
@@ -130,6 +132,11 @@ export default {
                 self.getList();
             });
         }, 1);
+    },
+    beforeUnmount() {
+        if (this.hls) {
+            this.hls.destroy();
+        }
     },
     watch: {},
     methods: {
@@ -154,6 +161,12 @@ export default {
             let source = localStorage.getItem("mp4PlaySource") || "";
             self.playSource = source === "https" ? "http" : "https";
             localStorage.setItem("mp4PlaySource", self.playSource);
+            self.refreshVideo();
+        },
+        changePlayMode: function () {
+            const self = this;
+            self.useM3u8 = !self.useM3u8;
+            self.refreshVideo();
         },
         openNewVideo: function () {
             const self = this;
@@ -171,21 +184,44 @@ export default {
                 self.currentDuration = 0;
                 self.rotateDeg = 0;
                 const videoElement = document.getElementById('mp4Video');
-                // videoElement.muted = true;
                 videoElement.style.transform = "rotate(0deg)";
                 videoElement.playsInline = true;
-                videoElement.src = self.playSource === "https" ? url.replace("http:", "https:") : url.replace("https:", "http:");
-                videoElement.addEventListener('loadedmetadata', () => {
-                    // 快进到视频中间位置（假设中间位置是视频时长的一半）
-                    self.currentDuration = videoElement.duration;
-                    videoElement.currentTime = videoElement.duration / 3;
-                });
-                videoElement.addEventListener('playing', () => {
-                    videoElement.playbackRate = 1.5; //设置倍速 可修改为其他值如 0.5、2 等
-                });
-                // 自动播放
-                videoElement.load();
-                videoElement.play();
+                if (self.hls) {
+                    self.hls.destroy();
+                    self.hls = null;
+                }
+                let playUrl = url;
+                if (self.useM3u8 && self.selectMp4.m3u8) {
+                    playUrl = "https://publices.ttjkbx.com" +self.selectMp4.m3u8;
+                }
+                playUrl = self.playSource === "https" ? playUrl.replace("http:", "https:") : playUrl.replace("https:", "http:");
+                
+                if (self.useM3u8 && Hls.isSupported()) {
+                    self.hls = new Hls();
+                    self.hls.loadSource(playUrl);
+                    self.hls.attachMedia(videoElement);
+                    self.hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                        videoElement.addEventListener('loadedmetadata', () => {
+                            self.currentDuration = videoElement.duration;
+                            videoElement.currentTime = videoElement.duration / 3;
+                        });
+                        videoElement.addEventListener('playing', () => {
+                            videoElement.playbackRate = 1.5;
+                        });
+                        videoElement.play();
+                    });
+                } else {
+                    videoElement.src = playUrl;
+                    videoElement.addEventListener('loadedmetadata', () => {
+                        self.currentDuration = videoElement.duration;
+                        videoElement.currentTime = videoElement.duration / 3;
+                    });
+                    videoElement.addEventListener('playing', () => {
+                        videoElement.playbackRate = 1.5;
+                    });
+                    videoElement.load();
+                    videoElement.play();
+                }
             });
         },
         handleScroll: function () {
@@ -222,13 +258,20 @@ export default {
         },
         refreshVideo: function () {
             const self = this;
+            if (self.hls) {
+                self.hls.destroy();
+                self.hls = null;
+            }
             self.closeVideo();
             self.showFirst();
         },
         closeVideo: function () {
             const self = this;
             self.selectMp4 = {};
-            document.getElementById('mp4Video').src = "";
+            const videoElement = document.getElementById('mp4Video');
+            if (videoElement) {
+                videoElement.src = "";
+            }
         },
         updateDuration: function () {
             const self = this;
