@@ -128,6 +128,7 @@ export default {
         setTimeout(function () {
             self.getInitPath();
             self.playSource = localStorage.getItem("mp4PlaySource") || "https";
+            self.useM3u8 = localStorage.getItem("mp4UseM3u8") === "true";
             self.initPaths(function () {
                 self.getList();
             });
@@ -166,6 +167,7 @@ export default {
         changePlayMode: function () {
             const self = this;
             self.useM3u8 = !self.useM3u8;
+            localStorage.setItem("mp4UseM3u8", self.useM3u8+"");
             self.refreshVideo();
         },
         openNewVideo: function () {
