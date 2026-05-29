@@ -39,7 +39,7 @@
         </div>
         <div v-if="selectMp4._id">
             <div style="display: flex;">
-                <div style="flex: 1;text-align: center;padding: 2px;color: blue;" @click="closeVideo">
+                <div style="flex: 1;text-align: center;padding: 2px;color: blue;height: 30px;line-height: 30px;" @click="closeVideo">
                     关闭({{ count }}/{{ list.length }})
                 </div>
                 <div style="flex: 1;border-right: 1px solid blue;">
