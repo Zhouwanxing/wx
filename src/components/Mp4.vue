@@ -21,7 +21,7 @@
                         {{ item.name || item.date }}（{{ formatDuration(item.duration) }}）
                     </div>
                     <div class="img-div" @click.stop="clickImg(item)">
-                        <img src="" style="width: 100%;height: 100%;" :id="item._id" alt=""/>
+<!--                        <img src="" style="width: 100%;height: 100%;" :id="item._id" alt=""/>-->
                     </div>
                     <div style="padding: 10px;">
                         <button @click.stop="updateLike(item,'delete','noFresh')">不喜欢</button>
@@ -38,12 +38,12 @@
             </div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="display: flex;">
-                <div style="flex: 1;text-align: center;padding: 2px;color: blue;height: 30px;line-height: 30px;" @click="closeVideo">
+            <div style="display: flex;height: 30px;line-height: 30px;">
+                <div style="flex: 1;text-align: center;padding: 2px;color: blue;" @click="closeVideo">
                     关闭({{ count }}/{{ list.length }})
                 </div>
                 <div style="flex: 1;border-right: 1px solid blue;">
-                    <select v-model="path" style="height: 30px;line-height: 30px;border: 1px solid #ccc;margin: 8px" @change="changePath">
+                    <select v-model="path" style="border: 1px solid #ccc;" @change="changePath">
                         <option :value="'all'">请选择</option>
                         <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
                     </select>
@@ -61,12 +61,12 @@
                 <button @click="openNewVideo">打开新地址</button>
             </div>
             <div style="height: 20vh;">
-                <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>
+<!--                <img src="" style="width: 100%;height: 100%;" id="one-img-id" alt=""/>-->
             </div>
-            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;margin-top:10px;"
-                   id="mp4Video">
-                <source src="" type="video/mp4">
-            </video>
+<!--            <video controls webkit-playsinline playsinline style="width: 100%;height: 40vh;margin-top:10px;"-->
+<!--                   id="mp4Video">-->
+<!--                <source src="" type="video/mp4">-->
+<!--            </video>-->
             <div style="display: flex;text-align: center;padding: 10px 0;">
                 <div style="flex: 1;">
                     <button @click="refreshVideo">刷新</button>
