@@ -11,6 +11,9 @@
     <source src="" type="video/mp4">
 </video>
 <div style="text-align: center;width: 100%;">
+    <button onclick="changePlayMode()" style="width: 50%;padding: 5px;border-radius: 5px;">切换播放源</button>
+</div>
+<div style="text-align: center;width: 100%;">
     <button onclick="openInXx()" style="width: 50%;padding: 5px;border-radius: 5px;">官网打开</button>
 </div>
 <div style="text-align: center;width: 100%; margin-top: 20px;">
@@ -19,12 +22,17 @@
 <div style="text-align: center;width: 100%;" id="res_id">
 
 </div>
+<script src="https://cdn.staticfile.net/hls.js/1.6.13/hls.light.min.js"></script>
 <script>
+    import Hls from "hls.js";
+
     const searchParams = new URL(window.location.href).searchParams;
     const id = searchParams.get('id'),
         baseUrl = searchParams.get('baseUrl'),
         tokenName = searchParams.get('tokenName'),
         tokenValue = searchParams.get('tokenValue');
+    let useM3u8 = localStorage.getItem("mp4UseM3u8") === "true";
+    let videoData = {};
 
     if (id) {
         const xhr = new XMLHttpRequest();
@@ -32,13 +40,8 @@
         xhr.setRequestHeader(tokenName, tokenValue);
         xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
-                let data = JSON.parse(xhr.responseText).data || {};
-                document.getElementById('name_id').innerHTML = `${data.name}[${data.useCount || 0}]`;
-                const videoElement = document.getElementById('myVideo');
-                videoElement.src = data.url;
-                // 加载并播放视频
-                videoElement.load();
-                videoElement.play();
+                videoData = JSON.parse(xhr.responseText).data || {};
+                refreshVideo();
             } else {
                 console.error('Error:', xhr.statusText);
             }
@@ -80,6 +83,30 @@
             document.getElementById('res_id').innerHTML = "error";
         };
         xhr.send();
+    }
+
+    function changePlayMode() {
+        useM3u8 = !useM3u8;
+        localStorage.setItem("mp4UseM3u8", useM3u8 + "");
+        refreshVideo();
+    }
+
+    function refreshVideo() {
+        document.getElementById('name_id').innerHTML = `${videoData.name}[${videoData.useCount || 0}]-[${useM3u8 ? 'm3u8' : 'url'}]`;
+        const videoElement = document.getElementById('myVideo');
+        if (videoData.m3u8 && useM3u8 && Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource("https://publices.ttjkbx.com" + videoData.m3u8);
+            hls.attachMedia(videoElement);
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                videoElement.play();
+            });
+        } else {
+            videoElement.src = videoData.url;
+            // 加载并播放视频
+            videoElement.load();
+            videoElement.play();
+        }
     }
 </script>
 </body>

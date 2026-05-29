@@ -38,7 +38,17 @@
             </div>
         </div>
         <div v-if="selectMp4._id">
-            <div style="text-align: center;padding: 2px;color: blue;" @click="closeVideo">关闭({{ count }}/{{list.length}})</div>
+            <div style="display: flex;">
+                <div style="flex: 1;text-align: center;padding: 2px;color: blue;" @click="closeVideo">
+                    关闭({{ count }}/{{ list.length }})
+                </div>
+                <div style="flex: 1;border-right: 1px solid blue;">
+                    <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px" @change="changePath">
+                        <option :value="'all'">请选择</option>
+                        <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
+                    </select>
+                </div>
+            </div>
             <div style="padding: 1px;white-space: pre-wrap;font-size: 8px;">
                 <div>{{ selectMp4.name }}（{{ formatDuration(selectMp4.duration) }}）</div>
                 <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
