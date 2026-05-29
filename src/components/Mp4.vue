@@ -43,7 +43,7 @@
                     关闭({{ count }}/{{ list.length }})
                 </div>
                 <div style="flex: 1;border-right: 1px solid blue;">
-                    <select v-model="path" style="height: 30px;border: 1px solid #ccc;margin: 8px" @change="changePath">
+                    <select v-model="path" style="height: 30px;line-height: 30px;border: 1px solid #ccc;margin: 8px" @change="changePath">
                         <option :value="'all'">请选择</option>
                         <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
                     </select>
