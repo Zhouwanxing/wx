@@ -15,11 +15,83 @@
             height: 420px;
             margin: 40px auto;
         }
+
+        .record-section {
+            width: 900px;
+            margin: 0 auto 40px;
+        }
+
+        .record-section h2 {
+            margin: 0 0 12px;
+            font-size: 18px;
+            font-weight: normal;
+        }
+
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .record-table th,
+        .record-table td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .record-table th {
+            background: #f5f5f5;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .record-table th:hover {
+            background: #ebebeb;
+        }
+
+        .record-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        .record-table tbody tr:hover {
+            background: #f0f7ff;
+        }
+
+        .record-table .col-time {
+            color: #c0392b;
+        }
+
+        .record-table .col-floor {
+            color: #c0392b;
+        }
+
+        .record-table .col-price,
+        .record-table .col-unit {
+            color: #2980b9;
+        }
     </style>
 </head>
 <body>
 
 <div id="trend" class="chart"></div>
+
+<div class="record-section">
+    <h2>成交记录（<span id="record-count">0</span> 条）</h2>
+    <table class="record-table">
+        <thead>
+        <tr>
+            <th data-key="createTime">成交时间</th>
+            <th data-key="floor">楼层</th>
+            <th data-key="area">面积(㎡)</th>
+            <th data-key="price">总价(万)</th>
+            <th data-key="unitPrice">单价(元/㎡)</th>
+        </tr>
+        </thead>
+        <tbody id="record-list"></tbody>
+    </table>
+</div>
+
 <div id="heatmap" class="chart" style="height: 1600px;"></div>
 
 
@@ -31,8 +103,62 @@
         .then(res => {
             const data = res.data || [];
             handleTrend(data);
+            handleRecordList(data);
             handleHeatmap(data);
         });
+
+    let recordSortKey = 'createTime';
+    let recordSortAsc = false;
+    let recordRawData = [];
+
+    function handleRecordList(rawData) {
+        recordRawData = rawData.slice();
+        renderRecordList();
+
+        document.querySelectorAll('.record-table th[data-key]').forEach(th => {
+            th.onclick = () => {
+                const key = th.dataset.key;
+                if (recordSortKey === key) {
+                    recordSortAsc = !recordSortAsc;
+                } else {
+                    recordSortKey = key;
+                    recordSortAsc = key === 'createTime' ? false : true;
+                }
+                renderRecordList();
+            };
+        });
+    }
+
+    function renderRecordList() {
+        const list = recordRawData.slice().sort((a, b) => {
+            const va = a[recordSortKey];
+            const vb = b[recordSortKey];
+            let cmp;
+            if (recordSortKey === 'createTime') {
+                cmp = String(va).localeCompare(String(vb));
+            } else {
+                cmp = (Number(va) || 0) - (Number(vb) || 0);
+            }
+            return recordSortAsc ? cmp : -cmp;
+        });
+
+        document.getElementById('record-count').textContent = list.length;
+        document.getElementById('record-list').innerHTML = list.map(item => `
+            <tr>
+                <td class="col-time">${item.createTime || ''}</td>
+                <td class="col-floor">${item.floor || ''}</td>
+                <td>${item.area ?? ''}</td>
+                <td class="col-price">${item.price ?? ''}</td>
+                <td class="col-unit">${item.unitPrice ?? ''}</td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('.record-table th[data-key]').forEach(th => {
+            const key = th.dataset.key;
+            const label = th.textContent.replace(/ [⇑⇓]$/, '');
+            th.textContent = label + (recordSortKey === key ? (recordSortAsc ? ' ⇑' : ' ⇓') : '');
+        });
+    }
 
     function handleTrend(rawData) {
         const map = {};
