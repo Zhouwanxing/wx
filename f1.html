@@ -4,33 +4,136 @@
     <meta charset="UTF-8">
     <title>成交趋势分析</title>
     <script src="https://cdn.staticfile.org/echarts/5.4.3/echarts.min.js"></script>
-<!--    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>-->
     <style>
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0 0 40px;
+            background: #f8f9fa;
+        }
+
+        .page-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .toolbar {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin: 20px auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            align-items: center;
+        }
+
+        .toolbar label {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .toolbar select,
+        .toolbar input[type="number"] {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .toolbar input[type="number"] {
+            width: 72px;
+        }
+
+        .floor-checks label {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+
+        .kpi-card .label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .kpi-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+
+        .kpi-card .sub {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .kpi-card .value.up { color: #e74c3c; }
+        .kpi-card .value.down { color: #27ae60; }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: normal;
+            color: #333;
+            margin: 32px 0 8px;
+            padding-left: 4px;
+            border-left: 3px solid #2980b9;
         }
 
         .chart {
-            width: 900px;
+            width: 100%;
             height: 420px;
-            margin: 40px auto;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .chart.tall {
+            height: 520px;
         }
 
         .record-section {
-            width: 900px;
-            margin: 0 auto 40px;
+            margin: 32px 0;
         }
 
         .record-section h2 {
             margin: 0 0 12px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: normal;
+            border-left: 3px solid #2980b9;
+            padding-left: 4px;
+        }
+
+        .record-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 13px;
         }
 
         .record-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
+            background: #fff;
         }
 
         .record-table th,
@@ -54,14 +157,19 @@
             background: #fafafa;
         }
 
+        .record-table tbody tr {
+            cursor: pointer;
+        }
+
         .record-table tbody tr:hover {
             background: #f0f7ff;
         }
 
-        .record-table .col-time {
-            color: #c0392b;
+        .record-table tbody tr.active {
+            background: #ffeaa7;
         }
 
+        .record-table .col-time,
         .record-table .col-floor {
             color: #c0392b;
         }
@@ -74,47 +182,114 @@
 </head>
 <body>
 
-<div id="trend" class="chart"></div>
+<div class="page-wrap">
+    <div class="toolbar">
+        <label>时间范围
+            <select id="filter-time">
+                <option value="all">全部</option>
+                <option value="3m">近3月</option>
+                <option value="6m">近6月</option>
+                <option value="1y">近1年</option>
+            </select>
+        </label>
+        <span class="floor-checks">
+            楼层：
+            <label><input type="checkbox" class="floor-cb" value="低" checked> 低</label>
+            <label><input type="checkbox" class="floor-cb" value="中" checked> 中</label>
+            <label><input type="checkbox" class="floor-cb" value="高" checked> 高</label>
+        </span>
+        <label>面积 <input type="number" id="filter-area-min" placeholder="最小"> ~ <input type="number" id="filter-area-max" placeholder="最大"></label>
+        <label>总价 <input type="number" id="filter-price-min" placeholder="最小"> ~ <input type="number" id="filter-price-max" placeholder="最大"></label>
+        <button id="btn-apply">应用筛选</button>
+        <button id="btn-reset">重置</button>
+    </div>
 
-<div class="record-section">
-    <h2>成交记录（<span id="record-count">0</span> 条）</h2>
-    <table class="record-table">
-        <thead>
-        <tr>
-            <th data-key="createTime">成交时间</th>
-            <th data-key="floor">楼层</th>
-            <th data-key="area">面积(㎡)</th>
-            <th data-key="price">总价(万)</th>
-            <th data-key="unitPrice">单价(元/㎡)</th>
-        </tr>
-        </thead>
-        <tbody id="record-list"></tbody>
-    </table>
+    <div class="kpi-row" id="kpi-row"></div>
+
+    <h3 class="section-title">逐笔单价趋势（含7日/30日均线）</h3>
+    <div id="trend" class="chart"></div>
+
+    <h3 class="section-title">月度均价 & 成交量</h3>
+    <div id="monthlyVolume" class="chart"></div>
+
+    <h3 class="section-title">季度均价</h3>
+    <div id="quarterly" class="chart"></div>
+
+    <h3 class="section-title">累计成交套数</h3>
+    <div id="cumulative" class="chart"></div>
+
+    <h3 class="section-title">楼层价差趋势（高 - 低）</h3>
+    <div id="spread" class="chart"></div>
+
+    <h3 class="section-title">月度单价区间带</h3>
+    <div id="priceBand" class="chart"></div>
+
+    <h3 class="section-title">成交间隔天数</h3>
+    <div id="interval" class="chart"></div>
+
+    <h3 class="section-title">楼层单价分布（箱线图）</h3>
+    <div id="box" class="chart"></div>
+
+    <h3 class="section-title">面积 vs 单价（颜色越红越新）</h3>
+    <div id="areaUnit" class="chart tall"></div>
+
+    <div class="record-section">
+        <h2>成交记录（<span id="record-count">0</span> 条）</h2>
+        <table class="record-table">
+            <thead>
+            <tr>
+                <th data-key="createTime">成交时间</th>
+                <th data-key="floor">楼层</th>
+                <th data-key="area">面积(㎡)</th>
+                <th data-key="price">总价(万)</th>
+                <th data-key="unitPrice">单价(元/㎡)</th>
+            </tr>
+            </thead>
+            <tbody id="record-list"></tbody>
+        </table>
+    </div>
+
+    <h3 class="section-title">成交日历热力图</h3>
+    <div id="heatmap" class="chart" style="height: 1600px;"></div>
 </div>
 
-<div id="heatmap" class="chart" style="height: 1600px;"></div>
-
-
 <script>
-    const API_URL = 'https://goldtask.onrender.com/house/cj'; // ← 换成你的接口
+    const API_URL = 'https://goldtask.onrender.com/house/cj';
+    const FLOORS = ['低', '中', '高'];
+    const FLOOR_COLORS = { 低: '#5470C6', 中: '#91CC75', 高: '#EE6666' };
+
+    let allData = [];
+    let recordSortKey = 'createTime';
+    let recordSortAsc = false;
+    let selectedRecordKey = '';
+    const charts = {};
+
+    const filters = {
+        timeRange: 'all',
+        floors: ['低', '中', '高'],
+        areaMin: '',
+        areaMax: '',
+        priceMin: '',
+        priceMax: ''
+    };
 
     fetch(API_URL)
         .then(res => res.json())
         .then(res => {
-            const data = res.data || [];
-            handleTrend(data);
-            handleRecordList(data);
-            handleHeatmap(data);
+            allData = res.data || [];
+            bindFilters();
+            refreshAll();
         });
 
-    let recordSortKey = 'createTime';
-    let recordSortAsc = false;
-    let recordRawData = [];
-
-    function handleRecordList(rawData) {
-        recordRawData = rawData.slice();
-        renderRecordList();
-
+    function bindFilters() {
+        document.getElementById('btn-apply').onclick = applyFilters;
+        document.getElementById('btn-reset').onclick = () => {
+            document.getElementById('filter-time').value = 'all';
+            document.querySelectorAll('.floor-cb').forEach(cb => cb.checked = true);
+            ['filter-area-min', 'filter-area-max', 'filter-price-min', 'filter-price-max']
+                .forEach(id => document.getElementById(id).value = '');
+            applyFilters();
+        };
         document.querySelectorAll('.record-table th[data-key]').forEach(th => {
             th.onclick = () => {
                 const key = th.dataset.key;
@@ -124,43 +299,78 @@
                     recordSortKey = key;
                     recordSortAsc = key === 'createTime' ? false : true;
                 }
-                renderRecordList();
+                renderRecordList(getFilteredData());
             };
         });
+        window.addEventListener('resize', () => Object.values(charts).forEach(c => c && c.resize()));
     }
 
-    function renderRecordList() {
-        const list = recordRawData.slice().sort((a, b) => {
-            const va = a[recordSortKey];
-            const vb = b[recordSortKey];
-            let cmp;
-            if (recordSortKey === 'createTime') {
-                cmp = String(va).localeCompare(String(vb));
-            } else {
-                cmp = (Number(va) || 0) - (Number(vb) || 0);
+    function applyFilters() {
+        filters.timeRange = document.getElementById('filter-time').value;
+        filters.floors = [...document.querySelectorAll('.floor-cb:checked')].map(cb => cb.value);
+        filters.areaMin = document.getElementById('filter-area-min').value;
+        filters.areaMax = document.getElementById('filter-area-max').value;
+        filters.priceMin = document.getElementById('filter-price-min').value;
+        filters.priceMax = document.getElementById('filter-price-max').value;
+        selectedRecordKey = '';
+        refreshAll();
+    }
+
+    function refreshAll() {
+        const data = getFilteredData();
+        renderKpi(data);
+        renderTrend(data);
+        renderMonthlyVolume(data);
+        renderQuarterly(data);
+        renderCumulative(data);
+        renderSpread(data);
+        renderPriceBand(data);
+        renderInterval(data);
+        renderBox(data);
+        renderAreaUnit(data);
+        renderRecordList(data);
+        renderHeatmap(data);
+    }
+
+    function parseCreateTime(str) {
+        if (!str) return null;
+        const parts = str.replace(/\./g, '-').split('-').map(Number);
+        if (parts.length >= 3) return new Date(parts[0], parts[1] - 1, parts[2]);
+        if (parts.length >= 2) return new Date(parts[0], parts[1] - 1, 1);
+        return null;
+    }
+
+    function formatDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}.${m}.${day}`;
+    }
+
+    function getFilteredData() {
+        const now = new Date();
+        const rangeMonths = { '3m': 3, '6m': 6, '1y': 12, 'all': null };
+
+        return allData.filter(item => {
+            if (filters.floors.length && !filters.floors.includes(item.floor)) return false;
+            const area = Number(item.area);
+            const price = Number(item.price);
+            if (filters.areaMin !== '' && area < Number(filters.areaMin)) return false;
+            if (filters.areaMax !== '' && area > Number(filters.areaMax)) return false;
+            if (filters.priceMin !== '' && price < Number(filters.priceMin)) return false;
+            if (filters.priceMax !== '' && price > Number(filters.priceMax)) return false;
+            const months = rangeMonths[filters.timeRange];
+            if (months !== null) {
+                const d = parseCreateTime(item.createTime);
+                if (!d) return false;
+                const cutoff = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+                if (d < cutoff) return false;
             }
-            return recordSortAsc ? cmp : -cmp;
-        });
-
-        document.getElementById('record-count').textContent = list.length;
-        document.getElementById('record-list').innerHTML = list.map(item => `
-            <tr>
-                <td class="col-time">${item.createTime || ''}</td>
-                <td class="col-floor">${item.floor || ''}</td>
-                <td>${item.area ?? ''}</td>
-                <td class="col-price">${item.price ?? ''}</td>
-                <td class="col-unit">${item.unitPrice ?? ''}</td>
-            </tr>
-        `).join('');
-
-        document.querySelectorAll('.record-table th[data-key]').forEach(th => {
-            const key = th.dataset.key;
-            const label = th.textContent.replace(/ [⇑⇓]$/, '');
-            th.textContent = label + (recordSortKey === key ? (recordSortAsc ? ' ⇑' : ' ⇓') : '');
+            return true;
         });
     }
 
-    function handleTrend(rawData) {
+    function dedupeByDateFloor(rawData) {
         const map = {};
         rawData.forEach(item => {
             const key = item.createTime + '_' + item.floor;
@@ -168,16 +378,140 @@
                 map[key] = item;
             }
         });
+        return Object.values(map).sort((a, b) => a.createTime.localeCompare(b.createTime));
+    }
 
-// 2. 转数组并按时间排序
-        const data = Object.values(map).sort((a, b) =>
-            a.createTime.localeCompare(b.createTime)
-        );
+    function quantile(arr, q) {
+        if (!arr.length) return 0;
+        const sorted = arr.slice().sort((a, b) => a - b);
+        const pos = (sorted.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        return sorted[base + 1] !== undefined
+            ? sorted[base] + rest * (sorted[base + 1] - sorted[base])
+            : sorted[base];
+    }
 
-// 3. 获取完整的时间轴
+    function movingAverage(values, window) {
+        return values.map((_, i) => {
+            const slice = values.slice(Math.max(0, i - window + 1), i + 1).filter(v => v != null);
+            if (!slice.length) return null;
+            return Math.round(slice.reduce((a, b) => a + b, 0) / slice.length);
+        });
+    }
+
+    function groupByMonth(data) {
+        const map = {};
+        data.forEach(item => {
+            const month = item.createTime.substring(0, 7);
+            if (!map[month]) map[month] = [];
+            map[month].push(item);
+        });
+        return Object.keys(map).sort().map(k => ({ month: k, items: map[k] }));
+    }
+
+    function groupByQuarter(data) {
+        const map = {};
+        data.forEach(item => {
+            const parts = item.createTime.split('.');
+            const q = Math.ceil(Number(parts[1]) / 3);
+            const key = `${parts[0]}-Q${q}`;
+            if (!map[key]) map[key] = [];
+            map[key].push(item);
+        });
+        return Object.keys(map).sort().map(k => ({ quarter: k, items: map[k] }));
+    }
+
+    function avgUnitPrice(items) {
+        const prices = items.map(i => Number(i.unitPrice)).filter(Boolean);
+        if (!prices.length) return null;
+        return Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    }
+
+    function initChart(id) {
+        if (charts[id]) charts[id].dispose();
+        charts[id] = echarts.init(document.getElementById(id));
+        return charts[id];
+    }
+
+    function recordKey(item) {
+        return `${item.createTime}_${item.floor}_${item.area}_${item.unitPrice}`;
+    }
+
+    /* ── KPI ── */
+    function renderKpi(data) {
+        const sorted = data.slice().sort((a, b) => b.createTime.localeCompare(a.createTime));
+        const latest = sorted[0];
+        const prices = data.map(i => Number(i.unitPrice)).filter(Boolean);
+        const now = new Date();
+        const d30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        const recent = data.filter(i => {
+            const d = parseCreateTime(i.createTime);
+            return d && d >= d30;
+        });
+        const recentPrices = recent.map(i => Number(i.unitPrice)).filter(Boolean);
+        const avg30 = recentPrices.length
+            ? Math.round(recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length)
+            : '-';
+
+        let daysSince = '-';
+        if (latest) {
+            const ld = parseCreateTime(latest.createTime);
+            if (ld) daysSince = Math.floor((now - ld) / 86400000);
+        }
+
+        const months = groupByMonth(data);
+        let momText = '-', momClass = '';
+        if (months.length >= 2) {
+            const cur = avgUnitPrice(months[months.length - 1].items);
+            const prev = avgUnitPrice(months[months.length - 2].items);
+            if (cur && prev) {
+                const pct = ((cur - prev) / prev * 100).toFixed(1);
+                momText = (pct > 0 ? '+' : '') + pct + '%';
+                momClass = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+            }
+        }
+
+        let yoyText = '-', yoyClass = '';
+        if (months.length >= 1) {
+            const last = months[months.length - 1];
+            const parts = last.month.split('.');
+            const yoyKey = `${Number(parts[0]) - 1}.${parts[1]}`;
+            const yoyMonth = months.find(m => m.month === yoyKey);
+            if (yoyMonth) {
+                const cur = avgUnitPrice(last.items);
+                const prev = avgUnitPrice(yoyMonth.items);
+                if (cur && prev) {
+                    const pct = ((cur - prev) / prev * 100).toFixed(1);
+                    yoyText = (pct > 0 ? '+' : '') + pct + '%';
+                    yoyClass = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+                }
+            }
+        }
+
+        const cards = [
+            { label: '最新成交单价', value: latest ? latest.unitPrice + ' 元/㎡' : '-', sub: latest ? latest.createTime + ' ' + latest.floor + '层' : '' },
+            { label: '近30天均价', value: avg30 === '-' ? '-' : avg30 + ' 元/㎡', sub: `共 ${recent.length} 笔` },
+            { label: '最高 / 最低单价', value: prices.length ? Math.max(...prices) + ' / ' + Math.min(...prices) : '-', sub: '筛选范围内' },
+            { label: '距上次成交', value: daysSince === '-' ? '-' : daysSince + ' 天', sub: latest ? latest.createTime : '' },
+            { label: '环比（月均单价）', value: momText, sub: '较上月', cls: momClass },
+            { label: '同比（月均单价）', value: yoyText, sub: '较去年同期', cls: yoyClass }
+        ];
+
+        document.getElementById('kpi-row').innerHTML = cards.map(c => `
+            <div class="kpi-card">
+                <div class="label">${c.label}</div>
+                <div class="value ${c.cls || ''}">${c.value}</div>
+                <div class="sub">${c.sub || ''}</div>
+            </div>
+        `).join('');
+    }
+
+    /* ── 逐笔趋势 + 均线 ── */
+    function renderTrend(rawData) {
+        const data = dedupeByDateFloor(rawData);
         const dates = [...new Set(data.map(i => i.createTime))];
 
-// 4. 按楼层组装三条线
         function buildSeries(floor) {
             return dates.map(date => {
                 const item = data.find(d => d.createTime === date && d.floor === floor);
@@ -185,67 +519,354 @@
             });
         }
 
-        const option = {
-            tooltip: {
-                trigger: 'axis'
-            },
-            legend: {
-                data: ['低', '中', '高']
-            },
-            grid: {
-                left: '8%',
-                right: '5%',
-                bottom: '10%'
-            },
-            xAxis: {
-                type: 'category',
-                data: dates,
-                name: '成交时间'
-            },
-            yAxis: {
-                type: 'value',
-                name: '单价（元/㎡）'
-            },
-            series: [
-                {
-                    name: '低',
-                    type: 'line',
-                    connectNulls: true,
-                    data: buildSeries('低')
-                },
-                {
-                    name: '中',
-                    type: 'line',
-                    connectNulls: true,
-                    data: buildSeries('中')
-                },
-                {
-                    name: '高',
-                    type: 'line',
-                    connectNulls: true,
-                    data: buildSeries('高')
-                }
-            ]
-        };
+        const avgSeries = dates.map(date => {
+            const items = data.filter(d => d.createTime === date);
+            const prices = items.map(i => Number(i.unitPrice)).filter(Boolean);
+            return prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null;
+        });
 
-        const chart = echarts.init(document.getElementById('trend'));
-        chart.setOption(option);
+        const ma7 = movingAverage(avgSeries, 7);
+        const ma30 = movingAverage(avgSeries, 30);
+
+        const markPoint = selectedRecordKey ? (() => {
+            const item = rawData.find(i => recordKey(i) === selectedRecordKey);
+            if (!item || !dates.includes(item.createTime)) return null;
+            return { date: item.createTime, price: item.unitPrice, floor: item.floor };
+        })() : null;
+
+        const series = FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+            name: floor,
+            type: 'line',
+            connectNulls: true,
+            data: buildSeries(floor),
+            itemStyle: { color: FLOOR_COLORS[floor] },
+            markPoint: markPoint && markPoint.floor === floor ? {
+                data: [{ coord: [markPoint.date, markPoint.price], name: '选中' }],
+                symbol: 'pin',
+                symbolSize: 45,
+                itemStyle: { color: '#e74c3c' }
+            } : undefined
+        }));
+
+        series.push(
+            { name: '整体均价', type: 'line', data: avgSeries, lineStyle: { type: 'dotted', width: 1 }, symbol: 'none' },
+            { name: '7日均线', type: 'line', data: ma7, lineStyle: { width: 2, type: 'dashed' }, symbol: 'none', color: '#f39c12' },
+            { name: '30日均线', type: 'line', data: ma30, lineStyle: { width: 2, type: 'dashed' }, symbol: 'none', color: '#8e44ad' }
+        );
+
+        initChart('trend').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: series.map(s => s.name), top: 0 },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { type: 'category', data: dates, name: '成交时间' },
+            yAxis: { type: 'value', name: '单价（元/㎡）' },
+            series
+        }, true);
     }
 
-    function handleHeatmap(rawData) {
-        var lastMap = {},otherMap = {};
-        rawData.forEach(one => {
-            var year = one.createTime.substring(0, 4);
-            var day = one.createTime.replaceAll(".", "-");
+    /* ── 月度均价 + 成交量 ── */
+    function renderMonthlyVolume(data) {
+        const groups = groupByMonth(data);
+        const months = groups.map(g => g.month);
+        const volumes = groups.map(g => g.items.length);
+        const avgPrices = groups.map(g => avgUnitPrice(g.items));
 
-            if (lastMap.hasOwnProperty(year)) {
-                let yearList = lastMap[year];
-                var find = yearList.find(oneYear => oneYear[0] === day);
+        const floorSeries = FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+            name: floor + '层均价',
+            type: 'line',
+            yAxisIndex: 0,
+            data: groups.map(g => {
+                const items = g.items.filter(i => i.floor === floor);
+                return avgUnitPrice(items);
+            }),
+            itemStyle: { color: FLOOR_COLORS[floor] }
+        }));
+
+        initChart('monthlyVolume').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { top: 0 },
+            grid: { left: '8%', right: '8%', bottom: '12%', top: '14%' },
+            xAxis: { type: 'category', data: months, name: '月份' },
+            yAxis: [
+                { type: 'value', name: '均价（元/㎡）' },
+                { type: 'value', name: '成交量（套）', splitLine: { show: false } }
+            ],
+            series: [
+                ...floorSeries,
+                { name: '整体均价', type: 'line', yAxisIndex: 0, data: avgPrices, lineStyle: { type: 'dotted' } },
+                { name: '成交量', type: 'bar', yAxisIndex: 1, data: volumes, itemStyle: { color: 'rgba(52,152,219,0.5)' } }
+            ]
+        }, true);
+    }
+
+    /* ── 季度均价 ── */
+    function renderQuarterly(data) {
+        const groups = groupByQuarter(data);
+        const quarters = groups.map(g => g.quarter);
+
+        initChart('quarterly').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { top: 0 },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { type: 'category', data: quarters, name: '季度' },
+            yAxis: { type: 'value', name: '均价（元/㎡）' },
+            series: [
+                ...FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+                    name: floor + '层',
+                    type: 'line',
+                    data: groups.map(g => avgUnitPrice(g.items.filter(i => i.floor === floor))),
+                    itemStyle: { color: FLOOR_COLORS[floor] }
+                })),
+                {
+                    name: '整体',
+                    type: 'bar',
+                    data: groups.map(g => avgUnitPrice(g.items)),
+                    itemStyle: { color: 'rgba(155,89,182,0.4)' }
+                }
+            ]
+        }, true);
+    }
+
+    /* ── 累计成交 ── */
+    function renderCumulative(data) {
+        const sorted = data.slice().sort((a, b) => a.createTime.localeCompare(b.createTime));
+        const dateMap = {};
+        sorted.forEach(i => { dateMap[i.createTime] = (dateMap[i.createTime] || 0) + 1; });
+        const dates = Object.keys(dateMap).sort();
+        let sum = 0;
+        const cumulative = dates.map(d => { sum += dateMap[d]; return sum; });
+
+        initChart('cumulative').setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: '8%', right: '5%', bottom: '12%' },
+            xAxis: { type: 'category', data: dates, name: '成交时间' },
+            yAxis: { type: 'value', name: '累计套数' },
+            series: [{
+                name: '累计成交',
+                type: 'line',
+                areaStyle: { color: 'rgba(41,128,185,0.15)' },
+                data: cumulative,
+                smooth: true,
+                itemStyle: { color: '#2980b9' }
+            }]
+        }, true);
+    }
+
+    /* ── 楼层价差 ── */
+    function renderSpread(data) {
+        const deduped = dedupeByDateFloor(data);
+        const dates = [...new Set(deduped.map(i => i.createTime))].sort();
+
+        function getPrice(date, floor) {
+            const item = deduped.find(d => d.createTime === date && d.floor === floor);
+            return item ? Number(item.unitPrice) : null;
+        }
+
+        const highLow = dates.map(d => {
+            const h = getPrice(d, '高'), l = getPrice(d, '低');
+            return h != null && l != null ? h - l : null;
+        });
+        const midLow = dates.map(d => {
+            const m = getPrice(d, '中'), l = getPrice(d, '低');
+            return m != null && l != null ? m - l : null;
+        });
+
+        initChart('spread').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['高-低', '中-低'], top: 0 },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '12%' },
+            xAxis: { type: 'category', data: dates },
+            yAxis: { type: 'value', name: '价差（元/㎡）' },
+            series: [
+                { name: '高-低', type: 'line', connectNulls: true, data: highLow, itemStyle: { color: '#e74c3c' } },
+                { name: '中-低', type: 'line', connectNulls: true, data: midLow, itemStyle: { color: '#f39c12' } }
+            ]
+        }, true);
+    }
+
+    /* ── 月度单价区间带 ── */
+    function renderPriceBand(data) {
+        const groups = groupByMonth(data);
+        const months = groups.map(g => g.month);
+
+        const minArr = [], q25Arr = [], medArr = [], q75Arr = [], maxArr = [];
+        groups.forEach(g => {
+            const prices = g.items.map(i => Number(i.unitPrice)).filter(Boolean).sort((a, b) => a - b);
+            if (!prices.length) {
+                minArr.push(null); q25Arr.push(null); medArr.push(null); q75Arr.push(null); maxArr.push(null);
+            } else {
+                minArr.push(prices[0]);
+                q25Arr.push(Math.round(quantile(prices, 0.25)));
+                medArr.push(Math.round(quantile(prices, 0.5)));
+                q75Arr.push(Math.round(quantile(prices, 0.75)));
+                maxArr.push(prices[prices.length - 1]);
+            }
+        });
+
+        initChart('priceBand').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['25%-75%区间', '中位', '最低', '最高'], top: 0 },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { type: 'category', data: months },
+            yAxis: { type: 'value', name: '单价（元/㎡）' },
+            series: [
+                {
+                    name: '_base', type: 'line', data: q25Arr,
+                    lineStyle: { opacity: 0 }, symbol: 'none', stack: 'band', silent: true
+                },
+                {
+                    name: '25%-75%区间', type: 'line',
+                    data: q25Arr.map((v, i) => q75Arr[i] != null && v != null ? q75Arr[i] - v : null),
+                    lineStyle: { opacity: 0 }, symbol: 'none', stack: 'band',
+                    areaStyle: { color: 'rgba(52,152,219,0.25)' }
+                },
+                { name: '中位', type: 'line', data: medArr, lineStyle: { width: 2 }, itemStyle: { color: '#e74c3c' } },
+                { name: '最低', type: 'line', data: minArr, lineStyle: { type: 'dotted', opacity: 0.5 }, symbol: 'none' },
+                { name: '最高', type: 'line', data: maxArr, lineStyle: { type: 'dotted', opacity: 0.5 }, symbol: 'none' }
+            ]
+        }, true);
+    }
+
+    /* ── 成交间隔 ── */
+    function renderInterval(data) {
+        const sorted = data.slice().sort((a, b) => a.createTime.localeCompare(b.createTime));
+        const uniqueDates = [...new Set(sorted.map(i => i.createTime))].sort();
+        const intervals = [], labels = [];
+        for (let i = 1; i < uniqueDates.length; i++) {
+            const d1 = parseCreateTime(uniqueDates[i - 1]);
+            const d2 = parseCreateTime(uniqueDates[i]);
+            if (d1 && d2) {
+                labels.push(uniqueDates[i]);
+                intervals.push(Math.round((d2 - d1) / 86400000));
+            }
+        }
+
+        initChart('interval').setOption({
+            tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>间隔 ${p[0].value} 天` },
+            grid: { left: '8%', right: '5%', bottom: '12%' },
+            xAxis: { type: 'category', data: labels },
+            yAxis: { type: 'value', name: '天数' },
+            series: [{
+                name: '成交间隔',
+                type: 'bar',
+                data: intervals,
+                itemStyle: {
+                    color: p => p.value > 30 ? '#e74c3c' : p.value > 14 ? '#f39c12' : '#27ae60'
+                }
+            }]
+        }, true);
+    }
+
+    /* ── 箱线图 ── */
+    function renderBox(data) {
+        const floors = {};
+        FLOORS.forEach(f => { floors[f] = []; });
+        data.forEach(i => {
+            if (floors[i.floor]) floors[i.floor].push(Number(i.unitPrice));
+        });
+
+        const activeFloors = FLOORS.filter(f => filters.floors.includes(f));
+        const boxData = activeFloors.map(f => {
+            const arr = floors[f].sort((a, b) => a - b);
+            if (!arr.length) return [0, 0, 0, 0, 0];
+            return [quantile(arr, 0), quantile(arr, 0.25), quantile(arr, 0.5), quantile(arr, 0.75), quantile(arr, 1)];
+        });
+
+        initChart('box').setOption({
+            tooltip: { trigger: 'item' },
+            grid: { left: '10%', right: '5%', bottom: '12%' },
+            xAxis: { type: 'category', data: activeFloors.map(f => f + '层') },
+            yAxis: { type: 'value', name: '单价（元/㎡）' },
+            series: [{ type: 'boxplot', data: boxData }]
+        }, true);
+    }
+
+    /* ── 面积 vs 单价散点 ── */
+    function renderAreaUnit(data) {
+        const sorted = data.slice().sort((a, b) => a.createTime.localeCompare(b.createTime));
+        const timeIndex = {};
+        sorted.forEach((item, idx) => { timeIndex[recordKey(item)] = idx; });
+        const maxIdx = sorted.length - 1 || 1;
+
+        const series = FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+            name: floor + '层',
+            type: 'scatter',
+            data: data.filter(i => i.floor === floor).map(i => ({
+                value: [Number(i.area), Number(i.unitPrice)],
+                itemStyle: {
+                    color: `hsl(${Math.round((1 - (timeIndex[recordKey(i)] || 0) / maxIdx) * 30)}, 70%, 50%)`
+                },
+                extra: i
+            })),
+            symbolSize: 10
+        }));
+
+        initChart('areaUnit').setOption({
+            tooltip: {
+                formatter: p => {
+                    const d = p.data.extra;
+                    return `时间：${d.createTime}<br/>楼层：${d.floor}<br/>面积：${d.area}㎡<br/>单价：${d.unitPrice} 元/㎡<br/>总价：${d.price} 万`;
+                }
+            },
+            legend: { top: 0 },
+            grid: { left: '10%', right: '5%', bottom: '12%', top: '10%' },
+            xAxis: { name: '面积（㎡）', scale: true },
+            yAxis: { name: '单价（元/㎡）', scale: true },
+            series
+        }, true);
+    }
+
+    /* ── 成交列表 ── */
+    function renderRecordList(data) {
+        const list = data.slice().sort((a, b) => {
+            const va = a[recordSortKey], vb = b[recordSortKey];
+            let cmp = recordSortKey === 'createTime'
+                ? String(va).localeCompare(String(vb))
+                : (Number(va) || 0) - (Number(vb) || 0);
+            return recordSortAsc ? cmp : -cmp;
+        });
+
+        document.getElementById('record-count').textContent = list.length;
+        document.getElementById('record-list').innerHTML = list.map(item => {
+            const key = recordKey(item);
+            return `<tr data-key="${key}" class="${key === selectedRecordKey ? 'active' : ''}">
+                <td class="col-time">${item.createTime || ''}</td>
+                <td class="col-floor">${item.floor || ''}</td>
+                <td>${item.area ?? ''}</td>
+                <td class="col-price">${item.price ?? ''}</td>
+                <td class="col-unit">${item.unitPrice ?? ''}</td>
+            </tr>`;
+        }).join('');
+
+        document.querySelectorAll('.record-table th[data-key]').forEach(th => {
+            const key = th.dataset.key;
+            const labels = { createTime: '成交时间', floor: '楼层', area: '面积(㎡)', price: '总价(万)', unitPrice: '单价(元/㎡)' };
+            th.textContent = labels[key] + (recordSortKey === key ? (recordSortAsc ? ' ⇑' : ' ⇓') : '');
+        });
+
+        document.querySelectorAll('#record-list tr').forEach(tr => {
+            tr.onclick = () => {
+                selectedRecordKey = tr.dataset.key;
+                document.querySelectorAll('#record-list tr').forEach(r => r.classList.remove('active'));
+                tr.classList.add('active');
+                renderTrend(data);
+            };
+        });
+    }
+
+    /* ── 热力图 ── */
+    function renderHeatmap(rawData) {
+        const lastMap = {}, otherMap = {};
+        rawData.forEach(one => {
+            const year = one.createTime.substring(0, 4);
+            const day = one.createTime.replaceAll('.', '-');
+            if (lastMap[year]) {
+                const find = lastMap[year].find(y => y[0] === day);
                 if (find) {
                     find[1]++;
                     otherMap[day].push(one);
                 } else {
-                    yearList.push([day, 1]);
+                    lastMap[year].push([day, 1]);
                     otherMap[day] = [one];
                 }
             } else {
@@ -253,57 +874,43 @@
                 otherMap[day] = [one];
             }
         });
-        console.log(lastMap);
-        const option = {
-            tooltip: {
-                position: 'top'
-            },
-            formatter: function (params) {
-                if (!params.data) return '';
-                const [date, count] = params.data.value || params.data;
-                let str = "";
-                otherMap[date].forEach(one => {
-                    str += `<tr><th>${one.floor}</th><th>${one.area}</th><th>${one.price}</th><th>${one.unitPrice}</th></tr>`;
-                });
-                return `<div style="padding:5px 10px">
-                            <div style="font-weight:bold;margin-bottom:5px;text-align: center;">${date}</div>
-                            <table border="1">
-                                <thead>
-                                <tr><th>楼层</th><th>面积</th><th>总价</th><th>单价</th></tr>
-                                </thead>
-                                <tbody>
-                                    ${str}
-                                </tbody>
-                            </table>
-                        </div>`;
-            },
-            visualMap: {
-                min: 0,
-                max: 4,
-                calculable: true,
-                orient: 'horizontal',
-                left: 'center',
-                top: 'top'
-            },
-            calendar: [],
-            series: []
-        };
+
+        const calendar = [], series = [];
         let count = 0;
-        for (let key in lastMap) {
-            option.calendar.push({
-                top: 150 * count + 70,
-                range: key,
-                cellSize: ['auto', 15]
-            });
-            option.series.push({
+        for (const key in lastMap) {
+            calendar.push({ top: 150 * count + 70, range: key, cellSize: ['auto', 15] });
+            series.push({
                 type: 'heatmap',
                 coordinateSystem: 'calendar',
                 calendarIndex: count++,
                 data: lastMap[key]
             });
         }
-        const chart = echarts.init(document.getElementById('heatmap'));
-        chart.setOption(option);
+
+        initChart('heatmap').setOption({
+            tooltip: {
+                position: 'top',
+                formatter: params => {
+                    if (!params.data) return '';
+                    const date = params.data[0];
+                    if (!otherMap[date]) return date;
+                    let str = '';
+                    otherMap[date].forEach(one => {
+                        str += `<tr><td>${one.floor}</td><td>${one.area}</td><td>${one.price}</td><td>${one.unitPrice}</td></tr>`;
+                    });
+                    return `<div style="padding:5px 10px">
+                        <div style="font-weight:bold;margin-bottom:5px;text-align:center">${date}</div>
+                        <table border="1" style="border-collapse:collapse;font-size:12px">
+                            <tr><th>楼层</th><th>面积</th><th>总价</th><th>单价</th></tr>
+                            ${str}
+                        </table>
+                    </div>`;
+                }
+            },
+            visualMap: { min: 0, max: 4, calculable: true, orient: 'horizontal', left: 'center', top: 'top' },
+            calendar,
+            series
+        }, true);
     }
 </script>
 
