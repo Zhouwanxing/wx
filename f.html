@@ -2,227 +2,722 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>房价趋势分析</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>小区房价趋势分析</title>
     <script src="https://cdn.staticfile.org/echarts/5.4.3/echarts.min.js"></script>
-<!--    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>-->
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 0 0 48px;
+            background: #f0f2f5;
+            color: #251b1b;
+        }
+        .page-wrap {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+        .page-header {
+            padding: 24px 0 8px;
+        }
+        .page-header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .page-header p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: #888;
+        }
+        .trend-banner {
+            background: linear-gradient(135deg, #2980b9 0%, #1a5276 100%);
+            color: #fff;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 16px 0 20px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .trend-banner .dir-up { color: #ffcccc; font-weight: bold; }
+        .trend-banner .dir-down { color: #a8f0c6; font-weight: bold; }
+        .trend-banner .dir-flat { color: #ffeaa7; font-weight: bold; }
+        .toolbar {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            align-items: center;
+        }
+        .toolbar label { font-size: 13px; color: #555; }
+        .toolbar select {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .floor-checks label { margin-right: 10px; cursor: pointer; font-size: 13px; }
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 640px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+        .kpi-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .kpi-card .label { font-size: 12px; color: #888; margin-bottom: 6px; }
+        .kpi-card .value { font-size: 20px; font-weight: bold; color: #2980b9; }
+        .kpi-card .sub { font-size: 11px; color: #999; margin-top: 4px; }
+        .kpi-card .value.up { color: #e74c3c; }
+        .kpi-card .value.down { color: #27ae60; }
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+            margin: 28px 0 10px;
+            padding-left: 10px;
+            border-left: 3px solid #2980b9;
+        }
+        .section-desc {
+            font-size: 12px;
+            color: #999;
+            margin: -6px 0 10px 13px;
+        }
+        .chart {
+            width: 100%;
+            height: 400px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .chart.tall { height: 480px; }
+        .record-section { margin: 28px 0; }
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .record-table th, .record-table td {
+            border: 1px solid #eee;
+            padding: 8px 10px;
+            text-align: center;
+        }
+        .record-table th {
+            background: #f5f7fa;
+            cursor: pointer;
+            user-select: none;
+        }
+        .record-table tbody tr:nth-child(even) { background: #fafafa; }
+        .record-table tbody tr:hover { background: #f0f7ff; }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
 
-<h2>面积 vs 总价（按楼层）</h2>
-<div id="scatter" style="width:100%;height:500px;"></div>
+<div class="page-wrap">
+    <div class="page-header">
+        <h1>小区房价趋势分析</h1>
+        <p>基于历史成交数据展示单价走势，结合当前挂牌分布辅助判断</p>
+    </div>
 
-<h2>楼层 vs 单价分布</h2>
-<div id="box" style="width:100%;height:500px;"></div>
-<div id="boxStr"></div>
+    <div id="trend-banner" class="trend-banner" style="display:none"></div>
 
-<h2>面积 / 总价 / 单价 / 楼层（气泡图）</h2>
-<div id="bubble" style="width:100%;height:520px;"></div>
+    <div class="toolbar">
+        <label>时间范围
+            <select id="filter-time">
+                <option value="all">全部</option>
+                <option value="3m">近3月</option>
+                <option value="6m">近6月</option>
+                <option value="1y" selected>近1年</option>
+            </select>
+        </label>
+        <span class="floor-checks">
+            楼层：
+            <label><input type="checkbox" class="floor-cb" value="低" checked> 低</label>
+            <label><input type="checkbox" class="floor-cb" value="中" checked> 中</label>
+            <label><input type="checkbox" class="floor-cb" value="高" checked> 高</label>
+        </span>
+    </div>
 
-<h2>面积 vs 单价（按楼层）</h2>
-<div id="areaUnitChart" style="width:100%;height:520px;"></div>
+    <div id="loading" class="loading">数据加载中…</div>
+    <div id="main-content" style="display:none">
+        <div class="kpi-row" id="kpi-row"></div>
 
+        <h3 class="section-title">成交单价趋势</h3>
+        <p class="section-desc">逐笔成交单价，虚线为整体均价，橙/紫线为 7 日 / 30 日移动均线</p>
+        <div id="trend" class="chart"></div>
 
+        <h3 class="section-title">月度均价 & 成交量</h3>
+        <p class="section-desc">柱状图为成交量，折线为各楼层及整体月均价</p>
+        <div id="monthlyVolume" class="chart"></div>
+
+        <h3 class="section-title">季度均价走势</h3>
+        <p class="section-desc">按季度汇总，平滑短期波动，看清中长期方向</p>
+        <div id="quarterly" class="chart"></div>
+
+        <h3 class="section-title">挂牌 vs 近期成交均价</h3>
+        <p class="section-desc">对比当前在售挂牌均价与近 90 天成交均价（按楼层）</p>
+        <div id="compare" class="chart"></div>
+
+        <div class="record-section">
+            <h3 class="section-title">成交记录（<span id="record-count">0</span> 条）</h3>
+            <table class="record-table">
+                <thead>
+                <tr>
+                    <th data-key="createTime">成交时间</th>
+                    <th data-key="floor">楼层</th>
+                    <th data-key="area">面积(㎡)</th>
+                    <th data-key="price">总价(万)</th>
+                    <th data-key="unitPrice">单价(元/㎡)</th>
+                </tr>
+                </thead>
+                <tbody id="record-list"></tbody>
+            </table>
+        </div>
+
+        <h3 class="section-title">当前挂牌分布</h3>
+        <p class="section-desc">以下为在售房源截面分析，反映当前市场挂牌结构</p>
+
+        <h3 class="section-title" style="font-size:14px;font-weight:normal;border-color:#95a5a6">面积 vs 总价（按楼层）</h3>
+        <div id="scatter" class="chart tall"></div>
+
+        <h3 class="section-title" style="font-size:14px;font-weight:normal;border-color:#95a5a6">楼层 vs 单价分布</h3>
+        <div id="box" class="chart"></div>
+
+        <h3 class="section-title" style="font-size:14px;font-weight:normal;border-color:#95a5a6">面积 vs 单价（按楼层）</h3>
+        <div id="areaUnitChart" class="chart tall"></div>
+    </div>
+</div>
 
 <script>
-    const API_URL = 'https://goldtask.onrender.com/house/list'; // ← 换成你的接口
+    const CJ_API = 'https://goldtask.onrender.com/house/cj';
+    const LIST_API = 'https://goldtask.onrender.com/house/list';
+    const FLOORS = ['低', '中', '高'];
+    const FLOOR_COLORS = { 低: '#5470C6', 中: '#91CC75', 高: '#EE6666' };
 
-    fetch(API_URL)
-        .then(res => res.json())
-        .then(res => {
-            const list = res.data || [];
-            renderScatter(list);
-            renderBox(list);
-            renderBubble(list);
-            renderAreaUnitPrice(list);
+    let dealData = [];
+    let listData = [];
+    let recordSortKey = 'createTime';
+    let recordSortAsc = false;
+    const charts = {};
+    const filters = { timeRange: '1y', floors: ['低', '中', '高'] };
+
+    Promise.all([
+        fetch(CJ_API).then(r => r.json()),
+        fetch(LIST_API).then(r => r.json())
+    ]).then(([cjRes, listRes]) => {
+        dealData = cjRes.data || [];
+        listData = listRes.data || [];
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
+        bindFilters();
+        refreshAll();
+    }).catch(() => {
+        document.getElementById('loading').textContent = '数据加载失败，请稍后刷新重试';
+    });
+
+    function bindFilters() {
+        document.getElementById('filter-time').onchange = applyFilters;
+        document.querySelectorAll('.floor-cb').forEach(cb => {
+            cb.onchange = applyFilters;
+        });
+        document.querySelectorAll('.record-table th[data-key]').forEach(th => {
+            th.onclick = () => {
+                const key = th.dataset.key;
+                if (recordSortKey === key) recordSortAsc = !recordSortAsc;
+                else {
+                    recordSortKey = key;
+                    recordSortAsc = key !== 'createTime';
+                }
+                renderRecordList(getFilteredDeals());
+            };
+        });
+        window.addEventListener('resize', () => Object.values(charts).forEach(c => c && c.resize()));
+    }
+
+    function applyFilters() {
+        filters.timeRange = document.getElementById('filter-time').value;
+        filters.floors = [...document.querySelectorAll('.floor-cb:checked')].map(cb => cb.value);
+        refreshAll();
+    }
+
+    function refreshAll() {
+        const data = getFilteredDeals();
+        renderTrendBanner(data);
+        renderKpi(data);
+        renderTrend(data);
+        renderMonthlyVolume(data);
+        renderQuarterly(data);
+        renderCompare(data);
+        renderRecordList(data);
+        renderScatter(listData);
+        renderBox(listData);
+        renderAreaUnitPrice(listData);
+    }
+
+    function parseCreateTime(str) {
+        if (!str) return null;
+        const parts = str.replace(/\./g, '-').split('-').map(Number);
+        if (parts.length >= 3) return new Date(parts[0], parts[1] - 1, parts[2]);
+        if (parts.length >= 2) return new Date(parts[0], parts[1] - 1, 1);
+        return null;
+    }
+
+    function getFilteredDeals() {
+        const now = new Date();
+        const rangeMonths = { '3m': 3, '6m': 6, '1y': 12, all: null };
+        return dealData.filter(item => {
+            if (filters.floors.length && !filters.floors.includes(item.floor)) return false;
+            const months = rangeMonths[filters.timeRange];
+            if (months !== null) {
+                const d = parseCreateTime(item.createTime);
+                if (!d) return false;
+                const cutoff = new Date(now.getFullYear(), now.getMonth() - months, now.getDate());
+                if (d < cutoff) return false;
+            }
+            return true;
+        });
+    }
+
+    function dedupeByDateFloor(rawData) {
+        const map = {};
+        rawData.forEach(item => {
+            const key = item.createTime + '_' + item.floor;
+            if (!map[key] || item.unitPrice < map[key].unitPrice) map[key] = item;
+        });
+        return Object.values(map).sort((a, b) => a.createTime.localeCompare(b.createTime));
+    }
+
+    function quantile(arr, q) {
+        if (!arr.length) return 0;
+        const sorted = arr.slice().sort((a, b) => a - b);
+        const pos = (sorted.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        return sorted[base + 1] !== undefined
+            ? sorted[base] + rest * (sorted[base + 1] - sorted[base])
+            : sorted[base];
+    }
+
+    function movingAverage(values, window) {
+        return values.map((_, i) => {
+            const slice = values.slice(Math.max(0, i - window + 1), i + 1).filter(v => v != null);
+            if (!slice.length) return null;
+            return Math.round(slice.reduce((a, b) => a + b, 0) / slice.length);
+        });
+    }
+
+    function groupByMonth(data) {
+        const map = {};
+        data.forEach(item => {
+            const month = item.createTime.substring(0, 7);
+            if (!map[month]) map[month] = [];
+            map[month].push(item);
+        });
+        return Object.keys(map).sort().map(k => ({ month: k, items: map[k] }));
+    }
+
+    function groupByQuarter(data) {
+        const map = {};
+        data.forEach(item => {
+            const parts = item.createTime.split('.');
+            const q = Math.ceil(Number(parts[1]) / 3);
+            const key = `${parts[0]}-Q${q}`;
+            if (!map[key]) map[key] = [];
+            map[key].push(item);
+        });
+        return Object.keys(map).sort().map(k => ({ quarter: k, items: map[k] }));
+    }
+
+    function avgUnitPrice(items) {
+        const prices = items.map(i => Number(i.unitPrice)).filter(Boolean);
+        if (!prices.length) return null;
+        return Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    }
+
+    function initChart(id) {
+        if (charts[id]) charts[id].dispose();
+        charts[id] = echarts.init(document.getElementById(id));
+        return charts[id];
+    }
+
+    function pctChange(cur, prev) {
+        if (!cur || !prev) return null;
+        return ((cur - prev) / prev * 100);
+    }
+
+    function fmtPct(pct) {
+        if (pct == null) return '-';
+        const sign = pct > 0 ? '+' : '';
+        return sign + pct.toFixed(1) + '%';
+    }
+
+    function dirClass(pct) {
+        if (pct == null || Math.abs(pct) < 0.5) return 'dir-flat';
+        return pct > 0 ? 'dir-up' : 'dir-down';
+    }
+
+    function dirWord(pct) {
+        if (pct == null || Math.abs(pct) < 0.5) return '基本持平';
+        return pct > 0 ? '上涨' : '下跌';
+    }
+
+    /* ── 趋势文字摘要 ── */
+    function renderTrendBanner(data) {
+        const el = document.getElementById('trend-banner');
+        if (!data.length) {
+            el.style.display = 'none';
+            return;
+        }
+        const months = groupByMonth(data);
+        const deduped = dedupeByDateFloor(data);
+        const avgAll = avgUnitPrice(deduped);
+        const sorted = deduped.slice().sort((a, b) => a.createTime.localeCompare(b.createTime));
+        const first = avgUnitPrice([sorted[0]]);
+        const last = avgUnitPrice([sorted[sorted.length - 1]]);
+        const totalPct = pctChange(last, first);
+
+        let momPct = null;
+        if (months.length >= 2) {
+            const cur = avgUnitPrice(months[months.length - 1].items);
+            const prev = avgUnitPrice(months[months.length - 2].items);
+            momPct = pctChange(cur, prev);
+        }
+
+        const rangeLabel = { '3m': '近3月', '6m': '近6月', '1y': '近1年', all: '全部时段' }[filters.timeRange];
+        el.style.display = 'block';
+        el.innerHTML = `
+            <strong>${rangeLabel}趋势概览</strong><br>
+            筛选范围内共 <strong>${data.length}</strong> 笔成交，整体均价约 <strong>${avgAll || '-'} 元/㎡</strong>。
+            首尾成交对比单价<span class="${dirClass(totalPct)}">${dirWord(totalPct)} ${fmtPct(totalPct)}</span>；
+            最新月环比<span class="${dirClass(momPct)}">${dirWord(momPct)} ${fmtPct(momPct)}</span>。
+            ${totalPct > 2 ? '整体呈上行趋势，可关注高位成交节奏。' : totalPct < -2 ? '整体呈下行趋势，低位成交增多时可留意机会。' : '价格波动不大，建议结合月度图观察细节。'}
+        `;
+    }
+
+    /* ── KPI ── */
+    function renderKpi(data) {
+        const sorted = data.slice().sort((a, b) => b.createTime.localeCompare(a.createTime));
+        const latest = sorted[0];
+        const prices = data.map(i => Number(i.unitPrice)).filter(Boolean);
+        const now = new Date();
+        const d30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        const recent = data.filter(i => {
+            const d = parseCreateTime(i.createTime);
+            return d && d >= d30;
+        });
+        const avg30 = avgUnitPrice(recent);
+
+        const months = groupByMonth(data);
+        let momText = '-', momClass = '';
+        if (months.length >= 2) {
+            const pct = pctChange(
+                avgUnitPrice(months[months.length - 1].items),
+                avgUnitPrice(months[months.length - 2].items)
+            );
+            if (pct != null) {
+                momText = fmtPct(pct);
+                momClass = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+            }
+        }
+
+        const deduped = dedupeByDateFloor(data);
+        const timeSorted = deduped.slice().sort((a, b) => a.createTime.localeCompare(b.createTime));
+        let trendText = '-', trendClass = '';
+        if (timeSorted.length >= 2) {
+            const pct = pctChange(
+                Number(timeSorted[timeSorted.length - 1].unitPrice),
+                Number(timeSorted[0].unitPrice)
+            );
+            if (pct != null) {
+                trendText = fmtPct(pct);
+                trendClass = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+            }
+        }
+
+        const cards = [
+            { label: '最新成交单价', value: latest ? latest.unitPrice + ' 元/㎡' : '-', sub: latest ? latest.createTime + ' · ' + latest.floor + '层' : '' },
+            { label: '近30天均价', value: avg30 ? avg30 + ' 元/㎡' : '-', sub: '共 ' + recent.length + ' 笔' },
+            { label: '最高 / 最低', value: prices.length ? Math.max(...prices) + ' / ' + Math.min(...prices) : '-', sub: '筛选范围内' },
+            { label: '整体均价', value: avgUnitPrice(deduped) ? avgUnitPrice(deduped) + ' 元/㎡' : '-', sub: '去重后 ' + deduped.length + ' 个成交日' },
+            { label: '环比（月均）', value: momText, sub: '较上月', cls: momClass },
+            { label: '区间涨跌', value: trendText, sub: '首笔 → 末笔', cls: trendClass }
+        ];
+
+        document.getElementById('kpi-row').innerHTML = cards.map(c => `
+            <div class="kpi-card">
+                <div class="label">${c.label}</div>
+                <div class="value ${c.cls || ''}">${c.value}</div>
+                <div class="sub">${c.sub || ''}</div>
+            </div>
+        `).join('');
+    }
+
+    /* ── 成交单价趋势 ── */
+    function renderTrend(rawData) {
+        const data = dedupeByDateFloor(rawData);
+        const dates = [...new Set(data.map(i => i.createTime))].sort();
+
+        function buildSeries(floor) {
+            return dates.map(date => {
+                const item = data.find(d => d.createTime === date && d.floor === floor);
+                return item ? item.unitPrice : null;
+            });
+        }
+
+        const avgSeries = dates.map(date => {
+            const items = data.filter(d => d.createTime === date);
+            return avgUnitPrice(items);
         });
 
-    /**
-     * 散点图：面积 vs 总价
-     */
+        const ma7 = movingAverage(avgSeries, 7);
+        const ma30 = movingAverage(avgSeries, 30);
+
+        const series = FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+            name: floor + '层',
+            type: 'line',
+            connectNulls: true,
+            data: buildSeries(floor),
+            itemStyle: { color: FLOOR_COLORS[floor] },
+            symbolSize: 6
+        }));
+
+        series.push(
+            { name: '整体均价', type: 'line', data: avgSeries, lineStyle: { type: 'dotted', width: 1 }, symbol: 'none', color: '#7f8c8d' },
+            { name: '7日均线', type: 'line', data: ma7, lineStyle: { width: 2, type: 'dashed' }, symbol: 'none', color: '#f39c12' },
+            { name: '30日均线', type: 'line', data: ma30, lineStyle: { width: 2, type: 'dashed' }, symbol: 'none', color: '#8e44ad' }
+        );
+
+        initChart('trend').setOption({
+            tooltip: {
+                trigger: 'axis',
+                formatter: params => {
+                    let s = params[0].axisValue + '<br>';
+                    params.forEach(p => {
+                        if (p.value != null) s += p.marker + p.seriesName + '：' + p.value + ' 元/㎡<br>';
+                    });
+                    return s;
+                }
+            },
+            legend: { data: series.map(s => s.name), top: 0, type: 'scroll' },
+            grid: { left: '8%', right: '5%', bottom: '14%', top: '16%' },
+            xAxis: { type: 'category', data: dates, name: '成交时间', axisLabel: { rotate: dates.length > 8 ? 35 : 0 } },
+            yAxis: { type: 'value', name: '单价（元/㎡）', scale: true },
+            series
+        }, true);
+    }
+
+    /* ── 月度均价 + 成交量 ── */
+    function renderMonthlyVolume(data) {
+        const groups = groupByMonth(data);
+        const months = groups.map(g => g.month);
+        const volumes = groups.map(g => g.items.length);
+        const avgPrices = groups.map(g => avgUnitPrice(g.items));
+
+        const floorSeries = FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+            name: floor + '层均价',
+            type: 'line',
+            yAxisIndex: 0,
+            data: groups.map(g => avgUnitPrice(g.items.filter(i => i.floor === floor))),
+            itemStyle: { color: FLOOR_COLORS[floor] }
+        }));
+
+        initChart('monthlyVolume').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { top: 0, type: 'scroll' },
+            grid: { left: '8%', right: '8%', bottom: '14%', top: '16%' },
+            xAxis: { type: 'category', data: months, name: '月份' },
+            yAxis: [
+                { type: 'value', name: '均价（元/㎡）', scale: true },
+                { type: 'value', name: '成交量（套）', splitLine: { show: false } }
+            ],
+            series: [
+                ...floorSeries,
+                { name: '整体均价', type: 'line', yAxisIndex: 0, data: avgPrices, lineStyle: { type: 'dotted', width: 2 }, color: '#2c3e50' },
+                { name: '成交量', type: 'bar', yAxisIndex: 1, data: volumes, itemStyle: { color: 'rgba(52,152,219,0.45)' } }
+            ]
+        }, true);
+    }
+
+    /* ── 季度均价 ── */
+    function renderQuarterly(data) {
+        const groups = groupByQuarter(data);
+        const quarters = groups.map(g => g.quarter);
+
+        initChart('quarterly').setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { top: 0 },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { type: 'category', data: quarters, name: '季度' },
+            yAxis: { type: 'value', name: '均价（元/㎡）', scale: true },
+            series: [
+                ...FLOORS.filter(f => filters.floors.includes(f)).map(floor => ({
+                    name: floor + '层',
+                    type: 'line',
+                    data: groups.map(g => avgUnitPrice(g.items.filter(i => i.floor === floor))),
+                    itemStyle: { color: FLOOR_COLORS[floor] }
+                })),
+                {
+                    name: '整体',
+                    type: 'bar',
+                    data: groups.map(g => avgUnitPrice(g.items)),
+                    itemStyle: { color: 'rgba(155,89,182,0.35)' },
+                    barMaxWidth: 40
+                }
+            ]
+        }, true);
+    }
+
+    /* ── 挂牌 vs 成交对比 ── */
+    function renderCompare(dealFiltered) {
+        const now = new Date();
+        const d90 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90);
+        const recentDeals = dealData.filter(i => {
+            const d = parseCreateTime(i.createTime);
+            return d && d >= d90 && filters.floors.includes(i.floor);
+        });
+
+        const floors = FLOORS.filter(f => filters.floors.includes(f));
+        const listAvg = floors.map(f => avgUnitPrice(listData.filter(i => i.floor === f)));
+        const dealAvg = floors.map(f => avgUnitPrice(recentDeals.filter(i => i.floor === f)));
+
+        initChart('compare').setOption({
+            tooltip: {
+                trigger: 'axis',
+                formatter: params => {
+                    let s = params[0].axisValue + '<br>';
+                    params.forEach(p => {
+                        s += p.marker + p.seriesName + '：' + (p.value != null ? p.value + ' 元/㎡' : '无数据') + '<br>';
+                    });
+                    return s;
+                }
+            },
+            legend: { top: 0 },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { type: 'category', data: floors.map(f => f + '层') },
+            yAxis: { type: 'value', name: '均价（元/㎡）', scale: true },
+            series: [
+                { name: '当前挂牌均价', type: 'bar', data: listAvg, itemStyle: { color: '#3498db' }, barMaxWidth: 36 },
+                { name: '近90天成交均价', type: 'bar', data: dealAvg, itemStyle: { color: '#e67e22' }, barMaxWidth: 36 }
+            ]
+        }, true);
+    }
+
+    /* ── 成交列表 ── */
+    function renderRecordList(data) {
+        document.getElementById('record-count').textContent = data.length;
+        const sorted = data.slice().sort((a, b) => {
+            let cmp = recordSortKey === 'createTime'
+                ? a.createTime.localeCompare(b.createTime)
+                : Number(a[recordSortKey]) - Number(b[recordSortKey]);
+            return recordSortAsc ? cmp : -cmp;
+        });
+        document.getElementById('record-list').innerHTML = sorted.map(item => `
+            <tr>
+                <td>${item.createTime || ''}</td>
+                <td>${item.floor || ''}</td>
+                <td>${item.area || ''}</td>
+                <td>${item.price || ''}</td>
+                <td>${item.unitPrice || ''}</td>
+            </tr>
+        `).join('');
+    }
+
+    /* ── 挂牌分布图（保留原有逻辑） ── */
     function renderScatter(list) {
         const floorMap = { 低: [], 中: [], 高: [] };
-
         list.forEach(i => {
-            if (floorMap[i.floor]) {
-                floorMap[i.floor].push([
-                    i.area,
-                    i.price,
-                    i.unitPrice
-                ]);
-            }
+            if (floorMap[i.floor]) floorMap[i.floor].push([i.area, i.price, i.unitPrice]);
         });
 
-        const chart = echarts.init(document.getElementById('scatter'));
-
-        chart.setOption({
+        initChart('scatter').setOption({
             tooltip: {
-                formatter: p => `
-        面积：${p.value[0]}㎡<br>
-        总价：${p.value[1]}万<br>
-        单价：${p.value[2]}元/㎡
-      `
+                formatter: p => `面积：${p.value[0]}㎡<br>总价：${p.value[1]}万<br>单价：${p.value[2]} 元/㎡`
             },
             legend: { top: 10 },
-            xAxis: { name: '面积（㎡）' },
-            yAxis: { name: '总价（万）' },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { name: '面积（㎡）', scale: true },
+            yAxis: { name: '总价（万）', scale: true },
             series: Object.keys(floorMap).map(floor => ({
                 name: floor + '楼层',
                 type: 'scatter',
                 data: floorMap[floor],
-                symbolSize: val => val[2] / 2000   // 单价决定气泡大小
+                itemStyle: { color: FLOOR_COLORS[floor] },
+                symbolSize: val => Math.max(8, val[2] / 2500)
             }))
-        });
+        }, true);
     }
 
-    /**
-     * 箱线图：楼层 vs 单价
-     */
     function renderBox(list) {
         const floors = { 低: [], 中: [], 高: [] };
-
         list.forEach(i => {
-            if (floors[i.floor]) {
-                floors[i.floor].push(i.unitPrice);
-            }
+            if (floors[i.floor]) floors[i.floor].push(i.unitPrice);
         });
 
         const boxData = Object.values(floors).map(arr => {
             arr.sort((a, b) => a - b);
-            return [
-                quantile(arr, 0),
-                quantile(arr, 0.25),
-                quantile(arr, 0.5),
-                quantile(arr, 0.75),
-                quantile(arr, 1)
-            ];
+            return [quantile(arr, 0), quantile(arr, 0.25), quantile(arr, 0.5), quantile(arr, 0.75), quantile(arr, 1)];
         });
 
-        const chart = echarts.init(document.getElementById('box'));
-
-        chart.setOption({
-            xAxis: { type: 'category', data: ['低', '中', '高'] },
-            yAxis: { name: '单价（元/㎡）' },
+        initChart('box').setOption({
             tooltip: { trigger: 'item' },
-            series: [{
-                type: 'boxplot',
-                data: boxData
-            }]
-        });
-    }
-
-    /**
-     * 分位数计算
-     */
-    function quantile(arr, q) {
-        const pos = (arr.length - 1) * q;
-        const base = Math.floor(pos);
-        const rest = pos - base;
-        return arr[base + 1]
-            ? arr[base] + rest * (arr[base + 1] - arr[base])
-            : arr[base];
-    }
-
-    function renderBubble(list) {
-        const floorColorMap = {
-            低: '#5470C6',
-            中: '#91CC75',
-            高: '#EE6666'
-        };
-
-        const seriesMap = { 低: [], 中: [], 高: [] };
-
-        list.forEach(i => {
-            if (seriesMap[i.floor]) {
-                seriesMap[i.floor].push({
-                    value: [i.area, i.price, i.unitPrice],
-                    name: i.title
-                });
-            }
-        });
-
-        const chart = echarts.init(document.getElementById('bubble'));
-
-        chart.setOption({
-            tooltip: {
-                formatter: p => `
-        <b>${p.name || ''}</b><br>
-        面积：${p.value[0]}㎡<br>
-        总价：${p.value[1]}万<br>
-        单价：${p.value[2]}元/㎡
-      `
-            },
-            legend: { top: 10 },
-            xAxis: {
-                name: '面积（㎡）',
-                scale: true
-            },
-            yAxis: {
-                name: '总价（万）',
-                scale: true
-            },
-            series: Object.keys(seriesMap).map(floor => ({
-                name: floor + '楼层',
-                type: 'scatter',
-                data: seriesMap[floor],
-                symbolSize: val => {
-                    // 单价映射为气泡大小（可调）
-                    return Math.sqrt(val[2]) / 2;
-                },
-                itemStyle: {
-                    color: floorColorMap[floor],
-                    opacity: 0.75
-                }
-            }))
-        });
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '10%' },
+            xAxis: { type: 'category', data: ['低', '中', '高'] },
+            yAxis: { name: '单价（元/㎡）', scale: true },
+            series: [{ type: 'boxplot', data: boxData }]
+        }, true);
     }
 
     function renderAreaUnitPrice(list) {
         const seriesMap = { 低: [], 中: [], 高: [] };
-
         list.forEach(i => {
             if (seriesMap[i.floor]) {
-                seriesMap[i.floor].push({
-                    value: [i.area, i.unitPrice],
-                    name: i.title,
-                    extra: i
-                });
+                seriesMap[i.floor].push({ value: [i.area, i.unitPrice], name: i.title, extra: i });
             }
         });
 
-        const chart = echarts.init(document.getElementById('areaUnitChart'));
-
-        chart.setOption({
+        initChart('areaUnitChart').setOption({
             tooltip: {
                 formatter: p => {
-                    const d = p.data.extra;
-                    return `
-          <b>${d.title}</b><br>
-          楼层：${d.floor}<br>
-          面积：${d.area}㎡<br>
-          单价：${d.unitPrice} 元/㎡<br>
-          总价：${d.price} 万
-        `;
+                    const d = p.data.extra || {};
+                    return `<b>${d.title || ''}</b><br>楼层：${d.floor || ''}<br>面积：${d.area}㎡<br>单价：${d.unitPrice} 元/㎡<br>总价：${d.price} 万`;
                 }
             },
             legend: { top: 10 },
-            xAxis: {
-                name: '面积（㎡）',
-                scale: true
-            },
-            yAxis: {
-                name: '单价（元/㎡）',
-                scale: true
-            },
+            grid: { left: '8%', right: '5%', bottom: '12%', top: '14%' },
+            xAxis: { name: '面积（㎡）', scale: true },
+            yAxis: { name: '单价（元/㎡）', scale: true },
             series: Object.keys(seriesMap).map(floor => ({
                 name: floor + '楼层',
                 type: 'scatter',
                 data: seriesMap[floor],
-                symbolSize: 12,
-                emphasis: {
-                    focus: 'series'
-                }
+                itemStyle: { color: FLOOR_COLORS[floor], opacity: 0.75 },
+                symbolSize: 10
             }))
-        });
+        }, true);
     }
 </script>
 
