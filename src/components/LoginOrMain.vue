@@ -45,7 +45,14 @@
             </button>
         </div>
 
-        <alert v-if="showAlert" :visible="showAlert" :message="alertMessage" @close="showAlert = false"></alert>
+        <Alert
+            v-if="showAlert"
+            :visible="showAlert"
+            title="登录失败"
+            :message="alertMessage"
+            type="error"
+            @close="showAlert = false"
+        />
     </div>
 </template>
 
