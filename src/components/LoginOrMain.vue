@@ -167,7 +167,7 @@ export default {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 24px 20px;
+    padding: calc(24px + env(safe-area-inset-top, 0)) calc(20px + env(safe-area-inset-right, 0)) calc(24px + env(safe-area-inset-bottom, 0)) calc(20px + env(safe-area-inset-left, 0));
     max-width: 480px;
     margin: 0 auto;
     width: 100%;
@@ -205,7 +205,7 @@ export default {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     color: #1e1b4b;
-    font-size: 14px;
+    font-size: 16px;
     transition: all 0.25s ease;
 }
 
@@ -339,7 +339,6 @@ export default {
 
     .glass-input {
         padding: 12px 14px;
-        font-size: 13px;
     }
 }
 

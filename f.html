@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>小区房价趋势分析</title>
     <script src="https://cdn.staticfile.org/echarts/5.4.3/echarts.min.js"></script>
     <style>
@@ -10,9 +10,11 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
             margin: 0;
-            padding: 0 0 48px;
+            padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) calc(48px + env(safe-area-inset-bottom, 0)) env(safe-area-inset-left, 0);
             background: #f0f2f5;
             color: #251b1b;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
         }
         .page-wrap {
             max-width: 960px;
@@ -58,10 +60,10 @@
         }
         .toolbar label { font-size: 13px; color: #555; }
         .toolbar select {
-            padding: 4px 8px;
+            padding: 6px 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            font-size: 13px;
+            font-size: 16px;
         }
         .floor-checks label { margin-right: 10px; cursor: pointer; font-size: 13px; }
         .kpi-row {
@@ -136,6 +138,17 @@
             padding: 60px;
             color: #999;
             font-size: 14px;
+        }
+        @media (max-width: 640px) {
+            .chart { height: 300px; }
+            .chart.tall { height: 360px; }
+            .page-header h1 { font-size: 20px; }
+        }
+        @media (min-width: 768px) {
+            .page-wrap { max-width: 100%; padding: 0 24px; }
+            .chart { height: 450px; }
+            .chart.tall { height: 520px; }
+            .kpi-row { grid-template-columns: repeat(3, 1fr); }
         }
     </style>
 </head>
@@ -261,7 +274,9 @@
                 renderRecordList(getFilteredDeals());
             };
         });
-        window.addEventListener('resize', () => Object.values(charts).forEach(c => c && c.resize()));
+        const resizeCharts = () => Object.values(charts).forEach(c => c && c.resize());
+        window.addEventListener('resize', resizeCharts);
+        window.addEventListener('orientationchange', () => setTimeout(resizeCharts, 300));
     }
 
     function applyFilters() {

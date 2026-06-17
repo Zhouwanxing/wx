@@ -153,7 +153,7 @@ export default {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 24px 20px;
+    padding: calc(24px + env(safe-area-inset-top, 0)) calc(20px + env(safe-area-inset-right, 0)) calc(24px + env(safe-area-inset-bottom, 0)) calc(20px + env(safe-area-inset-left, 0));
     max-width: 480px;
     margin: 0 auto;
     width: 100%;
@@ -279,8 +279,8 @@ export default {
 /* iPad 适配 */
 @media (min-width: 768px) {
     .container {
-        max-width: 600px;
-        padding: 32px 28px;
+        max-width: 720px;
+        padding: calc(32px + env(safe-area-inset-top, 0)) calc(28px + env(safe-area-inset-right, 0)) calc(32px + env(safe-area-inset-bottom, 0)) calc(28px + env(safe-area-inset-left, 0));
     }
 
     .glass-card {
@@ -290,6 +290,11 @@ export default {
 
     .grid {
         gap: 16px;
+    }
+
+    .grid .btn {
+        flex: 0 0 calc(25% - 12px);
+        max-width: 140px;
     }
 
     .btn {

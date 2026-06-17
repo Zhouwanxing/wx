@@ -396,6 +396,12 @@ export default {
 </script>
 
 <style scoped>
+.mp4 {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
 .mp4 .header {
     background-color: #ccc;
     color: white;
@@ -406,8 +412,12 @@ export default {
     border-bottom: 1px solid white;
     position: fixed;
     top: 0;
-    height: 50px;
+    height: calc(50px + env(safe-area-inset-top, 0));
     line-height: 50px;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    z-index: 10;
 }
 
 .mp4 .footer {
@@ -420,17 +430,23 @@ export default {
     border-bottom: 1px solid white;
     position: fixed;
     bottom: 0;
-    height: 60px;
+    height: calc(60px + env(safe-area-inset-bottom, 0));
     padding-top: 5px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
 }
 
 .mp4 .content {
     position: absolute;
-    top: 50px;
-    bottom: 60px;
+    top: calc(50px + env(safe-area-inset-top, 0));
+    bottom: calc(60px + env(safe-area-inset-bottom, 0));
     left: 0;
     right: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     background-color: #ccc;
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
 }
 </style>

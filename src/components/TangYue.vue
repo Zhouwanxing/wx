@@ -178,26 +178,40 @@ export default {
 .tangyue .header {
     position: fixed;
     top: 0;
-    height: 50px;
+    height: calc(50px + env(safe-area-inset-top, 0));
     line-height: 50px;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    background: #fff;
+    z-index: 10;
+    width: 100%;
 }
 
 .tangyue .footer {
     position: fixed;
     bottom: 0;
-    height: 70px;
+    height: calc(70px + env(safe-area-inset-bottom, 0));
     padding-top: 5px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
     border-top: 1px solid black;
+    background: #fff;
+    width: 100%;
 }
 
 .tangyue .content {
     position: absolute;
-    top: 50px;
-    bottom: 70px;
+    top: calc(50px + env(safe-area-inset-top, 0));
+    bottom: calc(70px + env(safe-area-inset-bottom, 0));
     left: 0;
     right: 0;
     overflow-x: auto;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
 }
 
 /* 设置表头固定 */
