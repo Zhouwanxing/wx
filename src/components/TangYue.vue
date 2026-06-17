@@ -196,6 +196,7 @@ export default {
     bottom: 70px;
     left: 0;
     right: 0;
+    overflow-x: auto;
     overflow-y: auto;
 }
 

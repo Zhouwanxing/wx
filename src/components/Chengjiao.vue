@@ -53,9 +53,6 @@
                 </div>
             </div>
         </div>
-        <div class="footer">
-
-        </div>
     </div>
 </template>
 
@@ -131,38 +128,3 @@ export default {
     filters: {}
 }
 </script>
-
-<style scoped>
-.er-page .footer {
-    text-align: center;
-    font-size: 20px;
-    left: 0;
-    right: 0;
-    border-bottom: 1px solid white;
-}
-
-.er-page .header {
-    position: fixed;
-    top: 0;
-    height: 82px;
-    line-height: 50px;
-    width: 100%;
-}
-
-.er-page .footer {
-    position: fixed;
-    bottom: 0;
-    height: 60px;
-    padding-top: 5px;
-    border-top: 1px solid black;
-}
-
-.er-page .content {
-    position: absolute;
-    top: 82px;
-    bottom: 60px;
-    left: 0;
-    right: 0;
-    overflow-y: auto;
-}
-</style>

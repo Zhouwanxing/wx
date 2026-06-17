@@ -34,6 +34,14 @@
                         <span class="icon">🧮</span>
                         <span class="text">计算器</span>
                     </button>
+                    <button class="btn" v-if="roles.includes('tangyue')" @click="openAnalysis('f.html')">
+                        <span class="icon">📈</span>
+                        <span class="text">趋势分析</span>
+                    </button>
+                    <button class="btn" v-if="roles.includes('tangyue')" @click="openAnalysis('f1.html')">
+                        <span class="icon">📉</span>
+                        <span class="text">成交分析</span>
+                    </button>
 
                     <!-- 媒体 -->
                     <button class="btn" v-if="roles.includes('mp4')" @click="toGold('mp4')">
@@ -95,6 +103,9 @@ export default {
         },
         toGold(page) {
             this.$router.push({path: '/' + page});
+        },
+        openAnalysis(page) {
+            window.open('./' + page, '_blank');
         },
         loginOut() {
             Http.sendGet("/user/logout", () => {

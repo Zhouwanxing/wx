@@ -81,7 +81,7 @@
             text-align: center;
         }
         .kpi-card .label { font-size: 12px; color: #888; margin-bottom: 6px; }
-        .kpi-card .value { font-size: 20px; font-weight: bold; color: #2980b9; }
+        .kpi-card .value { font-size: clamp(14px, 4vw, 20px); font-weight: bold; color: #2980b9; word-break: break-all; }
         .kpi-card .sub { font-size: 11px; color: #999; margin-top: 4px; }
         .kpi-card .value.up { color: #e74c3c; }
         .kpi-card .value.down { color: #27ae60; }
@@ -127,6 +127,10 @@
         }
         .record-table tbody tr:nth-child(even) { background: #fafafa; }
         .record-table tbody tr:hover { background: #f0f7ff; }
+        .table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         .loading {
             text-align: center;
             padding: 60px;
@@ -184,6 +188,7 @@
 
         <div class="record-section">
             <h3 class="section-title">成交记录（<span id="record-count">0</span> 条）</h3>
+            <div class="table-scroll">
             <table class="record-table">
                 <thead>
                 <tr>
@@ -196,6 +201,7 @@
                 </thead>
                 <tbody id="record-list"></tbody>
             </table>
+            </div>
         </div>
 
         <h3 class="section-title">当前挂牌分布</h3>
@@ -273,9 +279,10 @@
         renderQuarterly(data);
         renderCompare(data);
         renderRecordList(data);
-        renderScatter(listData);
-        renderBox(listData);
-        renderAreaUnitPrice(listData);
+        const filteredList = listData.filter(i => filters.floors.includes(i.floor));
+        renderScatter(filteredList);
+        renderBox(filteredList);
+        renderAreaUnitPrice(filteredList);
     }
 
     function parseCreateTime(str) {

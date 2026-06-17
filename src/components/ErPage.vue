@@ -1,7 +1,7 @@
 <template>
     <div class="er-page">
         <div class="header">
-            <div style="display: flex;height: 40px;text-align: center;width: 100%;">
+            <div class="toolbar-row">
                 <div style="flex: 1;">
                     价格：<input type="number" placeholder="最小价格" style="width: 30%;" v-model="formData.priceMin">
                     <span>~</span>
@@ -13,7 +13,7 @@
                     <input type="number" placeholder="最大面积" style="width: 30%;" v-model="formData.areaMax">
                 </div>
             </div>
-            <div style="display: flex;height: 40px;text-align: center;width: 100%;">
+            <div class="toolbar-row">
                 <div style="flex: 1;">
                     <button @click.stop="formData.sortKey = 'price';formData.sortValue = -formData.sortValue;">
                         价格{{ formData.sortKey !== 'price' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
@@ -48,8 +48,8 @@
             <div v-for="(item,index) in list" :key="index" @click.stop="clickOne(item)"
                  style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;"
                  :style="selectId === item._id ? 'border:2px solid red;' : ''">
-                <div v-if="item.imgUrl">
-                    <img src="" :id="item._id" style="width: 100%;height: 100%;"/>
+                <div v-if="item.imgUrl" class="img-div">
+                    <img src="" :id="item._id" style="width: 100%; object-fit: cover; display: block;" alt=""/>
                 </div>
                 <div :style="item.linkUrl ? 'color:blue;' : ''">{{ item.info }}</div>
                 <div>{{ item.priceStr }}/{{ item.from }}/{{ item.lastTime || "" }}</div>
@@ -69,9 +69,6 @@
                     <button @click.stop="updateLike(item, 'notLike')" style="margin-left: 20px;">不喜欢</button>
                 </div>
             </div>
-        </div>
-        <div class="footer">
-
         </div>
     </div>
 </template>
@@ -192,38 +189,3 @@ export default {
     filters: {}
 }
 </script>
-
-<style scoped>
-.er-page .footer {
-    text-align: center;
-    font-size: 20px;
-    left: 0;
-    right: 0;
-    border-bottom: 1px solid white;
-}
-
-.er-page .header {
-    position: fixed;
-    top: 0;
-    height: 82px;
-    line-height: 50px;
-    width: 100%;
-}
-
-.er-page .footer {
-    position: fixed;
-    bottom: 0;
-    height: 60px;
-    padding-top: 5px;
-    border-top: 1px solid black;
-}
-
-.er-page .content {
-    position: absolute;
-    top: 82px;
-    bottom: 60px;
-    left: 0;
-    right: 0;
-    overflow-y: auto;
-}
-</style>

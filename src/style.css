@@ -174,3 +174,38 @@ button {
 .one-mp4 .img-div {
     height: 20vh;
 }
+
+.er-page .header {
+    position: fixed;
+    top: 0;
+    min-height: 82px;
+    width: 100%;
+    z-index: 10;
+    background: #fff;
+}
+
+.er-page .header .toolbar-row {
+    display: flex;
+    height: 40px;
+    text-align: center;
+    width: 100%;
+}
+
+.er-page .header .toolbar-row button {
+    font-size: 12px;
+    padding: 2px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.er-page .content {
+    position: absolute;
+    top: 82px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
