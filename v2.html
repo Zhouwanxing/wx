@@ -16,6 +16,12 @@
 <div style="text-align: center;width: 100%;">
     <button onclick="openInXx()" style="width: 50%;padding: 5px;border-radius: 5px;">官网打开</button>
 </div>
+<div style="text-align: center;width: 100%;">
+    <button onclick="randomMp4('_blank')" style="width: 50%;padding: 5px;border-radius: 5px;">随机(新窗口)</button>
+</div>
+<div style="text-align: center;width: 100%;">
+    <button onclick="randomMp4('_self')" style="width: 50%;padding: 5px;border-radius: 5px;">随机(当前窗口)</button>
+</div>
 <div style="text-align: center;width: 100%; margin-top: 20px;">
     <button onclick="addOne()" style="width: 50%;padding: 5px;border-radius: 5px;">+1</button>
 </div>
@@ -28,6 +34,7 @@
     const id = searchParams.get('id'),
         baseUrl = searchParams.get('baseUrl'),
         tokenName = searchParams.get('tokenName'),
+        count = searchParams.get('count'),
         tokenValue = searchParams.get('tokenValue');
     let useM3u8 = localStorage.getItem("mp4UseM3u8") === "true";
     let videoData = {};
@@ -105,6 +112,23 @@
             videoElement.load();
             videoElement.play();
         }
+    }
+
+    function randomMp4(flag) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', baseUrl + "/mp4/getRandomMp4Id?count=" + count, true);
+        xhr.setRequestHeader(tokenName, tokenValue);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                let data = JSON.parse(xhr.responseText).data;
+                window.open(window.location.origin + "/v2.html?id=" + data +
+                    "&baseUrl=" + baseUrl +
+                    "&count=" + count +
+                    "&tokenName=" + tokenName +
+                    "&tokenValue=" + tokenValue, flag);
+            }
+        };
+        xhr.send();
     }
 </script>
 </body>

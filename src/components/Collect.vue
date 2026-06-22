@@ -28,7 +28,7 @@
                         <option v-for="item in months" :value="item">{{ item }}</option>
                     </select>
                 </div>
-                <div style="flex: 1;line-height: 50px;height: 50px;"
+                <div style="flex: 2;line-height: 50px;height: 50px;"
                      @click="formData.page = 1;searchPath();">
                     {{ count }}/{{ formData.page }}
                 </div>
@@ -160,7 +160,7 @@ export default {
             window.open("./video.html?url=" + item.url);
         },
         clickImgNew: function (item) {
-            let url = "./v2.html?id=" + item._id;
+            let url = "./v2.html?id=" + item._id + "&count=" + this.count;
             let baseInfo = Http.getBaseInfo();
             for (let key in baseInfo) {
                 url += "&" + key + "=" + baseInfo[key];
