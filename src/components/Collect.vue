@@ -20,14 +20,14 @@
                         <option :value="'top4'">top4</option>
                     </select>
                 </div>
-                <div
+<!--                <div
                     style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
                     <select v-model="formData.beforeMonth" @change="list = [];searchPath(true)"
                             style="height: 30px;border: 1px solid #ccc;margin: 8px">
                         <option :value="''">请选择</option>
                         <option v-for="item in months" :value="item">{{ item }}</option>
                     </select>
-                </div>
+                </div>-->
                 <div style="flex: 2;line-height: 50px;height: 50px;"
                      @click="formData.page = 1;searchPath();">
                     {{ count }}/{{ formData.page }}
