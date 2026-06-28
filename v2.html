@@ -10,7 +10,10 @@
 <video id="myVideo" controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
     <source src="" type="video/mp4">
 </video>
-<div style="text-align: center;width: 100%;">
+<div style="text-align: center;width: 100%; margin-top: 20px;">
+    <button onclick="mOne()" style="width: 99%;padding: 5px;border-radius: 5px;height: 40px;">-1</button>
+</div>
+<div style="text-align: center;width: 100%;margin-top: 20px;">
     <button onclick="changePlayMode()" style="width: 49%;padding: 5px;border-radius: 5px;height: 70px;">切换播放源</button>
     <button onclick="openInXx()" style="width: 49%;padding: 5px;border-radius: 5px;height: 70px;">官网打开</button>
 </div>
@@ -48,6 +51,28 @@
             }
         };
         xhr.onerror = () => console.error('Request failed');
+        xhr.send();
+    }
+
+    function mOne() {
+        const xhr = new XMLHttpRequest();
+        if (!videoData.flag) {
+            return;
+        }
+        const all = ["best", "top1", "top2", "top3", "top4"];
+        let flag = all[all.indexOf(videoData.flag) + 1] || '';
+        xhr.open('GET', baseUrl + "/mp4/updateLike?id=" + id + "&flag=" + flag + "&duration=0", true);
+        xhr.setRequestHeader(tokenName, tokenValue);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                document.getElementById('res_id').innerHTML = xhr.responseText;
+            } else {
+                document.getElementById('res_id').innerHTML = xhr.statusText;
+            }
+        };
+        xhr.onerror = function () {
+            document.getElementById('res_id').innerHTML = "error";
+        };
         xhr.send();
     }
 
