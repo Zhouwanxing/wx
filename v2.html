@@ -4,12 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <title>video</title>
+    <style>
+        .video-wrap {
+            position: relative;
+            width: 100%;
+        }
+        #myVideo {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .marker-track {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 40px;
+            height: 6px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .marker-dot {
+            position: absolute;
+            bottom: -2px;
+            width: 10px;
+            height: 10px;
+            margin-left: -5px;
+            background: #ff5722;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+        .marker-dot:active {
+            transform: scale(1.2);
+        }
+        .marker-list-item {
+            display: inline-block;
+            margin: 0 6px;
+            padding: 2px 8px;
+            color: #ff5722;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .marker-list-item:active {
+            background: rgba(255, 87, 34, 0.15);
+        }
+    </style>
 </head>
 <body>
 <div id="name_id" style="text-align: center;"></div>
-<video id="myVideo" controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
-    <source src="" type="video/mp4">
-</video>
+<div class="video-wrap">
+    <video id="myVideo" controls webkit-playsinline playsinline>
+        <source src="" type="video/mp4">
+    </video>
+    <div id="markerTrack" class="marker-track"></div>
+</div>
 <div style="text-align: center;width: 100%; margin-top: 10px;">
     <button onclick="mOne()" style="width: 99%;padding: 5px;border-radius: 5px;height: 40px;">-1</button>
 </div>
@@ -24,6 +74,11 @@
 <div style="text-align: center;width: 100%; margin-top: 10px;">
     <button onclick="addOne()" style="width: 99%;padding: 5px;border-radius: 5px;height: 40px;">+1</button>
 </div>
+<div style="text-align: center;width: 100%; margin-top: 10px;">
+    <button onclick="clearMarkers()" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">清除标记</button>
+    <button onclick="addMarker()" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">添加标记</button>
+</div>
+<div id="markerList" style="text-align: center;width: 100%; margin-top: 6px; font-size: 13px; color: #666;"></div>
 <div style="text-align: center;width: 100%;" id="res_id">
 
 </div>
@@ -37,6 +92,160 @@
         tokenValue = searchParams.get('tokenValue');
     let useM3u8 = localStorage.getItem("mp4UseM3u8") === "true";
     let videoData = {};
+    let markers = [];
+
+    function normalizeMarkers(raw) {
+        if (!raw || !Array.isArray(raw)) {
+            return [];
+        }
+        return raw.map(function (m) {
+            if (typeof m === "number") {
+                return { time: m };
+            }
+            return { time: m.time, createdAt: m.createdAt };
+        }).filter(function (m) {
+            return isFinite(m.time) && m.time >= 0;
+        });
+    }
+
+    function setMarkers(raw) {
+        markers = normalizeMarkers(raw);
+        renderMarkers();
+    }
+
+    function apiGet(path, onSuccess, onError) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", baseUrl + path, true);
+        xhr.setRequestHeader(tokenName, tokenValue);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                let res = {};
+                try {
+                    res = JSON.parse(xhr.responseText) || {};
+                } catch (e) {
+                    onError && onError("parse error");
+                    return;
+                }
+                if (res.code !== undefined && res.code !== 200) {
+                    onError && onError(res.msg || res.message || ("code " + res.code));
+                    return;
+                }
+                onSuccess(res);
+            } else {
+                onError && onError(xhr.statusText);
+            }
+        };
+        xhr.onerror = function () {
+            onError && onError("error");
+        };
+        xhr.send();
+    }
+
+    function formatTime(seconds) {
+        const total = Math.max(0, Math.floor(seconds));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        if (h > 0) {
+            return h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+        }
+        return m + ":" + String(s).padStart(2, "0");
+    }
+
+    function seekToTime(time) {
+        const videoElement = document.getElementById("myVideo");
+        if (!isFinite(time) || time < 0) {
+            return;
+        }
+        videoElement.currentTime = time;
+    }
+
+    function renderMarkerList(listEl) {
+        listEl.innerHTML = "";
+        if (!markers.length) {
+            return;
+        }
+        markers.slice().sort(function (a, b) {
+            return a.time - b.time;
+        }).forEach(function (marker) {
+            const item = document.createElement("span");
+            item.className = "marker-list-item";
+            item.textContent = formatTime(marker.time);
+            item.title = "跳转到 " + formatTime(marker.time);
+            item.onclick = function () {
+                seekToTime(marker.time);
+            };
+            listEl.appendChild(item);
+        });
+    }
+
+    function renderMarkers() {
+        const videoElement = document.getElementById("myVideo");
+        const track = document.getElementById("markerTrack");
+        const list = document.getElementById("markerList");
+        const duration = videoElement.duration;
+
+        track.innerHTML = "";
+        renderMarkerList(list);
+
+        if (!duration || !isFinite(duration)) {
+            return;
+        }
+
+        markers.slice().sort(function (a, b) {
+            return a.time - b.time;
+        }).forEach(function (marker) {
+            const dot = document.createElement("span");
+            dot.className = "marker-dot";
+            dot.style.left = Math.min(100, Math.max(0, marker.time / duration * 100)) + "%";
+            dot.title = formatTime(marker.time);
+            dot.onclick = function (e) {
+                e.stopPropagation();
+                seekToTime(marker.time);
+            };
+            track.appendChild(dot);
+        });
+    }
+
+    function addMarker() {
+        const videoElement = document.getElementById("myVideo");
+        const time = videoElement.currentTime;
+        if (!id || !isFinite(time) || time < 0) {
+            return;
+        }
+        const exists = markers.some(function (m) {
+            return Math.abs(m.time - time) < 1;
+        });
+        if (exists) {
+            document.getElementById("res_id").innerHTML = "该位置已有标记";
+            return;
+        }
+        apiGet("/mp4/addMarker?id=" + id + "&time=" + time, function (res) {
+            const data = res.data || {};
+            setMarkers(data.markers !== undefined ? data.markers : markers.concat([{ time: time }]));
+            document.getElementById("res_id").innerHTML = "已添加标记 " + formatTime(time);
+        }, function (err) {
+            document.getElementById("res_id").innerHTML = err || "添加标记失败";
+        });
+    }
+
+    function clearMarkers() {
+        if (!id || !markers.length) {
+            return;
+        }
+        if (!confirm("确定清除全部 " + markers.length + " 个标记？")) {
+            return;
+        }
+        apiGet("/mp4/clearMarkers?id=" + id, function (res) {
+            const data = res.data || {};
+            setMarkers(data.markers !== undefined ? data.markers : []);
+            document.getElementById("res_id").innerHTML = "已清除全部标记";
+        }, function (err) {
+            document.getElementById("res_id").innerHTML = err || "清除标记失败";
+        });
+    }
+
+    document.getElementById("myVideo").addEventListener("loadedmetadata", renderMarkers);
 
     if (id) {
         const xhr = new XMLHttpRequest();
@@ -45,6 +254,7 @@
         xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
                 videoData = JSON.parse(xhr.responseText).data || {};
+                setMarkers(videoData.markers);
                 refreshVideo();
             } else {
                 console.error('Error:', xhr.statusText);
