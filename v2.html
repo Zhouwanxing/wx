@@ -18,7 +18,7 @@
             position: absolute;
             left: 0;
             right: 0;
-            bottom: -18px;
+            bottom: -25px;
             height: 6px;
             pointer-events: none;
             z-index: 1;
@@ -60,16 +60,15 @@
     </video>
     <div id="markerTrack" class="marker-track"></div>
 </div>
-<div style="text-align: center;width: 100%; margin-top: 30px;">
-    <button onclick="mOne()" style="width: 99%;padding: 5px;border-radius: 5px;height: 40px;">-1</button>
+
+<div style="text-align: center;width: 100%;margin-top: 50px;">
+    <button onclick="mOne()" style="width: 30%;padding: 5px;border-radius: 5px; height: 40px;">降级</button>
+    <button onclick="changePlayMode()" style="width: 30%;padding: 5px;border-radius: 5px; height: 40px;">切换播放源</button>
+    <button onclick="openInXx()" style="width: 30%;padding: 5px;border-radius: 5px; height: 40px;">官网打开</button>
 </div>
 <div style="text-align: center;width: 100%;margin-top: 10px;">
-    <button onclick="changePlayMode()" style="width: 49%;padding: 5px;border-radius: 5px;height: 70px;">切换播放源</button>
-    <button onclick="openInXx()" style="width: 49%;padding: 5px;border-radius: 5px;height: 70px;">官网打开</button>
-</div>
-<div style="text-align: center;width: 100%;margin-top: 10px;">
-    <button onclick="randomMp4('_blank')" style="width: 49%;padding: 5px;border-radius: 5px;height: 70px;">随机(新窗口)</button>
-    <button onclick="randomMp4('_self')" style="width: 49%;padding: 5px;border-radius: 5px;height: 70px;">随机(当前窗口)</button>
+    <button onclick="randomMp4('_blank')" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">随机(新窗口)</button>
+    <button onclick="randomMp4('_self')" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">随机(当前窗口)</button>
 </div>
 <div style="text-align: center;width: 100%; margin-top: 10px;">
     <button onclick="addOne()" style="width: 99%;padding: 5px;border-radius: 5px;height: 40px;">+1</button>
@@ -265,12 +264,19 @@
     }
 
     function mOne() {
-        const xhr = new XMLHttpRequest();
         if (!videoData.flag) {
             return;
         }
         const all = ["best", "top1", "top2", "top3", "top4"];
         let flag = all[all.indexOf(videoData.flag) + 1] || '';
+        if (!flag) {
+            document.getElementById('res_id').innerHTML = "已是最低等级，无法继续降级";
+            return;
+        }
+        if (!confirm("确定要将「" + videoData.flag + "」降级为「" + flag + "」吗？")) {
+            return;
+        }
+        const xhr = new XMLHttpRequest();
         xhr.open('GET', baseUrl + "/mp4/updateLike?id=" + id + "&flag=" + flag + "&duration=0", true);
         xhr.setRequestHeader(tokenName, tokenValue);
         xhr.onload = function () {
