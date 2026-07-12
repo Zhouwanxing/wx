@@ -12,6 +12,9 @@
                     <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
                          @click="page = 0;list = [];getList();">刷新({{ count }})/{{ list.length }}
                     </div>
+                    <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
+                         @click="sort = !sort;">排序{{ sort ? '1' : '0' }}
+                    </div>
                 </div>
             </div>
             <div class="content" @scroll="handleScroll">
@@ -130,6 +133,7 @@ export default {
             currentDuration: 0,
             rotateDeg: 0,
             useM3u8: false,
+            sort: false,
             hls: null
         }
     },
@@ -355,7 +359,7 @@ export default {
         },
         getList: function (callback) {
             const self = this;
-            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&showLike=" + self.isShowLike + "&path=" + self.path, function (data) {
+            Http.sendGet("/mp4/pageShowList?page=" + ++self.page + "&showLike=" + self.isShowLike + "&path=" + self.path + "&sort=" + self.sort, function (data) {
                 if (data.code !== 200) {
                     return;
                 }
