@@ -9,11 +9,11 @@
                             <option v-for="item in paths" :value="item._id">{{ item._id }}({{ item.count }})</option>
                         </select>
                     </div>
-                    <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
-                         @click="page = 0;list = [];getList();">刷新({{ count }})/{{ list.length }}
+                    <div style="flex: 2;line-height: 40px;background-color: #ccc;border-right: 1px solid blue;"
+                         @click="page = 0;list = [];getList();">{{ count }}/{{ list.length }}
                     </div>
-                    <div style="flex: 1;line-height: 40px;background-color: #ccc;border-radius: 10px;"
-                         @click="sort = !sort;">排序({{ sort ? '1' : '0' }})
+                    <div style="flex: 1;line-height: 40px;background-color: #ccc;"
+                         @click="sort = !sort;">排序
                     </div>
                 </div>
             </div>
