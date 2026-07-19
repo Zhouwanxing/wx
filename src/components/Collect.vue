@@ -1,37 +1,24 @@
 <template>
     <div class="collect">
         <div class="header">
-            <div style="display: flex;height: 50px;text-align: center;position: fixed;top: 0;width: 100vw;">
-                <div style="flex: 2;border-right: 1px solid blue;">
-                    <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
-                            style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option :value="'all'">请选择</option>
-                        <option v-for="item in paths" :value="item">{{ item }}</option>
-                    </select>
-                </div>
-                <div
-                    style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
-                    <select v-model="formData.showBest" @change="list = [];formData.page = 1;searchPath()"
-                            style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option :value="'best'">best</option>
-                        <option :value="'top1'">top1</option>
-                        <option :value="'top2'">top2</option>
-                        <option :value="'top3'">top3</option>
-                        <option :value="'top4'">top4</option>
-                    </select>
-                </div>
-<!--                <div
-                    style="flex: 2;border-right: 1px solid blue;display: flex;justify-content: center;align-items: center;">
-                    <select v-model="formData.beforeMonth" @change="list = [];searchPath(true)"
-                            style="height: 30px;border: 1px solid #ccc;margin: 8px">
-                        <option :value="''">请选择</option>
-                        <option v-for="item in months" :value="item">{{ item }}</option>
-                    </select>
-                </div>-->
-                <div style="flex: 2;line-height: 50px;height: 50px;"
-                     @click="formData.page = 1;searchPath();">
+            <div class="header-inner">
+                <PageBack/>
+                <select v-model="formData.path" @change="list = [];formData.page = 1;searchPath()"
+                        class="header-select">
+                    <option :value="'all'">请选择</option>
+                    <option v-for="item in paths" :value="item">{{ item }}</option>
+                </select>
+                <select v-model="formData.showBest" @change="list = [];formData.page = 1;searchPath()"
+                        class="header-select">
+                    <option :value="'best'">best</option>
+                    <option :value="'top1'">top1</option>
+                    <option :value="'top2'">top2</option>
+                    <option :value="'top3'">top3</option>
+                    <option :value="'top4'">top4</option>
+                </select>
+                <button type="button" class="header-refresh" @click="formData.page = 1;searchPath();">
                     {{ count }}/{{ formData.page }}
-                </div>
+                </button>
             </div>
         </div>
         <div class="content" @scroll="handleScroll">
@@ -40,27 +27,17 @@
                 <div class="img-div" @click="clickImgNew(item)" style="">
                     <img style="width: 100%;height: 100%;" :id="item._id" alt=""/>
                 </div>
-                <div style="display: flex;text-align: center;padding: 10px 0;">
-                    <div style="flex: 1;">
-                        <button @click.stop="openInXx(item)">官网打开</button>
-                    </div>
-                    <div style="flex: 1;">
-                        <button @click.stop="updateLike(item,'best')" style="margin-left: 10px;">best</button>
-                    </div>
-                    <div style="flex: 1;">
-                        <button @click.stop="clickImg(item)" style="margin-left: 10px;">旧播放</button>
-                    </div>
+                <div class="card-actions">
+                    <button @click.stop="openInXx(item)">官网</button>
+                    <button @click.stop="updateLike(item,'best')">best</button>
+                    <button @click.stop="clickImg(item)">旧播放</button>
                 </div>
             </div>
         </div>
         <div class="footer">
-            <div style="display:flex;">
-                <div style="flex: 1;border-right: 1px solid white;" v-if="showLoad">
-                    <div style="color: blue;" @click="formData.page++;searchPath();">加载更多</div>
-                </div>
-                <div style="flex: 1;" v-if="formData.showBest === 'best' && count > 0">
-                    <div style="color: blue;" @click="randomMp4">随机</div>
-                </div>
+            <div class="footer-inner">
+                <button type="button" v-if="showLoad" class="footer-btn" @click="formData.page++;searchPath();">加载更多</button>
+                <button type="button" v-if="formData.showBest === 'best' && count > 0" class="footer-btn" @click="randomMp4">随机</button>
             </div>
         </div>
     </div>
@@ -69,9 +46,11 @@
 <script>
 import Http from "../js/Http.js";
 import axios from "axios";
+import PageBack from "./common/PageBack.vue";
 
 export default {
     name: "Collect",
+    components: { PageBack },
     data() {
         return {
             formData: {
@@ -211,30 +190,75 @@ export default {
 .collect .header {
     position: fixed;
     top: 0;
-    height: calc(50px + env(safe-area-inset-top, 0));
-    line-height: 50px;
+    min-height: calc(56px + env(safe-area-inset-top, 0));
     padding-top: env(safe-area-inset-top, 0);
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
     z-index: 10;
     width: 100%;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 56px;
+    padding: 6px 8px;
+}
+
+.header-select {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+}
+
+.header-refresh {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+}
+
+.card-actions button {
+    flex: 1;
+    min-height: 44px;
 }
 
 .collect .footer {
     position: fixed;
     bottom: 0;
-    height: calc(60px + env(safe-area-inset-bottom, 0));
-    padding-top: 5px;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    padding-left: env(safe-area-inset-left, 0);
-    padding-right: env(safe-area-inset-right, 0);
+    min-height: calc(56px + env(safe-area-inset-bottom, 0));
+    padding: 6px 8px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0));
+    padding-left: calc(8px + env(safe-area-inset-left, 0));
+    padding-right: calc(8px + env(safe-area-inset-right, 0));
     width: 100%;
+    background: #fff;
+    border-top: 1px solid #ddd;
+}
+
+.footer-inner {
+    display: flex;
+    gap: 8px;
+}
+
+.footer-btn {
+    flex: 1;
+    min-height: 44px;
+    color: #1d4ed8;
 }
 
 .collect .content {
     position: absolute;
-    top: calc(50px + env(safe-area-inset-top, 0));
-    bottom: calc(60px + env(safe-area-inset-bottom, 0));
+    top: calc(56px + env(safe-area-inset-top, 0));
+    bottom: calc(56px + env(safe-area-inset-bottom, 0));
     left: 0;
     right: 0;
     overflow-y: auto;

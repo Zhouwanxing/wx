@@ -1,52 +1,58 @@
 <template>
     <div class="er-page">
         <div class="header">
-            <div class="toolbar-row">
-                <div style="flex: 1;">
-                    价格：<input type="number" placeholder="最小价格" style="width: 30%;" v-model="formData.priceMin">
+            <div class="page-toolbar">
+                <PageBack/>
+                <span style="font-weight: 600;">二手房</span>
+            </div>
+            <div class="filter-stack">
+                <div class="filter-row">
+                    <span class="label">价格</span>
+                    <input type="number" inputmode="numeric" placeholder="最小" v-model="formData.priceMin">
                     <span>~</span>
-                    <input type="number" placeholder="最大价格" style="width: 30%;" v-model="formData.priceMax">
+                    <input type="number" inputmode="numeric" placeholder="最大" v-model="formData.priceMax">
                 </div>
-                <div style="flex: 1;">
-                    面积：<input type="number" placeholder="最小面积" style="width: 30%;" v-model="formData.areaMin">
+                <div class="filter-row">
+                    <span class="label">面积</span>
+                    <input type="number" inputmode="decimal" placeholder="最小" v-model="formData.areaMin">
                     <span>~</span>
-                    <input type="number" placeholder="最大面积" style="width: 30%;" v-model="formData.areaMax">
+                    <input type="number" inputmode="decimal" placeholder="最大" v-model="formData.areaMax">
                 </div>
             </div>
-            <div class="toolbar-row">
-                <div style="flex: 1;">
+            <div class="toolbar-scroll">
+                <div>
                     <button @click.stop="formData.sortKey = 'price';formData.sortValue = -formData.sortValue;">
                         价格{{ formData.sortKey !== 'price' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.sortKey = 'area';formData.sortValue = -formData.sortValue;">
                         面积{{ formData.sortKey !== 'area' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.sortKey = 'lastTime';formData.sortValue = -formData.sortValue;">
                         时间{{ formData.sortKey !== 'lastTime' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.showFloor ++;formData.showFloor = formData.showFloor % 4;">
                         {{ ['楼层', '低', '中', '高'][formData.showFloor] }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.showLike ++;formData.showLike = formData.showLike % 3;">
                         {{ ['全部', '待处理','关注'][formData.showLike] }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="findAll">查询({{ list.length }})</button>
                 </div>
             </div>
         </div>
         <div class="content scrollable-table" style="background-color: white;" @scroll="handleScroll">
             <div v-for="(item,index) in list" :key="index" @click.stop="clickOne(item)"
-                 style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 5px;"
+                 style="background-color: #ddd;border-radius: 5px;margin: 5px;padding: 10px;"
                  :style="selectId === item._id ? 'border:2px solid red;' : ''">
                 <div v-if="item.imgUrl" class="img-div">
                     <img src="" :id="item._id" style="width: 100%; object-fit: cover; display: block;" alt=""/>
@@ -64,9 +70,9 @@
                         <span style="margin-left: 20px;">{{ one.price }}</span>
                     </div>
                 </div>
-                <div>
+                <div class="card-actions">
                     <button @click.stop="updateLike(item, 'delete')">没了</button>
-                    <button @click.stop="updateLike(item, 'notLike')" style="margin-left: 20px;">不喜欢</button>
+                    <button @click.stop="updateLike(item, 'notLike')">不喜欢</button>
                 </div>
             </div>
         </div>
@@ -76,9 +82,11 @@
 <script>
 import Http from "../js/Http.js";
 import axios from "axios";
+import PageBack from "./common/PageBack.vue";
 
 export default {
     name: "ErPage",
+    components: { PageBack },
     data: function () {
         return {
             list: [],
@@ -189,3 +197,24 @@ export default {
     filters: {}
 }
 </script>
+
+<style scoped>
+.er-page .header {
+    min-height: 200px;
+}
+
+.er-page .content {
+    top: calc(200px + env(safe-area-inset-top, 0));
+}
+
+.card-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.card-actions button {
+    flex: 1;
+    min-height: 44px;
+}
+</style>

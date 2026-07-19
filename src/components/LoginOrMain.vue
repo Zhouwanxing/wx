@@ -11,22 +11,46 @@
                 </div>
 
                 <div class="form-group">
-                    <input v-model.trim="formData.username" placeholder="请输入用户名" class="glass-input"/>
+                    <input
+                        ref="usernameInput"
+                        v-model.trim="formData.username"
+                        placeholder="请输入用户名"
+                        class="glass-input"
+                        name="username"
+                        autocomplete="username"
+                        enterkeyhint="next"
+                        @keyup.enter="focusPassword"
+                    />
                 </div>
                 <div class="form-group">
-                    <input v-model.trim="formData.password" placeholder="请输入密码" type="password" class="glass-input"/>
+                    <input
+                        ref="passwordInput"
+                        v-model.trim="formData.password"
+                        placeholder="请输入密码"
+                        type="password"
+                        class="glass-input"
+                        name="password"
+                        autocomplete="current-password"
+                        enterkeyhint="go"
+                        @keyup.enter="login"
+                    />
                 </div>
 
                 <!-- 主机选择 -->
                 <div class="radio-group">
-                    <div v-for="(one,index) in host" :key="index" class="radio-item">
+                    <label
+                        v-for="(one,index) in host"
+                        :key="index"
+                        class="radio-item"
+                        @click="selectHost = one.id; radioChange()"
+                    >
                         <input type="radio" name="repayType" v-model="selectHost" :value="one.id" @change="radioChange" class="glass-radio"/>
-                        <label>{{ one.id }}({{ (one.key.split('/')[2] || "").split(":")[0] }})</label>
-                    </div>
+                        <span>{{ one.id }}({{ (one.key.split('/')[2] || "").split(":")[0] }})</span>
+                    </label>
                 </div>
 
                 <div class="form-group">
-                    <button @click="login" class="primary-btn">
+                    <button type="button" @click="login" class="primary-btn">
                         <span class="icon">🔐</span>
                         <span class="text">登录</span>
                     </button>
@@ -45,7 +69,7 @@
             </button>
 
             <button class="secondary-btn" @click="toOther('./mfa.html')">
-                <span class="icon">🧮</span>
+                <span class="icon">🔑</span>
                 <span class="text">令牌</span>
             </button>
         </div>
@@ -87,11 +111,19 @@ export default {
         setTimeout(function () {
             self.formData.username = localStorage.getItem("username") || "";
             self.checkLogin();
+            self.$nextTick(function () {
+                if (self.showLogin && self.$refs.usernameInput) {
+                    self.$refs.usernameInput.focus();
+                }
+            });
         }, 1);
     },
     methods: {
         toOther: function (route) {
-            window.open(route);
+            window.location.href = route;
+        },
+        focusPassword: function () {
+            this.$refs.passwordInput && this.$refs.passwordInput.focus();
         },
         radioChange: function () {
             const self = this;
@@ -113,6 +145,11 @@ export default {
                 self.host.push({id: "云", key: import.meta.env.VITE_BASE_URL});
                 self.host.push({id: "电脑", key: import.meta.env.VITE_COMPANY_BASE_URL});
                 self.showLogin = true;
+                self.$nextTick(function () {
+                    if (self.$refs.usernameInput) {
+                        self.$refs.usernameInput.focus();
+                    }
+                });
             });
         },
         toMain: function (res) {
@@ -243,22 +280,24 @@ export default {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-    padding: 8px 12px;
+    padding: 12px 14px;
+    min-height: 44px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.45);
     border: 1px solid rgba(30, 41, 59, 0.15);
+    cursor: pointer;
+    color: #1e1b4b;
+    font-size: 14px;
 }
 
-.radio-item label {
-    color: #1e1b4b;
-    font-size: 13px;
-    margin-left: 8px;
-    cursor: pointer;
+.radio-item span {
+    margin-left: 10px;
 }
 
 .glass-radio {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
     cursor: pointer;
     accent-color: #4338ca;
 }

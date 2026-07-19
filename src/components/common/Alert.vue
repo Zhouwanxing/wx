@@ -120,7 +120,8 @@ export default {
 
 .alert-btn {
     width: 100%;
-    padding: 12px 20px;
+    min-height: 48px;
+    padding: 14px 20px;
     border: none;
     border-radius: 12px;
     background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
@@ -130,6 +131,7 @@ export default {
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 4px 12px rgba(67, 56, 202, 0.35);
+    touch-action: manipulation;
 }
 
 .alert-btn:hover {

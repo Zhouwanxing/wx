@@ -1,40 +1,46 @@
 <template>
     <div class="er-page">
         <div class="header">
-            <div style="display: flex;height: 40px;text-align: center;width: 100%;">
-                <div style="flex: 1;">
-                    价格：<input type="number" placeholder="最小价格" style="width: 30%;" v-model="formData.priceMin">
+            <div class="page-toolbar">
+                <PageBack/>
+                <span style="font-weight: 600;">成交</span>
+            </div>
+            <div class="filter-stack">
+                <div class="filter-row">
+                    <span class="label">价格</span>
+                    <input type="number" inputmode="numeric" placeholder="最小" v-model="formData.priceMin">
                     <span>~</span>
-                    <input type="number" placeholder="最大价格" style="width: 30%;" v-model="formData.priceMax">
+                    <input type="number" inputmode="numeric" placeholder="最大" v-model="formData.priceMax">
                 </div>
-                <div style="flex: 1;">
-                    面积：<input type="number" placeholder="最小面积" style="width: 30%;" v-model="formData.areaMin">
+                <div class="filter-row">
+                    <span class="label">面积</span>
+                    <input type="number" inputmode="decimal" placeholder="最小" v-model="formData.areaMin">
                     <span>~</span>
-                    <input type="number" placeholder="最大面积" style="width: 30%;" v-model="formData.areaMax">
+                    <input type="number" inputmode="decimal" placeholder="最大" v-model="formData.areaMax">
                 </div>
             </div>
-            <div style="display: flex;height: 40px;text-align: center;width: 100%;">
-                <div style="flex: 1;">
+            <div class="toolbar-scroll">
+                <div>
                     <button @click.stop="formData.sortKey = 'price';formData.sortValue = -formData.sortValue;">
                         价格{{ formData.sortKey !== 'price' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.sortKey = 'area';formData.sortValue = -formData.sortValue;">
                         面积{{ formData.sortKey !== 'area' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.sortKey = 'createTime';formData.sortValue = -formData.sortValue;">
                         时间{{ formData.sortKey !== 'createTime' ? '' : formData.sortValue === 1 ? '⇑' : '⇓' }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="formData.showFloor ++;formData.showFloor = formData.showFloor % 4;">
                         {{ ['楼层', '低', '中', '高'][formData.showFloor] }}
                     </button>
                 </div>
-                <div style="flex: 1;">
+                <div>
                     <button @click.stop="findAll">查询({{ list.length }})</button>
                 </div>
             </div>
@@ -58,9 +64,11 @@
 
 <script>
 import Http from "../js/Http.js";
+import PageBack from "./common/PageBack.vue";
 
 export default {
     name: "Chengjiao",
+    components: { PageBack },
     data: function () {
         return {
             list: [],
@@ -128,3 +136,13 @@ export default {
     filters: {}
 }
 </script>
+
+<style scoped>
+.er-page .header {
+    min-height: 200px;
+}
+
+.er-page .content {
+    top: calc(200px + env(safe-area-inset-top, 0));
+}
+</style>

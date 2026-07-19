@@ -2,13 +2,15 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>贷款还款计算器</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding: 30px;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            padding: calc(16px + env(safe-area-inset-top, 0)) calc(16px + env(safe-area-inset-right, 0)) calc(16px + env(safe-area-inset-bottom, 0)) calc(16px + env(safe-area-inset-left, 0));
             background-color: #f9f9f9;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
         }
         .container {
             background-color: #fff;
@@ -27,20 +29,34 @@
         }
         input[type="number"] {
             width: 100%;
-            padding: 8px;
+            min-height: 44px;
+            padding: 10px 12px;
             margin-top: 5px;
             box-sizing: border-box;
+            font-size: 16px;
         }
         .repay-type {
             margin-top: 10px;
+            display: flex;
+            gap: 12px;
         }
         .repay-type label {
-            margin-right: 20px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 44px;
+            margin-top: 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
         }
         button {
             width: 100%;
             margin-top: 20px;
-            padding: 10px;
+            min-height: 48px;
+            padding: 12px;
             font-size: 16px;
             background-color: #0078d4;
             color: white;
@@ -53,6 +69,16 @@
             background: #e3f2fd;
             padding: 15px;
             border-radius: 8px;
+        }
+        .result {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .details {
+            max-height: 50vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         table {
             width: 100%;
@@ -74,13 +100,13 @@
     <h2>贷款还款计算器</h2>
 
     <label for="loanAmount">贷款金额（元）：</label>
-    <input type="number" id="loanAmount" value="900000" step="10000">
+    <input type="number" inputmode="decimal" id="loanAmount" value="900000" step="10000">
 
     <label for="annualRate">年利率（%）：</label>
-    <input type="number" id="annualRate" value="2.85" step="0.01">
+    <input type="number" inputmode="decimal" id="annualRate" value="2.85" step="0.01">
 
     <label for="years">贷款年限（年）：</label>
-    <input type="number" id="years" value="30">
+    <input type="number" inputmode="numeric" id="years" value="30">
 
     <div class="repay-type">
         <label><input type="radio" name="repayType" value="equalPrincipalAndInterest" checked> 等额本息</label>

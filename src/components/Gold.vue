@@ -1,16 +1,23 @@
 <template>
-    <div style="text-align: center;">
-        <button @click="showChange" style="margin-top: 5px;">切换</button>
-        <div id="container" style="height: 90vh;"></div>
+    <div class="gold-page">
+        <div class="gold-toolbar">
+            <PageBack/>
+            <button type="button" class="switch-btn" @click="showChange">
+                {{ showAll ? '切换：显示全部' : '切换：精简模式' }}
+            </button>
+        </div>
+        <div id="container" class="chart-box"></div>
     </div>
 </template>
 
 <script>
 import * as echarts from 'echarts';
 import Http from "../js/Http.js";
+import PageBack from "./common/PageBack.vue";
 
 export default {
     name: "Gold",
+    components: { PageBack },
     data() {
         return {
             showAll: true
@@ -101,3 +108,35 @@ export default {
     },
 }
 </script>
+
+<style scoped>
+.gold-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+}
+
+.gold-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    flex-shrink: 0;
+}
+
+.switch-btn {
+    flex: 1;
+    min-height: 44px;
+}
+
+.chart-box {
+    flex: 1;
+    min-height: 0;
+    height: calc(100dvh - 68px - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0));
+    width: 100%;
+}
+</style>

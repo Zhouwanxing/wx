@@ -1,32 +1,38 @@
 <template>
-    <div class="fang-dai-calc">
-        <h2>贷款还款计算器</h2>
-
-        <label for="loanAmount">贷款金额（元）：</label>
-        <input type="number" v-model="loanAmount" value="900000" step="10000">
-
-        <label for="annualRate">年利率（%）：</label>
-        <input type="number" v-model="annualRate" value="2.6" step="0.01">
-
-        <label for="years">贷款年限（年）：</label>
-        <input type="number" v-model="years" value="30">
-
-        <div class="repay-type">
-            <label><input type="radio" v-model="repayType" value="equalPrincipalAndInterest" checked style="height: auto;"> 等额本息</label>
-            <label><input type="radio" v-model="repayType" value="equalPrincipal" style="height: auto;"> 等额本金</label>
+    <div class="fang-dai-page">
+        <div class="toolbar">
+            <PageBack/>
+            <h2>贷款还款计算器</h2>
         </div>
+        <div class="fang-dai-calc">
+            <label for="loanAmount">贷款金额（元）：</label>
+            <input type="number" inputmode="decimal" v-model="loanAmount" value="900000" step="10000">
 
-        <button @click="calculate">计算</button>
+            <label for="annualRate">年利率（%）：</label>
+            <input type="number" inputmode="decimal" v-model="annualRate" value="2.6" step="0.01">
 
-        <div class="result" id="result" style="display: none;"></div>
-        <div class="details" id="details" style="display: none;"></div>
+            <label for="years">贷款年限（年）：</label>
+            <input type="number" inputmode="numeric" v-model="years" value="30">
+
+            <div class="repay-type">
+                <label class="radio-label"><input type="radio" v-model="repayType" value="equalPrincipalAndInterest" checked style="height: auto;"> 等额本息</label>
+                <label class="radio-label"><input type="radio" v-model="repayType" value="equalPrincipal" style="height: auto;"> 等额本金</label>
+            </div>
+
+            <button @click="calculate">计算</button>
+
+            <div class="result sticky-result" id="result" style="display: none;"></div>
+            <div class="details" id="details" style="display: none;"></div>
+        </div>
     </div>
 </template>
 
 <script>
+import PageBack from "./common/PageBack.vue";
+
 export default {
     name: "FangDaiCalc",
-    components: {},
+    components: { PageBack },
     data() {
         return {
             loanAmount: 900000,
@@ -107,17 +113,31 @@ export default {
 </script>
 
 <style scoped>
+.fang-dai-page {
+    min-height: 100%;
+    padding: calc(8px + env(safe-area-inset-top, 0)) calc(12px + env(safe-area-inset-right, 0)) calc(16px + env(safe-area-inset-bottom, 0)) calc(12px + env(safe-area-inset-left, 0));
+    background: #f5f5f5;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.toolbar h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
 .fang-dai-calc {
     background-color: #fff;
-    padding: 20px;
+    padding: 16px;
     border-radius: 12px;
     max-width: 600px;
     margin: auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.fang-dai-calc h2 {
-    text-align: center;
 }
 
 .fang-dai-calc label {
@@ -127,23 +147,37 @@ export default {
 
 .fang-dai-calc input[type="number"] {
     width: 100%;
-    padding: 8px;
+    min-height: 44px;
+    padding: 10px 12px;
     margin-top: 5px;
     box-sizing: border-box;
+    font-size: 16px;
 }
 
 .fang-dai-calc .repay-type {
-    margin-top: 10px;
+    margin-top: 12px;
+    display: flex;
+    gap: 12px;
 }
 
-.fang-dai-calc .repay-type label {
-    margin-right: 20px;
+.radio-label {
+    flex: 1;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-top: 0 !important;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px;
 }
 
 .fang-dai-calc button {
     width: 100%;
     margin-top: 20px;
-    padding: 10px;
+    min-height: 48px;
+    padding: 12px;
     font-size: 16px;
     background-color: #0078d4;
     color: white;
@@ -157,6 +191,18 @@ export default {
     background: #e3f2fd;
     padding: 15px;
     border-radius: 8px;
+}
+
+.sticky-result {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.fang-dai-calc .details {
+    max-height: 50vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .fang-dai-calc table {

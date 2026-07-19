@@ -129,7 +129,9 @@ export default {
     height: 100vh;
     height: 100dvh;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
 }
@@ -152,7 +154,8 @@ export default {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    min-height: 0;
     padding: calc(24px + env(safe-area-inset-top, 0)) calc(20px + env(safe-area-inset-right, 0)) calc(24px + env(safe-area-inset-bottom, 0)) calc(20px + env(safe-area-inset-left, 0));
     max-width: 480px;
     margin: 0 auto;
@@ -161,7 +164,7 @@ export default {
 
 /* 毛玻璃卡片 */
 .glass-card {
-    flex: 1;
+    flex: 0 1 auto;
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -173,7 +176,7 @@ export default {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
 }
 
 /* 网格 - flex布局自动居中 */

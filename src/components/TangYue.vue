@@ -1,53 +1,59 @@
 <template>
     <div class="tangyue">
         <div class="header">
-            <div style="display: flex;text-align: center;">
-                <div style="flex: 1;padding: 0 3px;">
-                    <select v-model="formData.xq" style="height: 30px;border: 1px solid #ccc;width: 100%;">
+            <div class="header-row">
+                <PageBack/>
+                <div class="select-wrap">
+                    <select v-model="formData.xq">
                         <option :value="'ty'">唐樾</option>
                         <option :value="'yt'">悦庭</option>
                     </select>
                 </div>
-                <div style="flex: 1;padding: 0 3px;">
-                    <select v-model="formData.building" style="height: 30px;border: 1px solid #ccc;width: 100%;">
+                <div class="select-wrap">
+                    <select v-model="formData.building">
                         <option v-for="item in builds" :value="item">{{ item }}</option>
                     </select>
                 </div>
-                <div style="flex: 1;padding: 0 3px;">
-                    <select v-model="formData.unit" style="height: 30px;border: 1px solid #ccc;width: 100%;">
+                <div class="select-wrap">
+                    <select v-model="formData.unit">
                         <option :value="'1'">一单元</option>
                         <option :value="'2'" v-if="['3','4','A12','A15','A7','A9'].includes(formData.building)">二单元
                         </option>
                     </select>
                 </div>
-                <div style="flex: 1;line-height: 50px;background-color: #ccc;border-radius: 10px;"
-                     @click="searchAll">查询
-                </div>
+                <button type="button" class="search-btn" @click="searchAll">查询</button>
             </div>
         </div>
         <div class="content scrollable-table">
-            <table border="1" style="width: 100%;">
-                <thead>
-                <tr>
-                    <th v-for="(oneRow,index) in (table[0] || [])" :key="index" :rowspan="index === 0 ? 2 : 1">
-                        {{ index === 0 ? '楼层' : index }}
-                    </th>
-                </tr>
-                <tr>
-                    <th v-for="(oneRow,index) in (table[0] || []).slice(1)" :key="index">
-                        {{ oneRow }}
-                    </th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr v-for="(oneRow,index) in table.slice(1)" :key="index">
-                    <th v-for="(item,cIndex) in oneRow" :key="cIndex" style="padding: 5px 0;"
-                        :class="getTop(index,cIndex)"
-                        @click="clickTh(index,cIndex)">{{ item }}
-                    </th>
-                </tr>
-                </tbody>
-            </table>
+            <div class="layout">
+                <div class="filters-side">
+                    <div class="side-tip">点选单元格查看详情</div>
+                </div>
+                <div class="table-wrap">
+                    <table border="1" style="width: 100%;">
+                        <thead>
+                        <tr>
+                            <th v-for="(oneRow,index) in (table[0] || [])" :key="index" :rowspan="index === 0 ? 2 : 1">
+                                {{ index === 0 ? '楼层' : index }}
+                            </th>
+                        </tr>
+                        <tr>
+                            <th v-for="(oneRow,index) in (table[0] || []).slice(1)" :key="index">
+                                {{ oneRow }}
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr v-for="(oneRow,index) in table.slice(1)" :key="index">
+                            <th v-for="(item,cIndex) in oneRow" :key="cIndex" class="cell"
+                                :class="getTop(index,cIndex)"
+                                @click="clickTh(index,cIndex)">{{ item }}
+                            </th>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         <div class="footer">
             <div>{{ showText1 }}</div>
@@ -58,9 +64,11 @@
 
 <script>
 import Http from "../js/Http.js";
+import PageBack from "./common/PageBack.vue";
 
 export default {
     name: "TangYue.vue",
+    components: { PageBack },
     data: function () {
         return {
             formData: {
@@ -178,14 +186,81 @@ export default {
 .tangyue .header {
     position: fixed;
     top: 0;
-    height: calc(50px + env(safe-area-inset-top, 0));
-    line-height: 50px;
+    min-height: calc(56px + env(safe-area-inset-top, 0));
     padding-top: env(safe-area-inset-top, 0);
     padding-left: env(safe-area-inset-left, 0);
     padding-right: env(safe-area-inset-right, 0);
     background: #fff;
     z-index: 10;
     width: 100%;
+}
+
+.header-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 56px;
+    padding: 6px 8px;
+    text-align: center;
+}
+
+.select-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.select-wrap select {
+    width: 100%;
+    min-height: 44px;
+}
+
+.search-btn {
+    flex-shrink: 0;
+    min-height: 44px;
+    background: #e5e7eb;
+}
+
+.cell {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 4px;
+}
+
+.layout {
+    display: block;
+}
+
+.filters-side {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .layout {
+        display: flex;
+        gap: 12px;
+        min-height: 100%;
+    }
+
+    .filters-side {
+        display: block;
+        width: 160px;
+        flex-shrink: 0;
+        padding: 12px;
+        background: #f8fafc;
+        border-right: 1px solid #e2e8f0;
+    }
+
+    .side-tip {
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    .table-wrap {
+        flex: 1;
+        min-width: 0;
+        overflow: auto;
+    }
 }
 
 .tangyue .footer {
@@ -203,7 +278,7 @@ export default {
 
 .tangyue .content {
     position: absolute;
-    top: calc(50px + env(safe-area-inset-top, 0));
+    top: calc(56px + env(safe-area-inset-top, 0));
     bottom: calc(70px + env(safe-area-inset-bottom, 0));
     left: 0;
     right: 0;

@@ -2,13 +2,16 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>拉面馆点单</title>
     <style>
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont;
-            background: #f7f7f7
+            background: #f7f7f7;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+            padding-top: env(safe-area-inset-top, 0);
         }
 
         .header {
@@ -21,7 +24,7 @@
 
         .container {
             display: flex;
-            height: calc(100vh - 50px)
+            height: calc(100dvh - 50px - env(safe-area-inset-top, 0) - 56px - env(safe-area-inset-bottom, 0));
         }
 
         .left {
@@ -32,6 +35,10 @@
 
         .left div {
             padding: 12px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
             border-bottom: 1px solid #ddd;
             cursor: pointer
@@ -85,11 +92,15 @@
         }
 
         .btn {
-            width: 26px;
-            height: 26px;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             border: none;
             border-radius: 50%;
-            background: #ffd100
+            background: #ffd100;
+            font-size: 20px;
+            touch-action: manipulation;
         }
 
         .cart-bar {
@@ -102,14 +113,20 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px;
-            border-top: 1px solid #ddd
+            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0));
+            padding-left: calc(10px + env(safe-area-inset-left, 0));
+            padding-right: calc(10px + env(safe-area-inset-right, 0));
+            border-top: 1px solid #ddd;
+            min-height: 56px;
         }
 
         .cart-btn {
             background: #ffd100;
-            padding: 8px 16px;
+            padding: 12px 18px;
+            min-height: 44px;
             border: none;
-            border-radius: 20px
+            border-radius: 22px;
+            font-size: 15px;
         }
 
         .toast {

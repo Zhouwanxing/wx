@@ -2,9 +2,17 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <title>video</title>
     <style>
+        body {
+            margin: 0;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+            padding-left: env(safe-area-inset-left, 0);
+            padding-right: env(safe-area-inset-right, 0);
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+        }
         .video-wrap {
             position: relative;
             width: 100%;
@@ -25,30 +33,76 @@
         }
         .marker-dot {
             position: absolute;
-            bottom: -2px;
-            width: 10px;
-            height: 10px;
-            margin-left: -5px;
+            bottom: -18px;
+            width: 44px;
+            height: 44px;
+            margin-left: -22px;
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            pointer-events: auto;
+            cursor: pointer;
+            padding: 0;
+        }
+        .marker-dot::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            margin: -6px 0 0 -6px;
             background: #ff5722;
             border: 2px solid #fff;
             border-radius: 50%;
             box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
-            pointer-events: auto;
-            cursor: pointer;
         }
-        .marker-dot:active {
+        .marker-dot:active::after {
             transform: scale(1.2);
         }
         .marker-list-item {
-            display: inline-block;
-            margin: 0 6px;
-            padding: 2px 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 4px 6px;
+            min-height: 44px;
+            padding: 8px 12px;
             color: #ff5722;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 8px;
         }
         .marker-list-item:active {
             background: rgba(255, 87, 34, 0.15);
+        }
+        .actions {
+            text-align: center;
+            width: 100%;
+            margin-top: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 0 8px;
+            box-sizing: border-box;
+        }
+        .actions button {
+            flex: 1 1 30%;
+            min-height: 44px;
+            padding: 10px 8px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .actions.row2 button {
+            flex: 1 1 45%;
+        }
+        .actions.row3 button {
+            flex: 1 1 100%;
+        }
+        .sticky-actions {
+            position: sticky;
+            bottom: 0;
+            background: rgba(255,255,255,.96);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            z-index: 5;
         }
     </style>
 </head>
@@ -61,21 +115,23 @@
     <div id="markerTrack" class="marker-track"></div>
 </div>
 
-<div style="text-align: center;width: 100%;margin-top: 50px;">
-    <button onclick="mOne()" style="width: 30%;padding: 5px;border-radius: 5px; height: 40px;">降级</button>
-    <button onclick="changePlayMode()" style="width: 30%;padding: 5px;border-radius: 5px; height: 40px;">切换播放源</button>
-    <button onclick="openInXx()" style="width: 30%;padding: 5px;border-radius: 5px; height: 40px;">官网打开</button>
+<div class="sticky-actions">
+<div class="actions">
+    <button onclick="mOne()">降级</button>
+    <button onclick="changePlayMode()">切换播放源</button>
+    <button onclick="openInXx()">官网打开</button>
 </div>
-<div style="text-align: center;width: 100%;margin-top: 10px;">
-    <button onclick="randomMp4('_blank')" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">随机(新窗口)</button>
-    <button onclick="randomMp4('_self')" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">随机(当前窗口)</button>
+<div class="actions row2" style="margin-top: 8px;">
+    <button onclick="randomMp4('_blank')">随机(新窗口)</button>
+    <button onclick="randomMp4('_self')">随机(当前窗口)</button>
 </div>
-<div style="text-align: center;width: 100%; margin-top: 10px;">
-    <button onclick="addOne()" style="width: 99%;padding: 5px;border-radius: 5px;height: 40px;">+1</button>
+<div class="actions row3" style="margin-top: 8px;">
+    <button onclick="addOne()">+1</button>
 </div>
-<div style="text-align: center;width: 100%; margin-top: 10px;">
-    <button onclick="clearMarkers()" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">清除标记</button>
-    <button onclick="addMarker()" style="width: 49%;padding: 5px;border-radius: 5px;height: 40px;">添加标记</button>
+<div class="actions row2" style="margin-top: 8px;">
+    <button onclick="clearMarkers()">清除标记</button>
+    <button onclick="addMarker()">添加标记</button>
+</div>
 </div>
 <div id="markerList" style="text-align: center;width: 100%; margin-top: 6px; font-size: 13px; color: #666;"></div>
 <div style="text-align: center;width: 100%;" id="res_id">

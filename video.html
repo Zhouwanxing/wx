@@ -2,14 +2,46 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>video</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #000;
+            touch-action: manipulation;
+        }
+        .wrap {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-top: env(safe-area-inset-top, 0);
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        video {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            background: #000;
+        }
+        .switch-btn {
+            min-height: 48px;
+            margin: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #1d4ed8;
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
-<video id="myVideo" controls webkit-playsinline playsinline style="width: 100%;height: 100%;">
-    <source src="" type="video/mp4">
-</video>
-<button onclick="refresh()">切换</button>
+<div class="wrap">
+    <video id="myVideo" controls webkit-playsinline playsinline>
+        <source src="" type="video/mp4">
+    </video>
+    <button class="switch-btn" onclick="refresh()">切换协议</button>
+</div>
 <script>
 
     const paramValue = new URL(window.location.href).searchParams.get('url');
