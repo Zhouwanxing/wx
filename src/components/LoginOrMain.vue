@@ -292,11 +292,15 @@ export default {
 
 .radio-item span {
     margin-left: 10px;
+    min-width: 0;
+    word-break: break-all;
 }
 
 .glass-radio {
+    flex-shrink: 0;
     width: 20px;
     height: 20px;
+    min-width: 20px;
     min-height: 20px;
     cursor: pointer;
     accent-color: #4338ca;
