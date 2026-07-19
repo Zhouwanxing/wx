@@ -74,10 +74,10 @@
                 </div>
                 <div class="action-secondary">
                     <button @click="rotateVideo">旋转</button>
-                    <button @click="updateLike(selectMp4,'top1')">top1</button>
-                    <button @click="updateLike(selectMp4,'top2')">top2</button>
-                    <button @click="updateLike(selectMp4,'top3')">top3</button>
                     <button @click="updateLike(selectMp4,'top4')">top4</button>
+                    <button @click="updateLike(selectMp4,'top3')">top3</button>
+                    <button @click="updateLike(selectMp4,'top2')">top2</button>
+                    <button @click="updateLike(selectMp4,'top1')">top1</button>
                     <button @click="getList">更多</button>
                 </div>
             </div>
