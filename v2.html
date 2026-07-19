@@ -213,6 +213,10 @@
             return;
         }
         videoElement.currentTime = time;
+        const playPromise = videoElement.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch(function () {});
+        }
     }
 
     function renderMarkerList(listEl) {
