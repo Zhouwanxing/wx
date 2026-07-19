@@ -43,6 +43,11 @@
                 <span class="icon">🧮</span>
                 <span class="text">计算器</span>
             </button>
+
+            <button class="secondary-btn" @click="toOther('./mfa.html')">
+                <span class="icon">🧮</span>
+                <span class="text">令牌</span>
+            </button>
         </div>
 
         <Alert

@@ -33,6 +33,7 @@ export default defineConfig(({command, mode}) => {
                     v2: path.resolve(__dirname, "./v2.html"),
                     caller: path.resolve(__dirname, "./caller.html"),
                     callee: path.resolve(__dirname, "./callee.html"),
+                    mfa: path.resolve(__dirname, "./mfa.html"),
                     f: path.resolve(__dirname, "./f.html"),
                     r: path.resolve(__dirname, "./r.html"),
                     o: path.resolve(__dirname, "./o.html"),

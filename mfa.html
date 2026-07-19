@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MFA 验证码</title>
+  <!-- 仅用于前端识别二维码；密钥存储与验证码生成均由服务端完成 -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <style>
+    :root {
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --code: #13a8a8;
+      --text: #1f1f1f;
+      --text-secondary: #8c8c8c;
+      --border: #e8e8e8;
+      --bg: #f5f5f5;
+      --danger: #ff4d4f;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 40px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 32px;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all .2s;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-default {
+      background: #fff;
+      border-color: #d9d9d9;
+      color: rgba(0,0,0,.88);
+    }
+    .btn-default:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-ghost-danger {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 4px 8px;
+      height: auto;
+      font-size: 12px;
+    }
+    .btn-ghost-danger:hover { color: var(--danger); }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px 14px;
+      position: relative;
+      transition: box-shadow .2s;
+    }
+    .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-issuer {
+      font-size: 15px;
+      font-weight: 600;
+      color: #262626;
+      line-height: 1.4;
+    }
+
+    .card-account {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      word-break: break-all;
+    }
+
+    .card-code {
+      margin: 18px 0 14px;
+      font-size: 32px;
+      font-weight: 600;
+      color: var(--code);
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.2;
+    }
+    .card-code:active { opacity: .7; }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 4px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: var(--code);
+      border-radius: 2px;
+      transition: width .25s linear, background .3s;
+    }
+    .progress-bar.urgent { background: var(--danger); }
+
+    .remain {
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-width: 28px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 64px 20px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(0,0,0,.75);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all .25s;
+      z-index: 2000;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Modal */
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-mask.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+      animation: modalIn .2s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      position: relative;
+      padding: 16px 24px;
+      border-bottom: 1px solid #f0f0f0;
+      text-align: center;
+    }
+    .modal-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .modal-close {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      color: rgba(0,0,0,.45);
+      cursor: pointer;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .modal-close:hover {
+      color: rgba(0,0,0,.88);
+      background: rgba(0,0,0,.06);
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #f0f0f0;
+      padding: 0 16px;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px 8px;
+      font-size: 14px;
+      color: rgba(0,0,0,.65);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .2s, border-color .2s;
+      user-select: none;
+    }
+    .tab:hover { color: var(--primary); }
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 500;
+    }
+
+    .modal-body { padding: 20px 24px; min-height: 220px; }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .form-item { margin-bottom: 16px; }
+    .form-item:last-child { margin-bottom: 0; }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      color: rgba(0,0,0,.88);
+      margin-bottom: 8px;
+    }
+    .form-label .req {
+      color: var(--danger);
+      margin-right: 2px;
+      font-family: SimSun, sans-serif;
+    }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      padding: 8px 11px;
+      font-size: 14px;
+      color: rgba(0,0,0,.88);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-input:hover, .form-textarea:hover { border-color: var(--primary-hover); }
+    .form-input:focus, .form-textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(22,119,255,.1);
+    }
+    .form-textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .form-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .upload-zone {
+      border: 1px dashed #d9d9d9;
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      background: #fafafa;
+    }
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+    }
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      color: rgba(0,0,0,.35);
+    }
+    .upload-title {
+      font-size: 14px;
+      color: rgba(0,0,0,.88);
+      margin-bottom: 6px;
+    }
+    .upload-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .upload-result {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--code);
+      word-break: break-all;
+      display: none;
+    }
+    .upload-result.show { display: block; }
+
+    .modal-footer {
+      padding: 12px 24px 16px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    @media (max-width: 560px) {
+      .page { padding: 16px 12px 32px; }
+      .header h1 { font-size: 18px; }
+      .card-code { font-size: 28px; }
+      .modal-body { padding: 16px; }
+      .tabs { padding: 0 8px; }
+      .tab { font-size: 13px; padding: 10px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <h1>MFA 验证码</h1>
+      <button class="btn btn-primary" id="btnAdd" type="button">+ 添加</button>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal-mask" id="modalMask">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>添加 MFA 条目</h2>
+        <button class="modal-close" id="btnClose" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="manual">手动输入</div>
+        <div class="tab" data-tab="qr">上传二维码</div>
+        <div class="tab" data-tab="uri">粘贴 URI</div>
+      </div>
+      <div class="modal-body">
+        <div class="tab-pane active" id="pane-manual">
+          <div class="form-item">
+            <label class="form-label"><span class="req">*</span>密钥 (Base32)</label>
+            <input class="form-input" id="inputSecret" type="text" placeholder="例如: JBSWY3DPEHPK3PXP" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="form-item">
+            <label class="form-label">发行方</label>
+            <input class="form-input" id="inputIssuer" type="text" placeholder="例如: Google" autocomplete="off">
+          </div>
+          <div class="form-item">
+            <label class="form-label"><span class="req">*</span>账号</label>
+            <input class="form-input" id="inputAccount" type="text" placeholder="例如: user@example.com" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="tab-pane" id="pane-qr">
+          <div class="upload-zone" id="uploadZone">
+            <svg class="upload-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="8" y="10" width="32" height="28" rx="3"/>
+              <circle cx="18" cy="20" r="3"/>
+              <path d="M8 32l10-8 6 5 8-10 8 10"/>
+            </svg>
+            <div class="upload-title">点击或拖拽二维码图片到此处</div>
+            <div class="upload-sub">支持 PNG / JPG，自动识别 otpauth URI</div>
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/webp" hidden>
+          </div>
+          <div class="upload-result" id="uploadResult"></div>
+        </div>
+
+        <div class="tab-pane" id="pane-uri">
+          <div class="form-item">
+            <label class="form-label"><span class="req">*</span>otpauth URI</label>
+            <textarea class="form-textarea" id="inputUri" placeholder="otpauth://totp/Google:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Google&digits=6&period=30" spellcheck="false"></textarea>
+            <div class="form-hint">直接粘贴从二维码扫描器或 Authenticator 应用导出的 otpauth URI</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" id="btnCancel" type="button">取消</button>
+        <button class="btn btn-primary" id="btnConfirm" type="button">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+/*
+ * 服务端约定（无需鉴权；base 默认 /page）：
+ * GET  /mfa/list
+ *   -> { code:200, data:[{ id|_id, issuer, account, code, period, remain, digits }] }
+ * POST /mfa/saveOne
+ *   body: { secret, issuer, account, digits?, period?, algorithm? } 或 { uri }
+ * POST /mfa/deleteOne
+ *   body: { id }
+ */
+(function () {
+  const DEFAULT_BASE = 'https://goldtask.onrender.com/page';
+  const qs = new URLSearchParams(location.search);
+  const baseUrl = (qs.get('baseUrl') || localStorage.getItem('mfaBaseUrl') || DEFAULT_BASE).replace(/\/$/, '');
+
+  let entries = [];
+  let activeTab = 'manual';
+  let qrParsed = null;
+  let qrUri = '';
+  let tickTimer = null;
+  let fetching = false;
+  let lastFetchAt = 0;
+  let needRefetch = false;
+
+  const $ = (id) => document.getElementById(id);
+  const cardsEl = $('cards');
+  const modalMask = $('modalMask');
+  const toastEl = $('toast');
+  const uploadZone = $('uploadZone');
+  const fileInput = $('fileInput');
+  const uploadResult = $('uploadResult');
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toastEl.classList.remove('show'), 1600);
+  }
+
+  function apiRequest(method, path, body) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, baseUrl + path, true);
+      xhr.timeout = 10000;
+      if (body !== undefined) {
+        xhr.setRequestHeader('Content-Type', 'application/json');
+      }
+      xhr.onload = function () {
+        let res = {};
+        try {
+          res = JSON.parse(xhr.responseText) || {};
+        } catch (e) {
+          reject(new Error('响应解析失败'));
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error(res.msg || res.message || ('HTTP ' + xhr.status)));
+          return;
+        }
+        if (res.code !== undefined && res.code !== 200) {
+          reject(new Error(res.msg || res.message || ('错误码 ' + res.code)));
+          return;
+        }
+        resolve(res);
+      };
+      xhr.onerror = () => reject(new Error('网络错误'));
+      xhr.ontimeout = () => reject(new Error('请求超时'));
+      xhr.send(body !== undefined ? JSON.stringify(body) : null);
+    });
+  }
+
+  function normalizeSecret(secret) {
+    return String(secret || '').replace(/\s+/g, '').toUpperCase();
+  }
+
+  function isValidBase32(secret) {
+    return /^[A-Z2-7]+=*$/.test(secret) && secret.replace(/=+$/, '').length >= 8;
+  }
+
+  function parseOtpauthUri(uri) {
+    const trimmed = String(uri || '').trim();
+    if (!trimmed.toLowerCase().startsWith('otpauth://')) {
+      throw new Error('URI 必须以 otpauth:// 开头');
+    }
+    let url;
+    try {
+      url = new URL(trimmed);
+    } catch {
+      throw new Error('URI 格式无效');
+    }
+    const type = url.hostname.toLowerCase();
+    if (type !== 'totp' && type !== 'hotp') {
+      throw new Error('仅支持 totp / hotp 类型');
+    }
+    const params = url.searchParams;
+    const secret = normalizeSecret(params.get('secret'));
+    if (!secret) throw new Error('URI 中缺少 secret');
+    if (!isValidBase32(secret)) throw new Error('secret 不是有效的 Base32');
+
+    let issuer = params.get('issuer') || '';
+    let account = '';
+    const label = decodeURIComponent(url.pathname.replace(/^\//, ''));
+    if (label.includes(':')) {
+      const idx = label.indexOf(':');
+      const labelIssuer = label.slice(0, idx).trim();
+      account = label.slice(idx + 1).trim();
+      if (!issuer) issuer = labelIssuer;
+    } else {
+      account = label.trim();
+    }
+
+    const digits = parseInt(params.get('digits') || '6', 10);
+    const period = parseInt(params.get('period') || '30', 10);
+    const algorithm = (params.get('algorithm') || 'SHA1').toUpperCase();
+
+    return {
+      uri: trimmed,
+      secret,
+      issuer: issuer || '未命名',
+      account: account || '未命名账号',
+      digits: [6, 7, 8].includes(digits) ? digits : 6,
+      period: period > 0 ? period : 30,
+      algorithm,
+      type
+    };
+  }
+
+  function formatCode(code) {
+    const s = String(code == null ? '' : code);
+    if (!s || s === '------') return '------';
+    if (s.length === 6) return s.slice(0, 3) + ' ' + s.slice(3);
+    if (s.length === 8) return s.slice(0, 4) + ' ' + s.slice(4);
+    return s;
+  }
+
+  function entryId(entry) {
+    return entry.id || entry._id || '';
+  }
+
+  function displayRemain(entry) {
+    const elapsed = Math.floor((Date.now() - (entry._syncedAt || Date.now())) / 1000);
+    return Math.max(0, (entry.remain == null ? 0 : Number(entry.remain)) - elapsed);
+  }
+
+  function normalizeList(list) {
+    const now = Date.now();
+    return (list || []).map((item) => ({
+      id: entryId(item),
+      issuer: item.issuer || '未命名',
+      account: item.account || '',
+      code: item.code != null ? String(item.code) : '------',
+      period: item.period > 0 ? Number(item.period) : 30,
+      remain: item.remain != null ? Number(item.remain) : 30,
+      digits: item.digits || 6,
+      _syncedAt: now
+    }));
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderCards() {
+    if (!entries.length) {
+      cardsEl.innerHTML = '<div class="empty">暂无 MFA 条目，点击右上角「添加」开始</div>';
+      return;
+    }
+
+    cardsEl.innerHTML = entries.map((entry, index) => {
+      const code = entry.code || '------';
+      const remain = displayRemain(entry);
+      const period = entry.period || 30;
+      const pct = (remain / period) * 100;
+      const urgent = remain <= 5 ? ' urgent' : '';
+      return `
+        <div class="card" data-index="${index}" data-id="${escapeHtml(entry.id)}">
+          <div class="card-top">
+            <div>
+              <div class="card-issuer">${escapeHtml(entry.issuer)}</div>
+              <div class="card-account">${escapeHtml(entry.account)}</div>
+            </div>
+            <button class="btn btn-ghost-danger" data-del="${escapeHtml(entry.id)}" type="button" title="删除">删除</button>
+          </div>
+          <div class="card-code" data-copy="${escapeHtml(String(code).replace(/\s/g, ''))}" title="点击复制">${formatCode(code)}</div>
+          <div class="card-footer">
+            <div class="progress-track">
+              <div class="progress-bar${urgent}" style="width:${pct}%"></div>
+            </div>
+            <div class="remain">${remain}s</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function updateProgressOnly() {
+    const cards = cardsEl.querySelectorAll('.card');
+    cards.forEach((card) => {
+      const index = Number(card.dataset.index);
+      const entry = entries[index];
+      if (!entry) return;
+      const remain = displayRemain(entry);
+      const period = entry.period || 30;
+      const pct = (remain / period) * 100;
+      const codeEl = card.querySelector('.card-code');
+      const barEl = card.querySelector('.progress-bar');
+      const remainEl = card.querySelector('.remain');
+      const plain = String(entry.code || '').replace(/\s/g, '');
+      if (codeEl) {
+        codeEl.textContent = formatCode(entry.code);
+        codeEl.dataset.copy = plain;
+      }
+      if (barEl) {
+        barEl.style.width = pct + '%';
+        barEl.classList.toggle('urgent', remain <= 5);
+      }
+      if (remainEl) remainEl.textContent = remain + 's';
+      if (remain <= 0) needRefetch = true;
+    });
+  }
+
+  async function fetchList(silent) {
+    if (fetching) return;
+    fetching = true;
+    try {
+      const res = await apiRequest('GET', '/mfa/list');
+      const data = res.data;
+      entries = normalizeList(Array.isArray(data) ? data : (data && data.list) || []);
+      lastFetchAt = Date.now();
+      needRefetch = false;
+      renderCards();
+    } catch (e) {
+      if (!silent) {
+        cardsEl.innerHTML = `<div class="empty">${escapeHtml(e.message || '加载失败')}</div>`;
+        toast(e.message || '加载失败');
+      }
+    } finally {
+      fetching = false;
+    }
+  }
+
+  async function copyText(text) {
+    if (!text || text === '------') return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('已复制验证码');
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast('已复制验证码');
+    }
+  }
+
+  function openModal() {
+    activeTab = 'manual';
+    qrParsed = null;
+    qrUri = '';
+    switchTab('manual');
+    $('inputSecret').value = '';
+    $('inputIssuer').value = '';
+    $('inputAccount').value = '';
+    $('inputUri').value = '';
+    uploadResult.classList.remove('show');
+    uploadResult.textContent = '';
+    fileInput.value = '';
+    modalMask.classList.add('open');
+  }
+
+  function closeModal() {
+    modalMask.classList.remove('open');
+  }
+
+  function switchTab(name) {
+    activeTab = name;
+    document.querySelectorAll('.tab').forEach((t) => {
+      t.classList.toggle('active', t.dataset.tab === name);
+    });
+    document.querySelectorAll('.tab-pane').forEach((p) => {
+      p.classList.toggle('active', p.id === 'pane-' + name);
+    });
+  }
+
+  function collectPayload() {
+    if (activeTab === 'manual') {
+      const secret = normalizeSecret($('inputSecret').value);
+      const issuer = $('inputIssuer').value.trim() || '未命名';
+      const account = $('inputAccount').value.trim();
+      if (!secret) throw new Error('请填写密钥');
+      if (!isValidBase32(secret)) throw new Error('密钥必须是有效的 Base32');
+      if (!account) throw new Error('请填写账号');
+      return { secret, issuer, account, digits: 6, period: 30, algorithm: 'SHA1' };
+    }
+    if (activeTab === 'uri') {
+      const uri = $('inputUri').value.trim();
+      if (!uri) throw new Error('请粘贴 otpauth URI');
+      parseOtpauthUri(uri); // 前端先做格式校验
+      return { uri };
+    }
+    if (!qrParsed) throw new Error('请先上传并识别二维码');
+    return qrUri ? { uri: qrUri } : {
+      secret: qrParsed.secret,
+      issuer: qrParsed.issuer,
+      account: qrParsed.account,
+      digits: qrParsed.digits,
+      period: qrParsed.period,
+      algorithm: qrParsed.algorithm
+    };
+  }
+
+  async function addEntry() {
+    const payload = collectPayload();
+    const btn = $('btnConfirm');
+    btn.disabled = true;
+    try {
+      await apiRequest('POST', '/mfa/saveOne', payload);
+      closeModal();
+      toast('添加成功');
+      await fetchList(false);
+    } catch (e) {
+      toast(e.message || '添加失败');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function deleteEntry(id) {
+    if (!id) return;
+    try {
+      await apiRequest('POST', '/mfa/deleteOne', { id });
+      toast('已删除');
+      await fetchList(false);
+    } catch (e) {
+      toast(e.message || '删除失败');
+    }
+  }
+
+  function decodeQrFromFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith('image/')) {
+        reject(new Error('请选择 PNG / JPG 图片'));
+        return;
+      }
+      if (typeof jsQR === 'undefined') {
+        reject(new Error('二维码库未加载'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxSide = 1200;
+          let w = img.width;
+          let h = img.height;
+          if (Math.max(w, h) > maxSide) {
+            const scale = maxSide / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const imageData = ctx.getImageData(0, 0, w, h);
+          const result = jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+          if (!result || !result.data) {
+            reject(new Error('未识别到二维码，请换一张更清晰的图片'));
+            return;
+          }
+          try {
+            resolve({ parsed: parseOtpauthUri(result.data), uri: result.data.trim() });
+          } catch (e) {
+            reject(new Error('二维码内容不是有效的 otpauth URI'));
+          }
+        };
+        img.onerror = () => reject(new Error('图片加载失败'));
+        img.src = reader.result;
+      };
+      reader.onerror = () => reject(new Error('文件读取失败'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(file) {
+    try {
+      const { parsed, uri } = await decodeQrFromFile(file);
+      qrParsed = parsed;
+      qrUri = uri;
+      uploadResult.textContent = `已识别：${parsed.issuer} / ${parsed.account}`;
+      uploadResult.classList.add('show');
+      toast('二维码识别成功');
+    } catch (e) {
+      qrParsed = null;
+      qrUri = '';
+      uploadResult.classList.remove('show');
+      uploadResult.textContent = '';
+      toast(e.message || '识别失败');
+    }
+  }
+
+  $('btnAdd').addEventListener('click', openModal);
+  $('btnClose').addEventListener('click', closeModal);
+  $('btnCancel').addEventListener('click', closeModal);
+
+  modalMask.addEventListener('click', (e) => {
+    if (e.target === modalMask) closeModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalMask.classList.contains('open')) closeModal();
+  });
+
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  $('btnConfirm').addEventListener('click', () => {
+    try {
+      addEntry();
+    } catch (e) {
+      toast(e.message || '添加失败');
+    }
+  });
+
+  cardsEl.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('[data-del]');
+    if (delBtn) {
+      const id = delBtn.dataset.del;
+      const entry = entries.find((x) => x.id === id);
+      const label = entry ? `${entry.issuer} / ${entry.account}` : id;
+      if (confirm(`确定删除「${label}」？`)) deleteEntry(id);
+      return;
+    }
+    const codeEl = e.target.closest('[data-copy]');
+    if (codeEl) copyText(codeEl.dataset.copy);
+  });
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (file) handleFile(file);
+  });
+
+  ;['dragenter', 'dragover'].forEach((evt) => {
+    uploadZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.add('dragover');
+    });
+  });
+  ;['dragleave', 'drop'].forEach((evt) => {
+    uploadZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadZone.classList.remove('dragover');
+    });
+  });
+  uploadZone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  });
+
+  function startTick() {
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(() => {
+      if (!entries.length) return;
+      updateProgressOnly();
+      // 倒计时结束或距上次拉取超过约一个周期时，向服务端刷新验证码
+      if (needRefetch || Date.now() - lastFetchAt > 28000) {
+        fetchList(true);
+      }
+    }, 250);
+  }
+
+  cardsEl.innerHTML = '<div class="empty">加载中...</div>';
+  fetchList(false);
+  startTick();
+})();
+  </script>
+</body>
+</html>
