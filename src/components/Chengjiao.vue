@@ -136,13 +136,3 @@ export default {
     filters: {}
 }
 </script>
-
-<style scoped>
-.er-page .header {
-    min-height: 200px;
-}
-
-.er-page .content {
-    top: calc(200px + env(safe-area-inset-top, 0));
-}
-</style>

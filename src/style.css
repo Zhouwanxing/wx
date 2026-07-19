@@ -263,15 +263,15 @@ button {
 }
 
 .er-page {
-    position: relative;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width: 100%;
+    overflow: hidden;
 }
 
 .er-page .header {
-    position: fixed;
-    top: 0;
-    min-height: 200px;
+    flex-shrink: 0;
     width: 100%;
     z-index: 10;
     background: #fff;
@@ -297,11 +297,8 @@ button {
 }
 
 .er-page .content {
-    position: absolute;
-    top: calc(200px + env(safe-area-inset-top, 0));
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: env(safe-area-inset-bottom, 0);
