@@ -42,9 +42,8 @@
             </div>
             <div class="detail-body">
                 <div class="meta" @click="metaExpanded = !metaExpanded">
-                    <div class="meta-title">{{ selectMp4.name }}（{{ formatDuration(selectMp4.duration) }}）</div>
+                    <div class="meta-title">{{ selectMp4.name }}（{{ formatDuration(selectMp4.duration) }}）{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
                     <div v-show="metaExpanded" class="meta-extra">
-                        <div>{{ selectMp4.path + "(" + selectMp4.date + ")" }}</div>
                         <div>{{ selectMp4.url }}</div>
                         <div v-if="selectMp4.m3u8">m3u8: {{ selectMp4.m3u8 }}</div>
                     </div>
@@ -55,7 +54,7 @@
                     <button @click="changePlay">协议({{ playSource }})</button>
                     <button @click="openNewVideo">新地址</button>
                 </div>
-                <div class="cover-wrap">
+                <div class="cover-wrap" v-show="!metaExpanded">
                     <img src="" style="width: 100%;height: 100%;object-fit: cover;" id="one-img-id" alt=""/>
                 </div>
                 <video controls webkit-playsinline playsinline class="detail-video" id="mp4Video">
