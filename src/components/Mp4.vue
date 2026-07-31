@@ -11,7 +11,7 @@
                     <button type="button" class="toolbar-hit" @click="page = 0;list = [];getList();">
                         {{ count }}/{{ list.length }}
                     </button>
-                    <button type="button" class="toolbar-hit" @click="sort = !sort;">排序</button>
+                    <button type="button" class="toolbar-hit" @click="sort = !sort;">{{ sort ? '▲': '▼' }}</button>
                 </div>
             </div>
             <div class="content" @scroll="handleScroll">
@@ -109,7 +109,7 @@ export default {
             useM3u8: false,
             sort: false,
             hls: null,
-            metaExpanded: false
+            metaExpanded: true
         }
     },
     mounted() {
