@@ -66,10 +66,10 @@
             </div>
             <div class="detail-footer">
                 <div class="action-primary">
-                    <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
-                    <button class="best-btn" @click="updateLike(selectMp4,'best')">best</button>
-                    <button @click="refreshVideo">刷新</button>
                     <button @click="openInXx(selectMp4)">官网</button>
+                    <button @click="refreshVideo">刷新</button>
+                    <button class="best-btn" @click="updateLike(selectMp4,'best')">best</button>
+                    <button @click="updateLike(selectMp4, 'delete')">不喜欢</button>
                 </div>
                 <div class="action-secondary">
                     <button @click="rotateVideo">旋转</button>
