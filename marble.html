@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>溜溜熊弹珠</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(to bottom, #94a3c7 0%, #a894c7 50%, #c785bd 100%);
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        #app {
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding-top: env(safe-area-inset-top, 0);
+        }
+
+        header {
+            text-align: center;
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            padding: 10px 12px 6px;
+            flex-shrink: 0;
+        }
+
+        /* ===== 顶部状态卡 ===== */
+        #statusCard {
+            margin: 0 12px 8px;
+            background: rgba(0, 0, 0, 0.28);
+            border-radius: 16px;
+            padding: 10px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sc-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sc-row + .sc-row {
+            margin-top: 6px;
+        }
+
+        .stat {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .stat .label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .stat .value {
+            font-size: 20px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stat.center {
+            text-align: center;
+        }
+
+        .stat .value.accent {
+            color: rgb(255, 209, 97);
+        }
+
+        /* 步进器 */
+        .stepper {
+            text-align: center;
+        }
+
+        .stepper .label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 2px;
+        }
+
+        .stepper .box {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+        }
+
+        .stepper button {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .stepper input {
+            width: 40px;
+            height: 44px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            outline: none;
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .stepper input::-webkit-outer-spin-button,
+        .stepper input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        .stepper.disabled {
+            opacity: 0.45;
+            pointer-events: none;
+        }
+
+        /* 状态行 */
+        #statusText {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.35;
+        }
+
+        #addBank {
+            border: none;
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 0 10px;
+            min-height: 32px;
+            cursor: pointer;
+            flex-shrink: 0;
+            touch-action: manipulation;
+        }
+
+        #addBank:disabled {
+            opacity: 0.45;
+        }
+
+        .auto-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .auto-wrap .label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .switch {
+            position: relative;
+            width: 40px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+            transition: background 0.2s;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 2px;
+            top: 2px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .switch input:checked + .slider {
+            background: rgb(255, 140, 64);
+        }
+
+        .switch input:checked + .slider::before {
+            transform: translateX(16px);
+        }
+
+        /* ===== 盘面 ===== */
+        #boardWrap {
+            flex: 1 1 auto;
+            min-height: 0;
+            position: relative;
+            margin: 0 12px;
+        }
+
+        #board {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        .overlay {
+            position: absolute;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        #marquee {
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .mq-hint {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 8px;
+        }
+
+        .mq-pill {
+            display: inline-flex;
+            gap: 12px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 999px;
+            padding: 10px 16px;
+        }
+
+        .mq-pill span {
+            font-size: 20px;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.35);
+            transition: transform 0.08s, color 0.08s, font-size 0.08s;
+        }
+
+        .mq-pill span.on {
+            font-size: 32px;
+            color: rgb(255, 209, 97);
+            transform: scale(1.12);
+        }
+
+        .mq-pill.dim span {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .mq-big {
+            font-size: 46px;
+            font-weight: 900;
+            color: rgb(255, 209, 97);
+            text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+        }
+
+        .mq-mid {
+            font-size: 38px;
+            font-weight: 900;
+            color: rgb(255, 209, 97);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .mq-sub {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 4px;
+        }
+
+        #payout {
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 34px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+        }
+
+        #payout.hit {
+            color: rgb(255, 219, 82);
+        }
+
+        /* ===== 底部栏 ===== */
+        #bottomBar {
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0));
+            flex-shrink: 0;
+        }
+
+        #startBtn {
+            width: 100%;
+            min-height: 50px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(to bottom, #453d8c, #38307a);
+            box-shadow: 0 4px 8px rgba(56, 48, 122, 0.35);
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        #startBtn:disabled {
+            opacity: 0.55;
+        }
+
+        #startBtn:active {
+            opacity: 0.85;
+        }
+
+        #hintBar {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.32);
+            border-radius: 16px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        #hintBar.can-pull {
+            border: 2px solid rgba(255, 165, 0, 0.7);
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header>溜溜熊弹珠</header>
+
+    <div id="statusCard">
+        <div class="sc-row">
+            <div class="stat">
+                <div class="label">弹珠</div>
+                <div class="value" id="bankValue">100</div>
+            </div>
+            <div class="stepper" id="betStepper">
+                <div class="label" id="betLabel">本局</div>
+                <div class="box">
+                    <button type="button" id="betMinus">−</button>
+                    <input type="number" inputmode="numeric" id="betInput" value="5">
+                    <button type="button" id="betPlus">+</button>
+                </div>
+            </div>
+            <div class="stat center">
+                <div class="label">倍率</div>
+                <div class="value accent" id="multiValue">—</div>
+            </div>
+        </div>
+        <div class="sc-row">
+            <div id="statusText">点开始，点停倍率，再拉红球发射</div>
+            <button type="button" id="addBank">+50</button>
+            <div class="auto-wrap">
+                <span class="label">自动</span>
+                <label class="switch">
+                    <input type="checkbox" id="autoPlay">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div id="boardWrap">
+        <canvas id="board"></canvas>
+        <div id="marquee" class="overlay" style="display:none"></div>
+        <div id="payout" class="overlay" style="display:none"></div>
+    </div>
+
+    <div id="bottomBar">
+        <button type="button" id="startBtn">开始</button>
+        <div id="hintBar" style="display:none"></div>
+    </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+ * 引擎：库存 / 本局投入 / 倍率 / 亮灯轨道（移植 MarbleGameEngine.swift）
+ * ============================================================ */
+const MIN_BET = 5, BET_STEP = 1, LANE_COUNT = 10, LIT_LANE_COUNT = 3;
+const MULTIPLIERS = [2, 4, 6, 8, 10];
+
+function clampedBet(bet, bank) {
+    const ceiling = Math.max(MIN_BET, bank);
+    return Math.min(Math.max(bet, MIN_BET), ceiling);
+}
+
+function storedInt(key, def) {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return def;
+    const v = parseInt(raw, 10);
+    return Number.isFinite(v) ? v : def;
+}
+
+const game = {
+    bank: Math.max(0, storedInt("marble.bank", 100)),
+    bet: MIN_BET,
+    phase: "idle", // idle | picking | ready
+    multiplier: null,
+    litLanes: new Set(),
+    lastResult: null,
+};
+game.bet = clampedBet(storedInt("marble.bet", MIN_BET), game.bank);
+
+function persist() {
+    localStorage.setItem("marble.bank", String(game.bank));
+    localStorage.setItem("marble.bet", String(game.bet));
+}
+
+function canStart() {
+    return game.phase === "idle" && game.bank >= game.bet && game.bet >= MIN_BET;
+}
+
+function adjustBank(delta) {
+    if (game.phase !== "idle") return;
+    game.bank = Math.max(0, game.bank + delta);
+    game.bet = clampedBet(game.bet, game.bank);
+    persist();
+}
+
+function setBet(value) {
+    if (game.phase !== "idle") return;
+    game.bet = clampedBet(value, game.bank);
+    persist();
+}
+
+function startRound() {
+    if (!canStart()) return false;
+    game.bank -= game.bet;
+    game.multiplier = null;
+    game.litLanes = new Set();
+    game.lastResult = null;
+    game.phase = "picking";
+    persist();
+    return true;
+}
+
+function lockMultiplier(value) {
+    if (game.phase !== "picking" || !MULTIPLIERS.includes(value)) return false;
+    game.multiplier = value;
+    const lanes = Array.from({length: LANE_COUNT}, (_, i) => i);
+    for (let i = lanes.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
+    }
+    game.litLanes = new Set(lanes.slice(0, LIT_LANE_COUNT));
+    game.phase = "ready";
+    persist();
+    return true;
+}
+
+/** 倍率选中后、发射前可以加球：在本局和库存之间挪动，总数不变。 */
+function setBetInRound(value) {
+    if (game.phase !== "ready") return;
+    const newBet = Math.min(Math.max(value, MIN_BET), game.bet + game.bank);
+    game.bank -= newBet - game.bet;
+    game.bet = newBet;
+    persist();
+}
+
+function settleRound(lane) {
+    if (game.phase !== "ready" || game.multiplier == null) return null;
+    const landed = Math.min(Math.max(0, lane), LANE_COUNT - 1);
+    const hit = game.litLanes.has(landed);
+    const payout = hit ? game.bet * game.multiplier : 0;
+    if (payout > 0) game.bank += payout;
+    const result = {lane: landed, hit, payout, multiplier: game.multiplier, bet: game.bet};
+    game.lastResult = result;
+    game.phase = "idle";
+    game.bet = clampedBet(game.bet, game.bank);
+    persist();
+    return result;
+}
+
+/* ============================================================
+ * 物理：布局 + 发射模拟（移植 MarblePhysics.swift）
+ * ============================================================ */
+function computeLayout(w, h) {
+    const ballRadius = Math.max(7, Math.min(w, h) * 0.03);
+    const pegRadius = ballRadius * 0.42;
+    const railWidth = Math.max(58, ballRadius * 5.6);
+    const railX = Math.max(w - railWidth, w * 0.72);
+    const binTop = h * 0.80;
+    const rim = Math.max(5, ballRadius * 0.7);
+    const archRadius = Math.max(w / 2 - rim, w * 0.42);
+    const archCenter = {x: w / 2, y: rim + archRadius};
+    const startX = (railX + w) / 2;
+    const innerR = Math.max(archRadius - ballRadius, ballRadius);
+    const railDx = startX - archCenter.x;
+    const openingY = Math.abs(railDx) < innerR
+        ? archCenter.y - Math.sqrt(innerR * innerR - railDx * railDx)
+        : archCenter.y;
+    const start = {x: startX, y: Math.max(h * 0.48, openingY + ballRadius * 6)};
+    const playfieldLeft = archCenter.x - archRadius;
+    const laneLeading = playfieldLeft;
+    const laneBandWidth = Math.max(railX - laneLeading, 1);
+    const laneW = laneBandWidth / LANE_COUNT;
+    const minSpacing = 2 * (ballRadius + pegRadius) + 6;
+
+    const pegs = [];
+    const pegTop = archCenter.y + ballRadius * 2.8;
+    const pegBottom = binTop - ballRadius * 2.8;
+    const available = pegBottom - pegTop;
+    if (available > minSpacing && laneW > 1) {
+        const rows = Math.max(3, Math.min(6, Math.floor(available / minSpacing) + 1));
+        const rowPitch = available / Math.max(rows - 1, 1);
+        let step = Math.max(1, Math.ceil(minSpacing / laneW - 0.0001));
+        while (step < LANE_COUNT && Math.hypot(step * laneW / 2, rowPitch) + 0.001 < minSpacing) {
+            step++;
+        }
+        const clampX = (raw) => Math.min(Math.max(raw, playfieldLeft + pegRadius), railX - pegRadius);
+        for (let row = 0; row < rows; row++) {
+            const onDivider = (rows - 1 - row) % 2 === 0;
+            const y = pegTop + row * rowPitch;
+            if (onDivider) {
+                for (let col = 0; col <= LANE_COUNT; col += step) {
+                    pegs.push({x: clampX(laneLeading + col * laneW), y});
+                }
+            } else if (step === 1) {
+                for (let lane = 0; lane < LANE_COUNT; lane++) {
+                    pegs.push({x: clampX(laneLeading + (lane + 0.5) * laneW), y});
+                }
+            } else {
+                for (let col = Math.max(Math.floor(step / 2), 1); col < LANE_COUNT; col += step) {
+                    pegs.push({x: clampX(laneLeading + col * laneW), y});
+                }
+            }
+        }
+    }
+
+    return {
+        size: {w, h}, ballRadius, pegRadius, pegs,
+        railX, railCenterX: start.x, railWidth: w - railX,
+        openingY, binTop, start, archCenter, archRadius,
+        playfieldLeft, laneLeading, laneBandWidth,
+        pullTravel() {
+            const room = h - start.y - 46;
+            return Math.min(88, Math.max(32, room * 0.7));
+        },
+        laneIndexFor(x) {
+            const raw = Math.floor((x - laneLeading) / laneBandWidth * LANE_COUNT);
+            return Math.min(Math.max(0, raw), LANE_COUNT - 1);
+        },
+        laneCenter(lane) {
+            const lw = laneBandWidth / LANE_COUNT;
+            const cl = Math.min(Math.max(0, lane), LANE_COUNT - 1);
+            return laneLeading + lw * (cl + 0.5);
+        },
+    };
+}
+
+function constrainToArch(pos, vel, L) {
+    const radius = L.ballRadius;
+    if (pos.y > L.archCenter.y + radius) return;
+    const dx = pos.x - L.archCenter.x;
+    const dy = pos.y - L.archCenter.y;
+    const dist = Math.hypot(dx, dy);
+    const innerR = Math.max(L.archRadius - radius, radius);
+    if (dist <= innerR || dist <= 0.0001) return;
+    const nx = dx / dist, ny = dy / dist;
+    pos.x = L.archCenter.x + nx * innerR;
+    pos.y = L.archCenter.y + ny * innerR;
+    if (pos.y > L.archCenter.y) pos.y = L.archCenter.y;
+    const vn = vel.dx * nx + vel.dy * ny;
+    if (vn > 0) {
+        vel.dx -= vn * nx;
+        vel.dy -= vn * ny;
+    }
+}
+
+function collidePegs(pos, vel, L) {
+    const minDist = L.ballRadius + L.pegRadius;
+    let deepestPeg = null, deepestOverlap = 0;
+    for (let iter = 0; iter < 3; iter++) {
+        let hit = false;
+        for (const peg of L.pegs) {
+            const dx = pos.x - peg.x, dy = pos.y - peg.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist >= minDist || dist <= 0.0001) continue;
+            const overlap = minDist - dist;
+            const nx = dx / dist, ny = dy / dist;
+            pos.x = peg.x + nx * minDist;
+            pos.y = peg.y + ny * minDist;
+            hit = true;
+            if (overlap > deepestOverlap) {
+                deepestOverlap = overlap;
+                deepestPeg = peg;
+            }
+        }
+        if (!hit) break;
+    }
+    if (!deepestPeg) return;
+    const dx = pos.x - deepestPeg.x, dy = pos.y - deepestPeg.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 0.0001) return;
+    const nx = dx / dist, ny = dy / dist;
+    const vn = vel.dx * nx + vel.dy * ny;
+    if (vn < 0) {
+        vel.dx -= 1.4 * vn * nx;
+        vel.dy -= 1.4 * vn * ny;
+        // 轻微切向扰动，避免同一拉力永远同一落点。
+        vel.dx += (Math.random() * 36 - 18);
+        vel.dy += (Math.random() * 14 - 7);
+    }
+}
+
+/** 速度过低时沿钉子侧面滑开，避免停在钉顶或钉缝里。 */
+function unstick(pos, vel, L) {
+    if (pos.y >= L.binTop - L.ballRadius) return;
+    const speed = Math.hypot(vel.dx, vel.dy);
+    if (speed >= 55 || L.pegs.length === 0) return;
+    let nearest = L.pegs[0], best = Infinity;
+    for (const peg of L.pegs) {
+        const dist = Math.hypot(pos.x - peg.x, pos.y - peg.y);
+        if (dist < best) {
+            best = dist;
+            nearest = peg;
+        }
+    }
+    const touch = L.ballRadius + L.pegRadius + 6;
+    if (best >= touch) {
+        vel.dy = Math.max(vel.dy, 40);
+        return;
+    }
+    const side = pos.x >= nearest.x ? 1 : -1;
+    vel.dx += side * 80;
+    vel.dy = Math.max(vel.dy, 90);
+}
+
+function simulate(power, L, from) {
+    const p = Math.min(1, Math.max(0, power));
+    const radius = L.ballRadius;
+    const pos = {
+        x: L.railCenterX,
+        y: Math.min(Math.max(from.y, L.openingY + radius), L.size.h - radius),
+    };
+    const launchY = pos.y;
+    const vel = {dx: 0, dy: -(260 + p * 1180)};
+    const path = [{x: pos.x, y: pos.y}];
+    const dt = 1 / 120, gravity = 1650;
+    let enteredBoard = false;
+
+    for (let steps = 0; steps < 2400; steps++) {
+        vel.dy += gravity * dt;
+        pos.x += vel.dx * dt;
+        pos.y += vel.dy * dt;
+
+        const stillInRail = !enteredBoard && pos.x > L.railX - radius;
+        if (stillInRail) {
+            pos.x = L.railCenterX;
+            vel.dx = 0;
+            if (pos.y <= L.openingY) {
+                enteredBoard = true;
+                const innerR = Math.max(L.archRadius - radius, radius);
+                const dx = pos.x - L.archCenter.x;
+                const span = Math.max(innerR * innerR - dx * dx, 0);
+                pos.y = L.archCenter.y - Math.sqrt(span);
+                const speed = Math.max(-vel.dy, 180 + p * 240);
+                // 力度大仰角更平，抛物线更远，能贴着半圆飞到最左边。
+                const fromHorizontal = 1.22 - p * 0.44;
+                vel.dx = -speed * Math.cos(fromHorizontal);
+                vel.dy = -speed * Math.sin(fromHorizontal);
+            } else if (vel.dy > 0 && pos.y >= launchY) {
+                pos.x = L.railCenterX;
+                pos.y = launchY;
+                path.push({x: pos.x, y: pos.y});
+                return {path, lane: LANE_COUNT - 1, exited: false};
+            }
+        } else {
+            constrainToArch(pos, vel, L);
+            if (pos.x < radius) {
+                pos.x = radius;
+                vel.dx = Math.abs(vel.dx) * 0.55;
+            }
+            const inDome = pos.y <= L.archCenter.y + radius;
+            // 出槽后右边以 10 栏右边框为墙，不能再穿回发射槽。
+            const rightLimit = inDome ? L.size.w - radius : L.railX - radius;
+            if (pos.x > rightLimit) {
+                pos.x = rightLimit;
+                vel.dx = -Math.abs(vel.dx) * 0.55;
+            }
+            if (pos.y < radius) {
+                pos.y = radius;
+                vel.dy = Math.abs(vel.dy) * 0.35;
+            }
+            if (pos.y > L.archCenter.y + radius) {
+                collidePegs(pos, vel, L);
+                unstick(pos, vel, L);
+            }
+        }
+
+        if (pos.y >= L.binTop - radius) {
+            const lane = L.laneIndexFor(pos.x);
+            const center = L.laneCenter(lane);
+            pos.x += (center - pos.x) * 0.35;
+            vel.dx *= 0.35;
+            if (pos.y >= L.size.h - radius) {
+                pos.y = L.size.h - radius;
+                pos.x = center;
+                path.push({x: pos.x, y: pos.y});
+                break;
+            }
+        }
+
+        if (steps % 2 === 0) path.push({x: pos.x, y: pos.y});
+    }
+
+    const last = path[path.length - 1];
+    if (last.y < L.binTop - radius) {
+        const lane = L.laneIndexFor(last.x);
+        path.push({x: L.laneCenter(lane), y: L.size.h - radius});
+        return {path, lane, exited: enteredBoard};
+    }
+    return {path, lane: L.laneIndexFor(last.x), exited: enteredBoard};
+}
+
+function interpolatePath(path, t) {
+    if (path.length === 0) return {x: 0, y: 0};
+    if (path.length === 1) return path[0];
+    const clamped = Math.min(1, Math.max(0, t));
+    const span = clamped * (path.length - 1);
+    const index = Math.min(path.length - 2, Math.floor(span));
+    const fraction = span - index;
+    const a = path[index], b = path[index + 1];
+    return {x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction};
+}
+
+function durationFor(path) {
+    if (path.length < 2) return 0.78;
+    let distance = 0;
+    for (let i = 1; i < path.length; i++) {
+        distance += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+    }
+    return Math.min(2.15, Math.max(0.78, distance / 480));
+}
+
+/* ============================================================
+ * 界面状态与流程（移植 MarbleGameView.swift）
+ * ============================================================ */
+const ui = {
+    pull: 0,
+    pullTween: null,
+    lastPullTick: 0,
+    flight: null, // {path, started, duration, lane, exited}
+    flightTimer: 0,
+    chasing: false,
+    chaseTimer: 0,
+    holdingResult: false,
+    resultBall: null,
+    payoutText: null,
+    payoutHit: false,
+    resultTimer: 0,
+    failedLaunch: false,
+    autoPlay: localStorage.getItem("marble.autoPlay") !== "0",
+    dragging: false,
+    dragStartY: 0,
+};
+
+const isFlying = () => ui.flight != null;
+const isPicking = () => game.phase === "picking";
+const canPull = () => game.phase === "ready" && !isFlying() && !ui.chasing && !ui.holdingResult;
+const controlsIdle = () => game.phase === "idle" && !isFlying() && !ui.chasing && !ui.holdingResult;
+/** 倍率选中后、球还没出槽前都可以加球。 */
+const canAddBalls = () => game.phase === "ready" && !isFlying() && !ui.holdingResult;
+
+const nowSec = () => performance.now() / 1000;
+
+/* ---- 音效（WebAudio 合成，替代 iOS 系统音） ---- */
+let audioCtx = null;
+
+function ensureAudio() {
+    if (!audioCtx) {
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) { /* 不支持则静默 */ }
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+
+function tone(freq, delay, dur, type, vol) {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.1, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+}
+
+function playSound(kind) {
+    ensureAudio();
+    if (!audioCtx) return;
+    if (kind === "launch") {
+        tone(330, 0, 0.1, "triangle", 0.1);
+        tone(660, 0.05, 0.14, "triangle", 0.08);
+    } else if (kind === "win") {
+        tone(880, 0, 0.12, "sine", 0.12);
+        tone(1174.7, 0.1, 0.16, "sine", 0.12);
+        tone(1568, 0.2, 0.26, "sine", 0.1);
+    } else if (kind === "lose") {
+        tone(196, 0, 0.28, "square", 0.05);
+    }
+}
+
+function vibrate(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+/* ---- 流程 ---- */
+function doStartRound() {
+    if (!startRound()) return;
+    ui.flight = null;
+    ui.resultBall = null;
+    ui.payoutText = null;
+    ui.holdingResult = false;
+    ui.failedLaunch = false;
+    ui.pull = 0;
+    ui.pullTween = null;
+    ui.lastPullTick = 0;
+}
+
+function lockTappedMultiplier() {
+    if (game.phase !== "picking") return;
+    const index = ((Math.floor(nowSec() * 6) % MULTIPLIERS.length) + MULTIPLIERS.length) % MULTIPLIERS.length;
+    if (!lockMultiplier(MULTIPLIERS[index])) return;
+    vibrate(15);
+    ui.chasing = true;
+    clearTimeout(ui.chaseTimer);
+    ui.chaseTimer = setTimeout(() => {
+        ui.chasing = false;
+        vibrate(8);
+    }, 900);
+}
+
+function tweenPull(to, durationMs) {
+    ui.pullTween = {from: ui.pull, to, start: performance.now(), dur: durationMs};
+}
+
+function doLaunch(power) {
+    if (!canPull() || !layout) return;
+    const travel = layout.pullTravel();
+    const start = {x: layout.railCenterX, y: layout.start.y + ui.pull * travel};
+    const shot = simulate(power, layout, start);
+    const duration = durationFor(shot.path);
+    ui.failedLaunch = false;
+    ui.flight = {
+        path: shot.path,
+        started: nowSec(),
+        duration,
+        lane: shot.lane,
+        exited: shot.exited,
+    };
+    playSound("launch");
+    tweenPull(0, 160);
+    clearTimeout(ui.flightTimer);
+    ui.flightTimer = setTimeout(() => {
+        if (!ui.flight) return;
+        if (ui.flight.exited) {
+            doSettle(ui.flight.lane, ui.flight.path[ui.flight.path.length - 1]);
+        } else {
+            abortFailedLaunch();
+        }
+    }, (duration + 0.03) * 1000);
+}
+
+function abortFailedLaunch() {
+    ui.flight = null;
+    ui.pull = 0;
+    ui.failedLaunch = true;
+    vibrate(80);
+}
+
+function doSettle(lane, endPoint) {
+    const result = settleRound(lane);
+    ui.flight = null;
+    if (!result) return;
+    ui.holdingResult = true;
+    ui.resultBall = endPoint;
+    ui.payoutHit = result.hit;
+    ui.payoutText = result.hit ? `+${result.payout}` : "未中";
+    playSound(result.hit ? "win" : "lose");
+    vibrate(result.hit ? [30, 40, 30] : 60);
+    clearTimeout(ui.resultTimer);
+    ui.resultTimer = setTimeout(() => {
+        ui.holdingResult = false;
+        ui.resultBall = null;
+        ui.payoutText = null;
+        if (ui.autoPlay && canStart()) doStartRound();
+    }, 850);
+}
+
+/* ============================================================
+ * 渲染：Canvas 盘面（移植 MarbleBoardCanvas / 拉杆 / 弹簧）
+ * ============================================================ */
+const boardWrap = document.getElementById("boardWrap");
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+let layout = null;
+
+function roundRectPath(c, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + rr, y);
+    c.lineTo(x + w - rr, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + rr);
+    c.lineTo(x + w, y + h - rr);
+    c.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    c.lineTo(x + rr, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - rr);
+    c.lineTo(x, y + rr);
+    c.quadraticCurveTo(x, y, x + rr, y);
+    c.closePath();
+}
+
+/** 游戏区外形：顶部半圆 + 圆角底边。 */
+function playfieldPath(L) {
+    const left = L.archCenter.x - L.archRadius;
+    const right = L.archCenter.x + L.archRadius;
+    const bottom = L.size.h;
+    const corner = 8;
+    const p = new Path2D();
+    p.arc(L.archCenter.x, L.archCenter.y, L.archRadius, Math.PI, 0, false);
+    p.lineTo(right, Math.max(L.archCenter.y, bottom - corner));
+    p.quadraticCurveTo(right, bottom, right - corner, bottom);
+    p.lineTo(left + corner, bottom);
+    p.quadraticCurveTo(left, bottom, left, bottom - corner);
+    p.closePath();
+    return p;
+}
+
+/** 拉球下面的螺旋弹簧：压缩时圈距变密、半径略鼓。 */
+function drawCoil(c, cx, top, w, h, compression) {
+    const coils = 9;
+    const amp = Math.min(w * 0.40, 6.2 + compression * 5);
+    const steps = coils * 18;
+    const stroke = (phase, style, lw) => {
+        c.strokeStyle = style;
+        c.lineWidth = lw;
+        c.beginPath();
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const x = cx + amp * Math.sin(t * coils * 2 * Math.PI + phase);
+            const y = top + t * h;
+            if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+        }
+        c.stroke();
+    };
+    stroke(Math.PI, "rgba(107,115,133,0.8)", 2);
+    const grad = c.createLinearGradient(cx - amp, 0, cx + amp, 0);
+    grad.addColorStop(0, "rgb(230,232,239)");
+    grad.addColorStop(0.5, "rgb(173,179,194)");
+    grad.addColorStop(1, "rgb(224,226,235)");
+    stroke(0, grad, 2.5);
+    c.fillStyle = "rgb(199,158,71)";
+    roundRectPath(c, cx - 9, top, 18, 5, 1.5);
+    c.fill();
+    roundRectPath(c, cx - 9, top + Math.max(0, h - 5), 18, 5, 1.5);
+    c.fill();
+}
+
+function drawPlunger(c, L, pulse) {
+    const showing = !isFlying() && !ui.holdingResult;
+    if (!showing) return;
+    const travel = L.pullTravel();
+    const canPullNow = canPull();
+    const marbleY = L.start.y + (game.phase === "ready" ? ui.pull * travel : 0);
+    const coilHeight = 32 * (1 - (canPullNow ? ui.pull : 0)) + 14;
+    const knob = Math.min(L.railWidth - 6, 48);
+
+    c.save();
+    c.beginPath();
+    c.rect(L.railX, 0, L.railWidth, L.size.h);
+    c.clip();
+    if (ui.chasing) c.globalAlpha = 0.5;
+
+    if (canPullNow) {
+        // 拉杆
+        const rodH = Math.max(12, marbleY - L.openingY);
+        const rodGrad = c.createLinearGradient(L.railCenterX - 2, 0, L.railCenterX + 2, 0);
+        rodGrad.addColorStop(0, "rgb(158,163,179)");
+        rodGrad.addColorStop(1, "rgb(97,102,117)");
+        c.fillStyle = rodGrad;
+        roundRectPath(c, L.railCenterX - 2, L.openingY, 4, rodH, 2);
+        c.fill();
+        // 弹簧 + 铜片
+        drawCoil(c, L.railCenterX, marbleY + knob / 2 - 2, Math.min(26, L.railWidth - 14), coilHeight, ui.pull);
+        c.fillStyle = "rgb(184,148,71)";
+        roundRectPath(c, L.railCenterX - 10, marbleY + knob / 2 - 2 + coilHeight - 4, 20, 5, 1.5);
+        c.fill();
+    }
+
+    // 标签
+    const label = canPullNow ? "下拉" : (controlsIdle() ? "红球" : "");
+    if (label) {
+        c.fillStyle = "rgb(255,209,97)";
+        c.font = "700 11px -apple-system, 'PingFang SC', sans-serif";
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        c.fillText(label, L.railCenterX, Math.max(6, marbleY - knob / 2 - 16) + 6);
+    }
+
+    // 红球拉杆头
+    const scale = canPullNow ? 0.96 + 0.08 * pulse : 1;
+    const kr = (knob / 2) * scale;
+    c.save();
+    c.shadowColor = `rgba(255,165,0,${canPullNow ? 0.35 + 0.5 * pulse : 0.2})`;
+    c.shadowBlur = canPullNow ? 8 + 6 * pulse : 4;
+    c.shadowOffsetY = 3;
+    const ballGrad = c.createRadialGradient(
+        L.railCenterX - kr * 0.3, marbleY - kr * 0.36, Math.max(1, kr * 0.1),
+        L.railCenterX, marbleY, kr
+    );
+    ballGrad.addColorStop(0, "rgb(255,140,107)");
+    ballGrad.addColorStop(1, "rgb(209,20,36)");
+    c.fillStyle = ballGrad;
+    c.beginPath();
+    c.arc(L.railCenterX, marbleY, kr, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+    c.strokeStyle = "rgba(255,255,255,0.4)";
+    c.lineWidth = 2;
+    c.beginPath();
+    c.arc(L.railCenterX, marbleY, kr, 0, Math.PI * 2);
+    c.stroke();
+    // 向下箭头
+    c.strokeStyle = "rgba(255,255,255,0.95)";
+    c.lineWidth = 3;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    c.beginPath();
+    c.moveTo(L.railCenterX - 7, marbleY);
+    c.lineTo(L.railCenterX, marbleY + 7);
+    c.lineTo(L.railCenterX + 7, marbleY);
+    c.stroke();
+
+    c.restore();
+}
+
+function drawBoard(now) {
+    if (!layout) return;
+    const L = layout;
+    const w = L.size.w, h = L.size.h;
+    c_clear();
+    const pulse = (ui.holdingResult || canPull()) ? 0.55 + 0.45 * Math.sin(now * 7) : 1;
+
+    // 亮灯轨道：锁定的或跑马灯转动中的
+    let lanes;
+    if (ui.chasing) {
+        const tick = Math.floor(now * 14);
+        const i = ((tick % LANE_COUNT) + LANE_COUNT) % LANE_COUNT;
+        lanes = new Set([i, (i + 1) % LANE_COUNT, (i + LANE_COUNT - 1) % LANE_COUNT]);
+    } else {
+        lanes = game.litLanes;
+    }
+
+    // 弹珠位置
+    let ball = null;
+    if (ui.resultBall) {
+        ball = ui.resultBall;
+    } else if (ui.flight) {
+        const t = (now - ui.flight.started) / Math.max(ui.flight.duration, 0.001);
+        ball = interpolatePath(ui.flight.path, t);
+    }
+
+    // 盘面外形
+    const pf = playfieldPath(L);
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, "rgb(26,31,71)");
+    bgGrad.addColorStop(1, "rgb(41,26,61)");
+    ctx.fillStyle = bgGrad;
+    ctx.fill(pf);
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 1;
+    ctx.stroke(pf);
+
+    ctx.save();
+    ctx.clip(pf);
+    ctx.fillStyle = "rgba(36,41,82,0.55)";
+    ctx.fill(pf);
+
+    // 顶部半圆轨道边
+    ctx.beginPath();
+    ctx.arc(L.archCenter.x, L.archCenter.y, L.archRadius, Math.PI, 0, false);
+    ctx.strokeStyle = "rgb(199,204,219)";
+    ctx.lineWidth = 7;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(237,199,94,0.9)";
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+
+    // 发射槽
+    const railGrad = ctx.createLinearGradient(0, L.openingY, 0, h);
+    railGrad.addColorStop(0, "rgba(255,255,255,0.10)");
+    railGrad.addColorStop(1, "rgba(0,0,0,0.28)");
+    ctx.fillStyle = railGrad;
+    roundRectPath(ctx, L.railX, L.openingY, L.railWidth, h - L.openingY, 8);
+    ctx.fill();
+    ctx.fillStyle = "rgb(199,204,219)";
+    ctx.fillRect(L.railX - 3, L.openingY, 3, h - L.openingY);
+
+    // 10 条落珠轨道
+    const laneW = L.laneBandWidth / LANE_COUNT;
+    const lastLane = game.lastResult ? game.lastResult.lane : null;
+    const lastHit = game.lastResult ? game.lastResult.hit : null;
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
+        const x = L.laneLeading + lane * laneW;
+        const y = L.binTop;
+        const lh = h - L.binTop;
+        const lit = lanes.has(lane);
+        const landed = lastLane === lane && !ui.chasing;
+        let fill;
+        if (lit) {
+            const glow = landed ? pulse : (ui.chasing ? 0.92 : 0.78);
+            fill = `rgba(255,107,46,${glow})`;
+        } else if (landed) {
+            fill = lastHit === false ? `rgba(255,0,0,${0.22 + 0.2 * pulse})` : "rgba(255,255,255,0.22)";
+        } else {
+            fill = "rgba(0,0,0,0.32)";
+        }
+        ctx.fillStyle = fill;
+        ctx.fillRect(x, y, laneW, lh);
+        if (lit) {
+            ctx.strokeStyle = `rgba(255,255,0,${0.35 + 0.45 * pulse})`;
+            ctx.lineWidth = 1.4;
+            roundRectPath(ctx, x + 2, y + 2, laneW - 4, lh - 4, 4);
+            ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(209,214,230,0.7)";
+        if (lane === 0) ctx.fillRect(x, y - 10, 1.2, lh + 10);
+        ctx.fillRect(x + laneW - 1, y - 10, 1.2, lh + 10);
+        // 隔板顶端的小金珠
+        ctx.fillStyle = "rgb(237,199,94)";
+        ctx.beginPath();
+        ctx.ellipse(x + laneW, y - 10, 3.2, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // 轨道编号
+        ctx.fillStyle = lit ? "#ffffff" : "rgba(255,255,255,0.55)";
+        ctx.font = "700 10px -apple-system, 'PingFang SC', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(lane + 1), x + laneW / 2, y + lh / 2);
+    }
+
+    // 钉子
+    for (const peg of L.pegs) {
+        const r = L.pegRadius;
+        ctx.fillStyle = "rgb(115,82,26)";
+        ctx.beginPath();
+        ctx.arc(peg.x, peg.y, r + 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgb(237,199,94)";
+        ctx.beginPath();
+        ctx.arc(peg.x, peg.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.45)";
+        ctx.beginPath();
+        ctx.ellipse(peg.x - r * 0.125, peg.y - r * 0.27, r * 0.425, r * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.25)";
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(peg.x, peg.y, r + 0.4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // 白色弹珠
+    if (ball) {
+        const r = L.ballRadius;
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, r * 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.beginPath();
+        ctx.arc(ball.x - r * 0.2, ball.y - r * 0.2, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.18)";
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+
+    drawPlunger(ctx, L, pulse);
+}
+
+function c_clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+/* ============================================================
+ * DOM：状态卡 / 覆盖层 / 底部栏
+ * ============================================================ */
+const bankValueEl = document.getElementById("bankValue");
+const betLabelEl = document.getElementById("betLabel");
+const betInputEl = document.getElementById("betInput");
+const betStepperEl = document.getElementById("betStepper");
+const multiValueEl = document.getElementById("multiValue");
+const statusTextEl = document.getElementById("statusText");
+const addBankBtn = document.getElementById("addBank");
+const autoPlayEl = document.getElementById("autoPlay");
+const startBtn = document.getElementById("startBtn");
+const hintBar = document.getElementById("hintBar");
+const marqueeEl = document.getElementById("marquee");
+const payoutEl = document.getElementById("payout");
+
+autoPlayEl.checked = ui.autoPlay;
+autoPlayEl.addEventListener("change", () => {
+    ui.autoPlay = autoPlayEl.checked;
+    localStorage.setItem("marble.autoPlay", ui.autoPlay ? "1" : "0");
+});
+
+addBankBtn.addEventListener("click", () => {
+    ensureAudio();
+    adjustBank(50);
+});
+
+startBtn.addEventListener("click", () => {
+    ensureAudio();
+    doStartRound();
+});
+
+function applyBetValue(v) {
+    if (!Number.isFinite(v)) return;
+    if (game.phase === "ready") setBetInRound(v); else setBet(v);
+}
+
+betInputEl.addEventListener("change", () => {
+    applyBetValue(parseInt(betInputEl.value, 10));
+    betInputEl.blur();
+});
+
+/** 步进按钮：点按步进，长按连续步进（对齐 iOS buttonRepeatBehavior）。 */
+function bindStepper(btn, dir) {
+    let timer = null, interval = null;
+    const step = () => {
+        ensureAudio();
+        applyBetValue(game.bet + dir * BET_STEP);
+    };
+    const stop = () => {
+        clearTimeout(timer);
+        clearInterval(interval);
+        timer = interval = null;
+    };
+    btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        step();
+        timer = setTimeout(() => {
+            interval = setInterval(step, 90);
+        }, 400);
+    });
+    btn.addEventListener("pointerup", stop);
+    btn.addEventListener("pointercancel", stop);
+    btn.addEventListener("pointerleave", stop);
+}
+
+bindStepper(document.getElementById("betMinus"), -1);
+bindStepper(document.getElementById("betPlus"), 1);
+
+/* ---- 拉杆手势 ---- */
+function eventPoint(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {x: e.clientX - rect.left, y: e.clientY - rect.top};
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+    ensureAudio();
+    if (!layout) return;
+    const pt = eventPoint(e);
+    if (canPull() && pt.x >= layout.railX) {
+        ui.dragging = true;
+        ui.dragStartY = pt.y;
+        ui.pullTween = null;
+        canvas.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        return;
+    }
+    if (isPicking()) {
+        lockTappedMultiplier();
+        return;
+    }
+    if (controlsIdle() && pt.x >= layout.railX && canStart()) {
+        doStartRound();
+    }
+});
+
+canvas.addEventListener("pointermove", (e) => {
+    if (!ui.dragging || !canPull() || !layout) return;
+    const pt = eventPoint(e);
+    const travel = Math.max(layout.pullTravel(), 64);
+    const raw = Math.max(0, pt.y - ui.dragStartY);
+    const eased = 1 - Math.exp(-raw / Math.max(travel * 0.72, 1));
+    ui.pull = Math.min(1, eased);
+    const tick = Math.floor(ui.pull * 10);
+    if (tick !== ui.lastPullTick) {
+        ui.lastPullTick = tick;
+        vibrate(6);
+    }
+    e.preventDefault();
+});
+
+function endDrag() {
+    if (!ui.dragging) return;
+    ui.dragging = false;
+    ui.lastPullTick = 0;
+    const compression = ui.pull;
+    if (compression < 0.12) {
+        tweenPull(0, 250);
+        return;
+    }
+    doLaunch(compression);
+}
+
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+/* ---- 覆盖层 ---- */
+let overlayMode = "";
+
+function renderMarquee(mode) {
+    if (mode === "hidden") {
+        marqueeEl.style.display = "none";
+        return;
+    }
+    marqueeEl.style.display = "";
+    if (mode === "picking") {
+        marqueeEl.innerHTML =
+            `<div class="mq-hint">点一下选中倍率</div>` +
+            `<div class="mq-pill" id="mqPill">${MULTIPLIERS.map(v => `<span>${v}×</span>`).join("")}</div>`;
+    } else if (mode === "chasing") {
+        marqueeEl.innerHTML = `<div class="mq-big">${game.multiplier}×</div>`;
+    } else if (mode === "ready") {
+        marqueeEl.innerHTML =
+            `<div class="mq-mid">${game.multiplier}×</div>` +
+            `<div class="mq-sub">拉球发射</div>`;
+    } else {
+        marqueeEl.innerHTML =
+            `<div class="mq-pill dim">${MULTIPLIERS.map(v => `<span>${v}×</span>`).join("")}</div>` +
+            `<div class="mq-sub" style="margin-top:6px">点开始</div>`;
+    }
+}
+
+function updateOverlay(now) {
+    if (!layout) return;
+    let mode = "hidden";
+    if (isPicking()) mode = "picking";
+    else if (ui.chasing && game.multiplier != null) mode = "chasing";
+    else if (canPull() && game.multiplier != null) mode = "ready";
+    else if (controlsIdle()) mode = "idle";
+    if (mode !== overlayMode) {
+        overlayMode = mode;
+        renderMarquee(mode);
+    }
+    marqueeEl.style.top = Math.max(64, layout.archCenter.y * 0.5) + "px";
+    if (mode === "picking") {
+        const pill = document.getElementById("mqPill");
+        if (pill) {
+            const active = ((Math.floor(now * 6) % MULTIPLIERS.length) + MULTIPLIERS.length) % MULTIPLIERS.length;
+            const spans = pill.children;
+            for (let i = 0; i < spans.length; i++) {
+                spans[i].classList.toggle("on", i === active);
+            }
+        }
+    }
+    if (ui.payoutText) {
+        payoutEl.style.display = "";
+        payoutEl.style.bottom = layout.size.h * 0.26 + "px";
+        if (payoutEl.textContent !== ui.payoutText) payoutEl.textContent = ui.payoutText;
+        payoutEl.classList.toggle("hit", ui.payoutHit);
+    } else {
+        payoutEl.style.display = "none";
+    }
+}
+
+/* ---- 状态卡 / 底部栏 ---- */
+const chromeCache = {};
+
+function setText(el, key, text) {
+    if (chromeCache[key] !== text) {
+        chromeCache[key] = text;
+        el.textContent = text;
+    }
+}
+
+function setShown(el, key, shown) {
+    if (chromeCache[key] !== shown) {
+        chromeCache[key] = shown;
+        el.style.display = shown ? "" : "none";
+    }
+}
+
+function statusText() {
+    if (isPicking()) return "倍率滚动中，点一下盘面选中";
+    if (ui.chasing) return "轨道跑马灯选择中…";
+    if (isFlying()) return "弹珠滚动中…";
+    if (ui.holdingResult) {
+        return ui.autoPlay && canStart() ? "结算中，接着自动开下一局" : (ui.payoutHit ? "中奖！" : "没打中");
+    }
+    if (game.phase === "ready") {
+        return ui.failedLaunch ? "力度太小，球没出去，再拉一次" : "可以加球，拉盘面右边的红球发射";
+    }
+    if (game.bank < MIN_BET) return "弹珠不够了，点 +50 或加本局库存";
+    return "点开始，点停倍率，再拉红球发射";
+}
+
+function hintText() {
+    if (canPull()) return ui.failedLaunch ? "力度太小，再拉一次" : "抓住右边红球往下拉，松手发射";
+    if (isPicking()) return "选中后还能加球";
+    if (ui.chasing) return "等跑马灯停，红球在盘面右边";
+    if (isFlying()) return "弹珠飞行中";
+    if (ui.holdingResult) return "结算中";
+    return "红球在盘面最右边";
+}
+
+function updateChrome() {
+    setText(bankValueEl, "bank", String(game.bank));
+    setText(betLabelEl, "betLabel", game.phase === "ready" ? "加球" : "本局");
+    if (document.activeElement !== betInputEl && betInputEl.value !== String(game.bet)) {
+        betInputEl.value = String(game.bet);
+    }
+    const stepperOff = !(controlsIdle() || canAddBalls());
+    if (chromeCache.stepperOff !== stepperOff) {
+        chromeCache.stepperOff = stepperOff;
+        betStepperEl.classList.toggle("disabled", stepperOff);
+        betInputEl.disabled = stepperOff;
+    }
+    setText(multiValueEl, "multi", game.multiplier != null ? `${game.multiplier}×` : (isPicking() ? "滚动中" : "—"));
+    setText(statusTextEl, "status", statusText());
+
+    const addOff = !controlsIdle();
+    if (chromeCache.addOff !== addOff) {
+        chromeCache.addOff = addOff;
+        addBankBtn.disabled = addOff;
+    }
+
+    const idle = controlsIdle();
+    setShown(startBtn, "showStart", idle);
+    setShown(hintBar, "showHint", !idle);
+    if (idle) {
+        setText(startBtn, "startText", game.bank < MIN_BET ? "弹珠不足，先加库存" : "开始");
+        const startOff = !canStart();
+        if (chromeCache.startOff !== startOff) {
+            chromeCache.startOff = startOff;
+            startBtn.disabled = startOff;
+        }
+    } else {
+        setText(hintBar, "hintText", hintText());
+        const cp = canPull();
+        if (chromeCache.hintCanPull !== cp) {
+            chromeCache.hintCanPull = cp;
+            hintBar.classList.toggle("can-pull", cp);
+        }
+    }
+}
+
+/* ============================================================
+ * 尺寸与主循环
+ * ============================================================ */
+function resize() {
+    const w = boardWrap.clientWidth, h = boardWrap.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout = computeLayout(w, h);
+}
+
+new ResizeObserver(resize).observe(boardWrap);
+window.addEventListener("orientationchange", () => setTimeout(resize, 60));
+
+function frame(tms) {
+    const now = tms / 1000;
+    if (ui.pullTween) {
+        const tw = ui.pullTween;
+        const t = Math.min(1, (performance.now() - tw.start) / Math.max(1, tw.dur));
+        const eased = 1 - Math.pow(1 - t, 3);
+        ui.pull = tw.from + (tw.to - tw.from) * eased;
+        if (t >= 1) ui.pullTween = null;
+    }
+    drawBoard(now);
+    updateOverlay(now);
+    updateChrome();
+    requestAnimationFrame(frame);
+}
+
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

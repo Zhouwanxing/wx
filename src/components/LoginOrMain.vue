@@ -4,56 +4,65 @@
         <div class="bg-gradient"></div>
 
         <div class="container">
-            <!-- 毛玻璃卡片 -->
-            <div class="glass-card">
-                <div style="text-align: center; margin-bottom: 24px;">
+            <!-- 登录卡片：默认收起只显示头像，点头像展开（对齐 iOS 登录页） -->
+            <div class="login-card" :class="{ 'is-open': showLoginFields }">
+                <button
+                    type="button"
+                    class="avatar-btn"
+                    @click="toggleLoginFields"
+                    :aria-label="showLoginFields ? '收起登录' : '显示登录'"
+                >
                     <img src="/Jerry.svg" width="72px" alt="logo" class="logo-img"/>
-                </div>
+                </button>
 
-                <div class="form-group">
-                    <input
-                        ref="usernameInput"
-                        v-model.trim="formData.username"
-                        placeholder="请输入用户名"
-                        class="glass-input"
-                        name="username"
-                        autocomplete="username"
-                        enterkeyhint="next"
-                        @keyup.enter="focusPassword"
-                    />
-                </div>
-                <div class="form-group">
-                    <input
-                        ref="passwordInput"
-                        v-model.trim="formData.password"
-                        placeholder="请输入密码"
-                        type="password"
-                        class="glass-input"
-                        name="password"
-                        autocomplete="current-password"
-                        enterkeyhint="go"
-                        @keyup.enter="login"
-                    />
-                </div>
+                <div class="login-fields">
+                    <div class="fields-inner">
+                        <div class="form-group">
+                            <input
+                                ref="usernameInput"
+                                v-model.trim="formData.username"
+                                placeholder="请输入用户名"
+                                class="glass-input"
+                                name="username"
+                                autocomplete="username"
+                                enterkeyhint="next"
+                                @keyup.enter="focusPassword"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <input
+                                ref="passwordInput"
+                                v-model.trim="formData.password"
+                                placeholder="请输入密码"
+                                type="password"
+                                class="glass-input"
+                                name="password"
+                                autocomplete="current-password"
+                                enterkeyhint="go"
+                                @keyup.enter="login"
+                            />
+                        </div>
 
-                <!-- 主机选择 -->
-                <div class="radio-group">
-                    <label
-                        v-for="(one,index) in host"
-                        :key="index"
-                        class="radio-item"
-                        @click="selectHost = one.id; radioChange()"
-                    >
-                        <input type="radio" name="repayType" v-model="selectHost" :value="one.id" @change="radioChange" class="glass-radio"/>
-                        <span>{{ one.id }}({{ (one.key.split('/')[2] || "").split(":")[0] }})</span>
-                    </label>
-                </div>
+                        <!-- 主机选择 -->
+                        <div class="radio-group">
+                            <label
+                                v-for="(one,index) in host"
+                                :key="index"
+                                class="radio-item"
+                                @click="selectHost = one.id; radioChange()"
+                            >
+                                <input type="radio" name="repayType" v-model="selectHost" :value="one.id" @change="radioChange" class="glass-radio"/>
+                                <span>{{ one.id }}({{ (one.key.split('/')[2] || "").split(":")[0] }})</span>
+                            </label>
+                        </div>
 
-                <div class="form-group">
-                    <button type="button" @click="login" class="primary-btn">
-                        <span class="icon">🔐</span>
-                        <span class="text">登录</span>
-                    </button>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <button type="button" @click="login" class="primary-btn">
+                                <span class="icon">🔐</span>
+                                <span class="text">登录</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -66,6 +75,11 @@
             <button class="secondary-btn" @click="toOther('./c.html')">
                 <span class="icon">🧮</span>
                 <span class="text">计算器</span>
+            </button>
+
+            <button class="secondary-btn" @click="toOther('./marble.html')">
+                <span class="icon">🐻</span>
+                <span class="text">溜溜熊弹珠</span>
             </button>
 
             <button class="secondary-btn" @click="toOther('./mfa.html')">
@@ -102,6 +116,8 @@ export default {
             showAlert: false,
             alertMessage: "",
             showLogin: false,
+            // 登录表单默认收起，点 Jerry 头像才展开（对齐 iOS showLoginFields）
+            showLoginFields: false,
             host: [],
             selectHost:""
         }
@@ -111,16 +127,22 @@ export default {
         setTimeout(function () {
             self.formData.username = localStorage.getItem("username") || "";
             self.checkLogin();
-            self.$nextTick(function () {
-                if (self.showLogin && self.$refs.usernameInput) {
-                    self.$refs.usernameInput.focus();
-                }
-            });
         }, 1);
     },
     methods: {
         toOther: function (route) {
             window.location.href = route;
+        },
+        toggleLoginFields: function () {
+            const self = this;
+            self.showLoginFields = !self.showLoginFields;
+            if (self.showLoginFields) {
+                self.$nextTick(function () {
+                    if (self.$refs.usernameInput) {
+                        self.$refs.usernameInput.focus();
+                    }
+                });
+            }
         },
         focusPassword: function () {
             this.$refs.passwordInput && this.$refs.passwordInput.focus();
@@ -145,11 +167,6 @@ export default {
                 self.host.push({id: "云", key: import.meta.env.VITE_BASE_URL});
                 self.host.push({id: "电脑", key: import.meta.env.VITE_COMPANY_BASE_URL});
                 self.showLogin = true;
-                self.$nextTick(function () {
-                    if (self.$refs.usernameInput) {
-                        self.$refs.usernameInput.focus();
-                    }
-                });
             });
         },
         toMain: function (res) {
@@ -222,22 +239,75 @@ export default {
     width: 100%;
 }
 
-/* 毛玻璃卡片 */
-.glass-card {
+/* 登录卡片：默认收起（透明、无内边距，只显示头像），展开才是毛玻璃卡片 */
+.login-card {
     width: 100%;
+    border-radius: 24px;
+    border: 1px solid transparent;
+    padding: 0;
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        padding 0.25s ease;
+}
+
+.login-card.is-open {
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.2);
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.1),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    padding: 32px 28px;
+    padding: 16px 28px 20px;
+}
+
+/* 头像按钮：收起/展开登录表单 */
+.avatar-btn {
+    display: block;
+    margin: 0 auto;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 50%;
+    touch-action: manipulation;
 }
 
 .logo-img {
+    display: block;
+    width: 72px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* 登录表单区域：grid 行高动画平滑展开/收起 */
+.login-fields {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        grid-template-rows 0.25s ease,
+        opacity 0.2s ease,
+        visibility 0.25s;
+}
+
+.login-card.is-open .login-fields {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+}
+
+.fields-inner {
+    overflow: hidden;
+    min-height: 0;
+    padding-top: 0;
+    transition: padding-top 0.25s ease;
+}
+
+.login-card.is-open .fields-inner {
+    padding-top: 12px;
 }
 
 .form-group {
@@ -269,17 +339,26 @@ export default {
     box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
 }
 
-/* 单选组 */
+/* 单选组：限高 + 内部滑动（无滚动条样式），保证整页一屏放得下 */
 .radio-group {
     display: flex;
     flex-direction: column;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
+    max-height: 128px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.radio-group::-webkit-scrollbar {
+    display: none;
 }
 
 .radio-item {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    flex-shrink: 0;
+    margin-bottom: 8px;
     padding: 12px 14px;
     min-height: 44px;
     border-radius: 10px;
@@ -387,8 +466,8 @@ export default {
         padding: 16px 14px;
     }
 
-    .glass-card {
-        padding: 24px 20px;
+    .login-card.is-open {
+        padding: 14px 20px 16px;
         border-radius: 20px;
     }
 
@@ -402,8 +481,8 @@ export default {
         max-width: 440px;
     }
 
-    .glass-card {
-        padding: 40px 36px;
+    .login-card.is-open {
+        padding: 20px 36px 28px;
     }
 
     .logo-img {

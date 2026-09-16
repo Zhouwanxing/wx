@@ -38,7 +38,8 @@ export default defineConfig(({command, mode}) => {
                     r: path.resolve(__dirname, "./r.html"),
                     o: path.resolve(__dirname, "./o.html"),
                     f1: path.resolve(__dirname, "./f1.html"),
-                    m: path.resolve(__dirname, "./m.html")
+                    m: path.resolve(__dirname, "./m.html"),
+                    marble: path.resolve(__dirname, "./marble.html")
                 },
             }
         }
