@@ -44,7 +44,7 @@
                         </div>
 
                         <!-- 主机选择 -->
-                        <div class="radio-group">
+<!--                        <div class="radio-group">
                             <label
                                 v-for="(one,index) in host"
                                 :key="index"
@@ -54,7 +54,7 @@
                                 <input type="radio" name="repayType" v-model="selectHost" :value="one.id" @change="radioChange" class="glass-radio"/>
                                 <span>{{ one.id }}({{ (one.key.split('/')[2] || "").split(":")[0] }})</span>
                             </label>
-                        </div>
+                        </div>-->
 
                         <div class="form-group" style="margin-bottom: 0;">
                             <button type="button" @click="login" class="primary-btn">
