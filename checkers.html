@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>跳棋</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.chip.solo.on { background: #338c7a; }
+#boardWrap { background: var(--game-wood); }
+</style>
+</head>
+<body>
+<h1>⭐ 跳棋</h1>
+<div class="panel">
+  <div class="row">
+    <button class="chip solo off" id="soloBtn">单人</button>
+    <button class="chip on" id="aiBtn">人机</button>
+    <span class="sub" id="record">暂无纪录</span>
+  </div>
+  <div class="row">
+    <span class="left" id="status">步数 0</span>
+    <span class="hint">点棋子再点空位，可连跳</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <canvas id="board"></canvas>
+  <div id="overlay">
+    <div class="big" id="overlayText">完成</div>
+    <button class="btn red" id="overlayRestart" style="width:140px">再来一局</button>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn gray" id="undoBtn">悔棋</button>
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（CheckersEngine 的 JS 移植）=====
+// 轴向六角：s = -q-r。中心半径 4 的六边形 + 六只臂，共 121 点。
+const DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+
+function posKey(q, r) { return q + "," + r; }
+function parseKey(k) { const p = k.split(","); return { q: +p[0], r: +p[1] }; }
+function cubeDist(a, b) {
+  const ds = Math.abs((-a.q - a.r) - (-b.q - b.r));
+  return (Math.abs(a.q - b.q) + Math.abs(a.r - b.r) + ds) / 2;
+}
+
+// 中心六边形，或恰好一轴伸出到 8。
+function onBoard(q, r) {
+  const s = -q - r;
+  const outside = [q, r, s].filter(v => v < -4 || v > 4);
+  return outside.length === 0 || (outside.length === 1 && Math.abs(outside[0]) <= 8);
+}
+
+const ALL = [];
+const ALL_SET = new Set();
+for (let q = -8; q <= 8; q++) {
+  for (let r = -8; r <= 8; r++) {
+    if (onBoard(q, r)) {
+      ALL.push({ q, r });
+      ALL_SET.add(posKey(q, r));
+    }
+  }
+}
+
+function campOf(side) {
+  const out = new Set();
+  for (const p of ALL) {
+    if (side === "top" ? p.r <= -5 : p.r >= 5) out.add(posKey(p.q, p.r));
+  }
+  return out;
+}
+const CAMP_TOP = campOf("top");
+const CAMP_BOTTOM = campOf("bottom");
+
+function campCentroid(side) {
+  const camp = side === "top" ? CAMP_TOP : CAMP_BOTTOM;
+  let q = 0, r = 0;
+  for (const k of camp) {
+    const p = parseKey(k);
+    q += p.q; r += p.r;
+  }
+  const n = Math.max(1, camp.size);
+  return { q: Math.trunc(q / n), r: Math.trunc(r / n) };
+}
+
+function neighbors(q, r) {
+  const out = [];
+  for (const [dq, dr] of DIRS) {
+    const nq = q + dq, nr = r + dr;
+    if (ALL_SET.has(posKey(nq, nr))) out.push({ q: nq, r: nr });
+  }
+  return out;
+}
+
+function newGame(mode) {
+  return {
+    mode,
+    pieces: {
+      bottom: new Set(CAMP_BOTTOM),
+      top: mode === "ai" ? new Set(CAMP_TOP) : new Set(),
+    },
+    turn: "bottom",
+    moves: 0,
+    history: [],
+  };
+}
+
+function occupant(g, key) {
+  if (g.pieces.bottom.has(key)) return "bottom";
+  if (g.pieces.top.has(key)) return "top";
+  return null;
+}
+
+function winnerOf(g) {
+  for (const side of ["bottom", "top"]) {
+    const mine = g.pieces[side];
+    const target = side === "bottom" ? CAMP_TOP : CAMP_BOTTOM;
+    if (mine.size !== 10) continue;
+    let same = true;
+    for (const k of mine) if (!target.has(k)) { same = false; break; }
+    if (same) return side;
+  }
+  return null;
+}
+
+// 隔子连跳：起点腾空，被跳过的子不吃掉。
+function jumpDestinations(start, occupied) {
+  const occ = new Set(occupied);
+  occ.delete(posKey(start.q, start.r));
+  const dest = new Set();
+  const queue = [start];
+  const seen = new Set([posKey(start.q, start.r)]);
+  for (let i = 0; i < queue.length; i++) {
+    const pos = queue[i];
+    for (const [dq, dr] of DIRS) {
+      const mid = posKey(pos.q + dq, pos.r + dr);
+      const land = posKey(pos.q + dq * 2, pos.r + dr * 2);
+      if (!ALL_SET.has(mid) || !ALL_SET.has(land)) continue;
+      if (!occ.has(mid) || occ.has(land) || seen.has(land)) continue;
+      seen.add(land);
+      dest.add(land);
+      queue.push(parseKey(land));
+    }
+  }
+  return dest;
+}
+
+// side 缺省为当前行棋方；AI 列举对方走法时要传入。
+function legalMoves(g, from, side) {
+  const actor = side || g.turn;
+  const key = posKey(from.q, from.r);
+  if (winnerOf(g) || !g.pieces[actor].has(key)) return new Set();
+  const occ = new Set([...g.pieces.top, ...g.pieces.bottom]);
+  const dest = new Set();
+  for (const n of neighbors(from.q, from.r)) {
+    if (!occ.has(posKey(n.q, n.r))) dest.add(posKey(n.q, n.r));
+  }
+  for (const k of jumpDestinations(from, occ)) dest.add(k);
+  return dest;
+}
+
+function allMoves(g, side) {
+  const out = [];
+  for (const k of g.pieces[side]) {
+    const from = parseKey(k);
+    for (const to of legalMoves(g, from, side)) out.push({ from, to: parseKey(to) });
+  }
+  return out;
+}
+
+function move(g, from, to) {
+  const toKey = posKey(to.q, to.r);
+  if (!legalMoves(g, from).has(toKey)) return false;
+  g.history.push({
+    pieces: { top: new Set(g.pieces.top), bottom: new Set(g.pieces.bottom) },
+    turn: g.turn,
+    moves: g.moves,
+  });
+  g.pieces[g.turn].delete(posKey(from.q, from.r));
+  g.pieces[g.turn].add(toKey);
+  g.moves += 1;
+  if (!winnerOf(g) && g.mode === "ai") g.turn = g.turn === "top" ? "bottom" : "top";
+  return true;
+}
+
+function undo(g) {
+  const prev = g.history.pop();
+  if (!prev) return;
+  g.pieces = prev.pieces;
+  g.turn = prev.turn;
+  g.moves = prev.moves;
+}
+
+// 贪心评估：进营大奖（仅营外进营内）、出营重罚、营内挪动罚分（防止进营的子一直转圈、其他子不动），跳得远优先。
+function bestMove(g, side) {
+  const moves = allMoves(g, side);
+  if (!moves.length) return null;
+  const target = side === "bottom" ? CAMP_TOP : CAMP_BOTTOM;
+  const centroid = campCentroid(side === "bottom" ? "top" : "bottom");
+  let best = null, bestScore = -1e9;
+  for (const m of moves) {
+    let score = (cubeDist(m.from, centroid) - cubeDist(m.to, centroid)) * 10;
+    const toIn = target.has(posKey(m.to.q, m.to.r));
+    const fromIn = target.has(posKey(m.from.q, m.from.r));
+    if (!fromIn && toIn) score += 300;
+    if (fromIn && !toIn) score -= 400;
+    if (fromIn && toIn) score -= 50;
+    score += cubeDist(m.from, m.to);
+    if (score > bestScore) { bestScore = score; best = m; }
+  }
+  return best;
+}
+
+// 当前行棋方无任何合法走法时停一手（人机模式换边）。返回是否发生了停一手。
+function passTurn(g) {
+  if (winnerOf(g) || allMoves(g, g.turn).length) return false;
+  if (g.mode === "ai") g.turn = g.turn === "top" ? "bottom" : "top";
+  return true;
+}
+
+// ===== 界面状态 =====
+let mode = "ai";
+let game = newGame(mode);
+let selected = null;
+let aiThinking = false;
+let recordedWin = false;
+let wins = parseInt(localStorage.getItem("checkers.wins") || "0", 10) || 0;
+let losses = parseInt(localStorage.getItem("checkers.losses") || "0", 10) || 0;
+let soloBest = parseInt(localStorage.getItem("checkers.soloBest") || "0", 10) || 0;
+
+const canvas = document.getElementById("board");
+const wrap = document.getElementById("boardWrap");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+const statusEl = document.getElementById("status");
+const recordEl = document.getElementById("record");
+const soloBtn = document.getElementById("soloBtn");
+const aiBtn = document.getElementById("aiBtn");
+const undoBtn = document.getElementById("undoBtn");
+
+const SQRT3 = Math.sqrt(3);
+function unit(p) { return { x: SQRT3 * (p.q + p.r / 2), y: 1.5 * p.r }; }
+
+// 只算几何，不改 canvas 尺寸，避免点选时把画面清掉。
+function metrics() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const p of ALL) {
+    const u = unit(p);
+    minX = Math.min(minX, u.x); maxX = Math.max(maxX, u.x);
+    minY = Math.min(minY, u.y); maxY = Math.max(maxY, u.y);
+  }
+  const m = 0.7;
+  minX -= m; maxX += m; minY -= m; maxY += m;
+  const pad = 10;
+  const cell = Math.min((w - pad * 2) / (maxX - minX), (h - pad * 2) / (maxY - minY));
+  const ox = (w - (maxX - minX) * cell) / 2 - minX * cell;
+  const oy = (h - (maxY - minY) * cell) / 2 - minY * cell;
+  return {
+    w, h,
+    point(p) { const u = unit(p); return { x: ox + cell * u.x, y: oy + cell * u.y }; },
+    radius: cell * SQRT3 * 0.36,
+  };
+}
+
+function destinations() {
+  if (!selected || winnerOf(game)) return new Set();
+  return legalMoves(game, selected);
+}
+
+function draw() {
+  const L = metrics();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, L.w * dpr);
+  canvas.height = Math.max(1, L.h * dpr);
+  canvas.style.width = L.w + "px";
+  canvas.style.height = L.h + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, L.w, L.h);
+
+  ctx.strokeStyle = "rgb(158,140,107)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const p of ALL) {
+    for (const n of neighbors(p.q, p.r)) {
+      if (n.q > p.q || (n.q === p.q && n.r > p.r)) {
+        const a = L.point(p), b = L.point(n);
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      }
+    }
+  }
+  ctx.stroke();
+
+  const dest = destinations();
+  for (const p of ALL) {
+    const pt = L.point(p);
+    const key = posKey(p.q, p.r);
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, L.radius, 0, Math.PI * 2);
+    ctx.fillStyle = CAMP_TOP.has(key) ? "#b8d1f2" : CAMP_BOTTOM.has(key) ? "#f5c7c2" : "rgba(255,255,255,0.92)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.stroke();
+    if (dest.has(key)) {
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, L.radius * 0.38, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(56,158,97,0.85)";
+      ctx.fill();
+    }
+  }
+
+  const colors = { top: "#3870c7", bottom: "#c73847" };
+  for (const side of ["top", "bottom"]) {
+    for (const k of game.pieces[side]) {
+      const p = parseKey(k);
+      const pt = L.point(p);
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, L.radius * 0.82, 0, Math.PI * 2);
+      ctx.fillStyle = colors[side];
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      if (selected && selected.q === p.q && selected.r === p.r) {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, L.radius * 0.82 + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = "#f2bf26";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function statusText() {
+  const w = winnerOf(game);
+  if (w === "bottom") return mode === "solo" ? "完成！" + game.moves + " 步" : "你赢了！";
+  if (w === "top") return "电脑赢了";
+  if (aiThinking) return "电脑思考中…";
+  if (mode === "solo") return "步数 " + game.moves;
+  if (!allMoves(game, game.turn).length) {
+    return game.turn === "bottom" ? "你无棋可走，停一手" : "电脑无棋可走，停一手";
+  }
+  return game.turn === "bottom" ? "你的回合（红）" : "电脑回合（蓝）";
+}
+
+function refresh() {
+  const over = !!winnerOf(game);
+  statusEl.textContent = statusText();
+  recordEl.textContent = mode === "solo"
+    ? (soloBest > 0 ? "最少 " + soloBest + " 步" : "暂无纪录")
+    : "胜 " + wins + " · 负 " + losses;
+  soloBtn.className = "chip solo " + (mode === "solo" ? "on" : "off");
+  aiBtn.className = "chip " + (mode === "ai" ? "on" : "off");
+  undoBtn.disabled = !game.history.length || aiThinking || over;
+  overlay.className = over ? "show" : "";
+  overlayText.textContent = statusText();
+  draw();
+}
+
+function recordOutcome() {
+  if (!winnerOf(game) || recordedWin) return !!winnerOf(game);
+  recordedWin = true;
+  if (winnerOf(game) === "bottom") {
+    if (mode === "solo") {
+      if (soloBest === 0 || game.moves < soloBest) {
+        soloBest = game.moves;
+        localStorage.setItem("checkers.soloBest", String(soloBest));
+      }
+    } else {
+      wins += 1;
+      localStorage.setItem("checkers.wins", String(wins));
+    }
+  } else {
+    losses += 1;
+    localStorage.setItem("checkers.losses", String(losses));
+  }
+  return true;
+}
+
+function restart(nextMode) {
+  if (nextMode) mode = nextMode;
+  game = newGame(mode);
+  selected = null;
+  aiThinking = false;
+  recordedWin = false;
+  refresh();
+}
+
+function playAI() {
+  if (mode !== "ai" || winnerOf(game) || game.turn !== "top") return;
+  aiThinking = true;
+  refresh();
+  setTimeout(() => {
+    let aiMoved = false;
+    if (!winnerOf(game) && game.turn === "top") {
+      const m = bestMove(game, "top");
+      if (m) {
+        move(game, m.from, m.to);
+        aiMoved = true;
+      } else {
+        passTurn(game); // 电脑无棋可走，停一手还给玩家
+      }
+      recordOutcome();
+    }
+    aiThinking = false;
+    refresh();
+    // 电脑走完后玩家无棋可走：自动停一手，电脑接着走（仅电脑真实走子后触发，不会死循环）
+    if (aiMoved && !winnerOf(game) && game.turn === "bottom" && !allMoves(game, "bottom").length) {
+      passTurn(game);
+      refresh();
+      playAI();
+    }
+  }, 350);
+}
+
+function hitTest(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const x = clientX - rect.left, y = clientY - rect.top;
+  const L = metrics();
+  let best = null, bestD = L.radius * 1.35;
+  for (const p of ALL) {
+    const pt = L.point(p);
+    const d = Math.hypot(x - pt.x, y - pt.y);
+    if (d < bestD) { bestD = d; best = p; }
+  }
+  return best;
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (aiThinking || winnerOf(game) || game.turn !== "bottom") return;
+  const pos = hitTest(e.clientX, e.clientY);
+  if (!pos) return;
+  const dest = destinations();
+  if (selected && dest.has(posKey(pos.q, pos.r))) {
+    if (move(game, selected, pos)) {
+      selected = null;
+      if (!recordOutcome() && mode === "ai") playAI();
+      refresh();
+    }
+    return;
+  }
+  selected = occupant(game, posKey(pos.q, pos.r)) === "bottom" ? pos : null;
+  refresh();
+});
+
+soloBtn.addEventListener("click", () => { if (mode !== "solo") restart("solo"); });
+aiBtn.addEventListener("click", () => { if (mode !== "ai") restart("ai"); });
+document.getElementById("restartBtn").addEventListener("click", () => restart());
+document.getElementById("overlayRestart").addEventListener("click", () => restart());
+undoBtn.addEventListener("click", () => {
+  if (aiThinking || winnerOf(game)) return;
+  undo(game);
+  if (mode === "ai" && game.turn === "top") undo(game);
+  selected = null;
+  refresh();
+});
+window.addEventListener("resize", draw);
+refresh();
+</script>
+</body>
+</html>

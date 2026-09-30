@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>五子棋</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#status { font-size: 14px; font-weight: 700; }
+#record { font-size: 12px; color: var(--game-secondary); font-weight: 600; font-variant-numeric: tabular-nums; }
+#boardWrap { background: var(--game-wood); }
+</style>
+</head>
+<body>
+<h1>⚫ 五子棋</h1>
+<div class="panel spread">
+  <span id="status">你的棋（黑）</span>
+  <span id="record">胜 0 · 负 0</span>
+</div>
+<div id="boardWrap">
+  <canvas id="board"></canvas>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（GomokuEngine 的 JS 移植）=====
+const SIZE = 15;
+const EMPTY = 0, BLACK = 1, WHITE = 2;
+
+function newGame() {
+  return {
+    board: Array.from({ length: SIZE }, () => new Array(SIZE).fill(EMPTY)),
+    phase: "playing", // playing | blackWon | whiteWon
+    lastMove: null,
+  };
+}
+
+function inBoard(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
+
+// 落子。结束后或有子的位置不能下；五连判赢。
+function place(g, row, col, stone) {
+  if (g.phase !== "playing" || !inBoard(row, col) || g.board[row][col] !== EMPTY) return false;
+  g.board[row][col] = stone;
+  g.lastMove = { row, col };
+  if (isFive(g, row, col, stone)) g.phase = stone === BLACK ? "blackWon" : "whiteWon";
+  return true;
+}
+
+const DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
+
+function consecutive(g, row, col, dr, dc, stone) {
+  let count = 0, r = row + dr, c = col + dc;
+  while (inBoard(r, c) && g.board[r][c] === stone) { count++; r += dr; c += dc; }
+  return count;
+}
+
+function isFive(g, row, col, stone) {
+  for (const [dr, dc] of DIRS) {
+    if (1 + consecutive(g, row, col, dr, dc, stone) + consecutive(g, row, col, -dr, -dc, stone) >= 5) return true;
+  }
+  return false;
+}
+
+// 只考虑已有棋子两格范围内的空位，空棋盘下天元。
+function candidates(g) {
+  const out = [];
+  const seen = new Set();
+  let hasStone = false;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (g.board[r][c] === EMPTY) continue;
+      hasStone = true;
+      for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
+          const nr = r + dr, nc = c + dc;
+          if (!inBoard(nr, nc) || g.board[nr][nc] !== EMPTY) continue;
+          const k = nr * SIZE + nc;
+          if (!seen.has(k)) { seen.add(k); out.push({ row: nr, col: nc }); }
+        }
+      }
+    }
+  }
+  if (!hasStone) return [{ row: SIZE >> 1, col: SIZE >> 1 }];
+  return out;
+}
+
+// 单方向棋型分：连子数 + 两端是否空。五连 > 活四 > 冲四 > 活三 …
+function scoreLine(g, row, col, dr, dc, stone) {
+  const fwd = consecutive(g, row, col, dr, dc, stone);
+  const bwd = consecutive(g, row, col, -dr, -dc, stone);
+  const count = 1 + fwd + bwd;
+  let open = 0;
+  const fr = row + dr * (fwd + 1), fc = col + dc * (fwd + 1);
+  if (inBoard(fr, fc) && g.board[fr][fc] === EMPTY) open++;
+  const br = row - dr * (bwd + 1), bc = col - dc * (bwd + 1);
+  if (inBoard(br, bc) && g.board[br][bc] === EMPTY) open++;
+  if (count >= 5) return 1000000;
+  if (count === 4) return open === 2 ? 100000 : open === 1 ? 10000 : 0;
+  if (count === 3) return open === 2 ? 5000 : open === 1 ? 500 : 0;
+  if (count === 2) return open === 2 ? 200 : open === 1 ? 50 : 0;
+  if (count === 1) return open === 2 ? 10 : 1;
+  return 1;
+}
+
+function scorePoint(g, row, col, stone) {
+  let total = 0;
+  for (const [dr, dc] of DIRS) total += scoreLine(g, row, col, dr, dc, stone);
+  return total;
+}
+
+// AI 选点：「我下这」进攻分 ×1.1 +「对手下这」防守分，取最高。
+function bestMove(g, stone) {
+  const opponent = stone === BLACK ? WHITE : BLACK;
+  let best = null, bestScore = -1;
+  for (const m of candidates(g)) {
+    const attack = scorePoint(g, m.row, m.col, stone);
+    const defense = scorePoint(g, m.row, m.col, opponent);
+    const total = Math.floor(attack * 11 / 10) + defense;
+    if (total > bestScore) { bestScore = total; best = m; }
+  }
+  return best;
+}
+
+// ===== 界面状态 =====
+let game = newGame();
+let aiThinking = false;
+let wins = parseInt(localStorage.getItem("gomoku.wins") || "0", 10) || 0;
+let losses = parseInt(localStorage.getItem("gomoku.losses") || "0", 10) || 0;
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+const recordEl = document.getElementById("record");
+
+function render() {
+  statusEl.textContent =
+    game.phase === "playing" ? (aiThinking ? "电脑思考中…" : "你的棋（黑）")
+    : game.phase === "blackWon" ? "你赢了！" : "电脑赢了";
+  recordEl.textContent = "胜 " + wins + " · 负 " + losses;
+  draw();
+}
+
+function layout() {
+  const wrap = document.getElementById("boardWrap");
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  const pad = 16;
+  const usable = Math.max(1, Math.min(w, h) - pad * 2);
+  const cell = usable / (SIZE - 1);
+  const side = cell * (SIZE - 1);
+  return { w, h, cell, ox: (w - side) / 2, oy: (h - side) / 2 };
+}
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const L = layout();
+  if (canvas.width !== L.w * dpr || canvas.height !== L.h * dpr) {
+    canvas.width = L.w * dpr;
+    canvas.height = L.h * dpr;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, L.w, L.h);
+
+  // 网格线
+  ctx.strokeStyle = "#735937";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < SIZE; i++) {
+    ctx.moveTo(L.ox, L.oy + i * L.cell);
+    ctx.lineTo(L.ox + (SIZE - 1) * L.cell, L.oy + i * L.cell);
+    ctx.moveTo(L.ox + i * L.cell, L.oy);
+    ctx.lineTo(L.ox + i * L.cell, L.oy + (SIZE - 1) * L.cell);
+  }
+  ctx.stroke();
+
+  // 星位
+  ctx.fillStyle = "#735937";
+  for (const [r, c] of [[3, 3], [3, 11], [7, 7], [11, 3], [11, 11]]) {
+    ctx.beginPath();
+    ctx.arc(L.ox + c * L.cell, L.oy + r * L.cell, Math.max(2, L.cell * 0.1), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 棋子
+  const radius = L.cell * 0.42;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const s = game.board[r][c];
+      if (s === EMPTY) continue;
+      const x = L.ox + c * L.cell, y = L.oy + r * L.cell;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = s === BLACK ? "#262433" : "#ffffff";
+      ctx.fill();
+      if (s === WHITE) { ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.stroke(); }
+    }
+  }
+
+  // 最后一手标记
+  if (game.lastMove) {
+    const x = L.ox + game.lastMove.col * L.cell, y = L.oy + game.lastMove.row * L.cell;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.4, 0, Math.PI * 2);
+    ctx.strokeStyle = "#e63946";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+}
+
+function onTap(e) {
+  if (aiThinking || game.phase !== "playing") return;
+  const rect = canvas.getBoundingClientRect();
+  const L = layout();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const col = Math.round((x - L.ox) / L.cell);
+  const row = Math.round((y - L.oy) / L.cell);
+  if (!inBoard(row, col)) return;
+  const px = L.ox + col * L.cell, py = L.oy + row * L.cell;
+  if (Math.abs(x - px) > L.cell / 2 || Math.abs(y - py) > L.cell / 2) return;
+
+  if (!place(game, row, col, BLACK)) return;
+  if (game.phase === "blackWon") {
+    wins++;
+    localStorage.setItem("gomoku.wins", String(wins));
+    render();
+    return;
+  }
+  aiThinking = true;
+  render();
+  setTimeout(() => {
+    if (game.phase === "playing") {
+      const m = bestMove(game, WHITE);
+      if (m) {
+        place(game, m.row, m.col, WHITE);
+        if (game.phase === "whiteWon") {
+          losses++;
+          localStorage.setItem("gomoku.losses", String(losses));
+        }
+      }
+    }
+    aiThinking = false;
+    render();
+  }, 350);
+}
+
+canvas.addEventListener("pointerdown", onTap);
+document.getElementById("restartBtn").addEventListener("click", () => {
+  game = newGame();
+  aiThinking = false;
+  render();
+});
+window.addEventListener("resize", draw);
+
+render();
+</script>
+</body>
+</html>

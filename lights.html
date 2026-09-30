@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>关灯</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#boardWrap { display: flex; align-items: center; justify-content: center; background: #292e3d; }
+#grid { display: grid; gap: 10px; width: min(88%, 380px); aspect-ratio: 1; }
+#grid .cell {
+  border: 0; border-radius: 22%; cursor: pointer;
+  background: #474e66; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+#grid .cell.on {
+  background: #fadb52;
+  box-shadow: 0 0 12px rgba(250, 210, 50, .55);
+}
+.chip { flex: 1; padding: 8px 0; font-size: 14px; border-radius: 12px; }
+</style>
+</head>
+<body>
+<h1>💡 关灯</h1>
+<div class="panel">
+  <div class="row" id="sizeRow">
+    <button class="chip" data-size="3">3×3</button>
+    <button class="chip" data-size="4">4×4</button>
+    <button class="chip" data-size="5">5×5</button>
+  </div>
+  <div class="row">
+    <span class="score" id="moves">步数 0</span>
+    <span class="sub" id="best"></span>
+  </div>
+  <div class="row">
+    <span class="left" id="status">点亮的格子点灭</span>
+    <span class="hint">点一格会连带翻转四邻</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <div id="grid"></div>
+  <div id="overlay">
+    <div class="big">全灭了！</div>
+    <div class="scoreLine" id="overlayScore"></div>
+    <button class="btn purple" id="againBtn">下一题</button>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">换一题</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（LightsEngine 的 JS 移植）=====
+const SIZES = [3, 4, 5];
+
+function toggledIndices(size, row, col) {
+  const out = [];
+  for (const [dr, dc] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const r = row + dr, c = col + dc;
+    if (r >= 0 && r < size && c >= 0 && c < size) out.push(r * size + c);
+  }
+  return out;
+}
+
+function applyTap(g, index) {
+  const row = Math.floor(index / g.size), col = index % g.size;
+  for (const i of toggledIndices(g.size, row, col)) g.lights[i] = !g.lights[i];
+}
+
+function isCleared(g) { return g.lights.every((on) => !on); }
+
+// 从全灭按随机格出题；全灭则强制点中心，保证有灯。
+function newLights(size, seed) {
+  const side = Math.max(3, size);
+  const count = side * side;
+  const g = {
+    size: side,
+    lights: Array(count).fill(false),
+    presses: Array(count).fill(false),
+    moves: 0,
+  };
+  const rng = makeRng(seed);
+  for (let i = 0; i < count; i++) {
+    if (rng.int(2) === 1) {
+      g.presses[i] = true;
+      applyTap(g, i);
+    }
+  }
+  if (isCleared(g)) {
+    const mid = Math.floor(side / 2) * side + Math.floor(side / 2);
+    g.presses[mid] = true;
+    applyTap(g, mid);
+  }
+  return g;
+}
+
+// 点一格翻转十字。越界返回 false。
+function tap(g, row, col) {
+  if (row < 0 || col < 0 || row >= g.size || col >= g.size) return false;
+  applyTap(g, row * g.size + col);
+  g.moves += 1;
+  return true;
+}
+
+// ===== 界面状态 =====
+let size = parseInt(localStorage.getItem("lights.size") || "5", 10) || 5;
+if (!SIZES.includes(size)) size = 5;
+let game = newLights(size, Date.now());
+const grid = document.getElementById("grid");
+
+function bestKey() { return "lights.best." + game.size; }
+function readBest() { return parseInt(localStorage.getItem(bestKey()) || "0", 10) || 0; }
+function writeBest(value) { localStorage.setItem(bestKey(), String(value)); }
+
+function renderGrid() {
+  grid.style.gridTemplateColumns = `repeat(${game.size}, 1fr)`;
+  grid.innerHTML = "";
+  for (let i = 0; i < game.size * game.size; i++) {
+    const b = document.createElement("button");
+    b.className = "cell";
+    b.onclick = () => onCell(i);
+    grid.appendChild(b);
+  }
+}
+
+function onCell(index) {
+  if (isCleared(game)) return;
+  const row = Math.floor(index / game.size), col = index % game.size;
+  if (!tap(game, row, col)) return;
+  if (isCleared(game)) {
+    const best = readBest();
+    if (best === 0 || game.moves < best) writeBest(game.moves);
+  }
+  refresh();
+}
+
+function refresh() {
+  document.querySelectorAll("#sizeRow .chip").forEach((el) => {
+    const on = Number(el.dataset.size) === game.size;
+    el.classList.toggle("on", on);
+    el.classList.toggle("off", !on);
+  });
+  const best = readBest();
+  document.getElementById("moves").textContent = "步数 " + game.moves;
+  document.getElementById("best").textContent = best > 0 ? "最少 " + best + " 步" : "";
+  document.getElementById("status").textContent = isCleared(game) ? "全灭了！" : "点亮的格子点灭";
+  [...grid.children].forEach((el, i) => {
+    el.classList.toggle("on", game.lights[i]);
+    el.disabled = isCleared(game);
+  });
+  document.getElementById("overlay").classList.toggle("show", isCleared(game));
+  document.getElementById("overlayScore").textContent = "用了 " + game.moves + " 步";
+}
+
+function restart() {
+  game = newLights(size, Date.now());
+  renderGrid();
+  refresh();
+}
+
+function selectSize(value) {
+  const next = Number(value);
+  if (!SIZES.includes(next) || next === size) return;
+  size = next;
+  localStorage.setItem("lights.size", String(size));
+  restart();
+}
+
+document.querySelectorAll("#sizeRow .chip").forEach((el) => {
+  el.onclick = () => selectSize(el.dataset.size);
+});
+document.getElementById("restartBtn").onclick = restart;
+document.getElementById("againBtn").onclick = restart;
+renderGrid();
+refresh();
+</script>
+</body>
+</html>

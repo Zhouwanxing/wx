@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>2048</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#boardWrap { display: flex; align-items: center; justify-content: center; background: #bbada0; }
+#grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: min(88%, 380px); aspect-ratio: 1; }
+#grid .cell {
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-family: ui-rounded, "PingFang SC", sans-serif;
+}
+</style>
+</head>
+<body>
+<h1>🟧 2048</h1>
+<div class="panel">
+  <div class="row">
+    <div class="stat"><div class="label">分数</div><div class="value" id="score">0</div></div>
+    <div class="stat"><div class="label">最佳</div><div class="value accent" id="best">0</div></div>
+    <span class="sub" id="goal">滑动合并同值</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <div id="grid"></div>
+  <div id="overlay">
+    <div class="big" id="overlayTitle">没有步数了</div>
+    <div class="scoreLine" id="overlayScore"></div>
+    <button class="btn purple" id="againBtn">再来一局</button>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（Twenty48Engine 的 JS 移植）=====
+const SIZE = 4;
+const TILE_COLOR = {
+  0: ["#cdc1b4", ""],
+  2: ["#eee4da", "#776e65"],
+  4: ["#ede0c8", "#776e65"],
+  8: ["#f2b179", "#fff"],
+  16: ["#f59563", "#fff"],
+  32: ["#f67c5f", "#fff"],
+  64: ["#f65e3b", "#fff"],
+  128: ["#edcf72", "#fff"],
+  256: ["#edcc61", "#fff"],
+  512: ["#edc850", "#fff"],
+  1024: ["#edc53f", "#fff"],
+  2048: ["#edc22e", "#fff"],
+};
+
+function emptyBoard() {
+  return Array.from({ length: SIZE }, () => new Array(SIZE).fill(0));
+}
+
+// 一行压向左侧：先靠拢再两两合并，新合成的格本回合不再合。
+function collapse(line) {
+  const tiles = line.filter((v) => v !== 0);
+  const result = [];
+  let score = 0;
+  let i = 0;
+  while (i < tiles.length) {
+    if (i + 1 < tiles.length && tiles[i] === tiles[i + 1]) {
+      const merged = tiles[i] * 2;
+      result.push(merged);
+      score += merged;
+      i += 2;
+    } else {
+      result.push(tiles[i]);
+      i += 1;
+    }
+  }
+  while (result.length < line.length) result.push(0);
+  return { line: result, score };
+}
+
+function canMoveBoard(board) {
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (board[r][c] === 0) return true;
+      if (c + 1 < SIZE && board[r][c] === board[r][c + 1]) return true;
+      if (r + 1 < SIZE && board[r][c] === board[r + 1][c]) return true;
+    }
+  }
+  return false;
+}
+
+// 随机空位放 2（90%）或 4（10%）。
+function spawn(g) {
+  const empties = [];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (g.board[r][c] === 0) empties.push([r, c]);
+    }
+  }
+  if (!empties.length) return;
+  const [r, c] = empties[g.rng.int(empties.length)];
+  g.board[r][c] = g.rng.int(10) === 0 ? 4 : 2;
+}
+
+function newTwenty48(seed) {
+  const g = { board: emptyBoard(), score: 0, reachedGoal: false, isOver: false, rng: makeRng(seed) };
+  spawn(g);
+  spawn(g);
+  g.isOver = !canMoveBoard(g.board);
+  return g;
+}
+
+// 四向都先抽成「朝目标方向的一行」，压完再写回去。
+function slide(g, dir) {
+  if (g.isOver) return false;
+  const next = g.board.map((row) => row.slice());
+  let gained = 0;
+  const reverse = dir === "right" || dir === "down";
+  if (dir === "left" || dir === "right") {
+    for (let r = 0; r < SIZE; r++) {
+      const src = reverse ? next[r].slice().reverse() : next[r];
+      const out = collapse(src);
+      next[r] = reverse ? out.line.slice().reverse() : out.line;
+      gained += out.score;
+    }
+  } else {
+    for (let c = 0; c < SIZE; c++) {
+      const src = [];
+      for (let r = 0; r < SIZE; r++) src.push(next[r][c]);
+      const line = reverse ? src.slice().reverse() : src;
+      const out = collapse(line);
+      const restored = reverse ? out.line.slice().reverse() : out.line;
+      for (let r = 0; r < SIZE; r++) next[r][c] = restored[r];
+      gained += out.score;
+    }
+  }
+  if (JSON.stringify(next) === JSON.stringify(g.board)) return false;
+  g.board = next;
+  g.score += gained;
+  if (g.board.flat().some((v) => v >= 2048)) g.reachedGoal = true;
+  spawn(g);
+  g.isOver = !canMoveBoard(g.board);
+  return true;
+}
+
+function canMove(g) { return canMoveBoard(g.board); }
+
+// ===== 界面状态 =====
+let best = parseInt(localStorage.getItem("twenty48.best") || "0", 10) || 0;
+let game = newTwenty48(Date.now());
+const grid = document.getElementById("grid");
+for (let i = 0; i < 16; i++) {
+  const el = document.createElement("div");
+  el.className = "cell";
+  grid.appendChild(el);
+}
+
+function tileStyle(value) {
+  return TILE_COLOR[value] || TILE_COLOR[2048];
+}
+
+function refresh() {
+  if (game.score > best) {
+    best = game.score;
+    localStorage.setItem("twenty48.best", String(best));
+  }
+  document.getElementById("score").textContent = String(game.score);
+  document.getElementById("best").textContent = String(Math.max(best, game.score));
+  document.getElementById("goal").textContent = game.reachedGoal ? "已达成 2048" : "滑动合并同值";
+  [...grid.children].forEach((el, i) => {
+    const v = game.board[Math.floor(i / 4)][i % 4];
+    const [bg, fg] = tileStyle(v);
+    el.style.background = bg;
+    el.style.color = fg;
+    el.textContent = v ? String(v) : "";
+    el.style.fontSize = v >= 1000 ? "22px" : v >= 100 ? "26px" : "30px";
+  });
+  const overlay = document.getElementById("overlay");
+  overlay.classList.toggle("show", game.isOver);
+  document.getElementById("overlayTitle").textContent = game.reachedGoal ? "达成 2048" : "没有步数了";
+  document.getElementById("overlayScore").textContent = "分数 " + game.score;
+}
+
+function move(dir) {
+  if (slide(game, dir)) refresh();
+}
+
+function restart() {
+  game = newTwenty48(Date.now());
+  refresh();
+}
+
+document.getElementById("restartBtn").onclick = restart;
+document.getElementById("againBtn").onclick = restart;
+
+// 棋盘上滑一下，按位移大的轴判断方向。
+let sx = 0, sy = 0;
+const wrap = document.getElementById("boardWrap");
+wrap.addEventListener("touchstart", (e) => {
+  sx = e.changedTouches[0].clientX;
+  sy = e.changedTouches[0].clientY;
+}, { passive: true });
+wrap.addEventListener("touchend", (e) => {
+  const dx = e.changedTouches[0].clientX - sx;
+  const dy = e.changedTouches[0].clientY - sy;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+  if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? "right" : "left");
+  else move(dy > 0 ? "down" : "up");
+}, { passive: true });
+
+refresh();
+</script>
+</body>
+</html>

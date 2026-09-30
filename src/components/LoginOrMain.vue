@@ -79,7 +79,7 @@
 
             <button class="secondary-btn" @click="toOther('./marble.html')">
                 <span class="icon">🐻</span>
-                <span class="text">溜溜熊弹珠</span>
+                <span class="text">弹珠</span>
             </button>
 
             <button class="secondary-btn" @click="toOther('./mfa.html')">

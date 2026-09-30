@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>记忆矩阵</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.level { font-size: 18px; font-weight: 800; color: var(--game-accent); font-variant-numeric: tabular-nums; }
+.lives { color: var(--game-danger); font-weight: 700; letter-spacing: 2px; }
+#boardWrap { display: flex; align-items: center; justify-content: center; background: #f7f7f7; }
+#grid { display: grid; gap: 12px; width: min(88%, 380px); aspect-ratio: 1; }
+#grid .cell { border: 0; border-radius: 16%; background: #e6e6e6; cursor: pointer; transition: background .15s; }
+#grid .cell.lit { background: var(--game-accent); }
+#grid .cell.found { background: var(--game-cleared); }
+#grid .cell.wrong { background: #e04d5c; }
+#grid .cell.miss { background: #e6e6e6; outline: 3px solid var(--game-accent); }
+</style>
+</head>
+<body>
+<h1>🧠 记忆矩阵</h1>
+<div class="panel">
+  <div class="row">
+    <span class="level" id="level">第 1 关</span>
+    <span class="lives" id="lives">♥♥♥</span>
+    <span class="sub" id="best"></span>
+  </div>
+  <div class="row">
+    <span class="left" id="status">记住亮格…</span>
+    <span class="hint">记住亮格，藏起来再点回去</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <div id="grid"></div>
+  <div id="overlay">
+    <div class="big">记忆结束</div>
+    <div class="scoreLine" id="overlayScore"></div>
+    <button class="btn purple" id="restartOverlayBtn">重新开始</button>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重新开始</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+/* 随机数 / 计时见 game-shared.js */
+const MAX_LIVES = 3;
+
+function configOf(level) {
+  const lv = Math.max(1, level);
+  const size = Math.min(3 + Math.floor((lv - 1) / 3), 6);
+  const count = Math.min(2 + lv, size * size - 2);
+  return { size, count };
+}
+
+function showingSeconds(g) {
+  return Math.min(2 + g.lit.size * 0.35, 8);
+}
+
+function newMatrix(level, seed, lives) {
+  const { size, count } = configOf(level);
+  const rng = makeRng(seed);
+  const cells = rng.shuffle([...Array(size * size).keys()]);
+  return {
+    level: Math.max(1, level), size,
+    lit: new Set(cells.slice(0, count)),
+    found: new Set(), wrong: new Set(),
+    lives: lives === undefined ? MAX_LIVES : lives,
+    phase: "showing",
+  };
+}
+function hide(g) { if (g.phase === "showing") g.phase = "recall"; }
+function tap(g, index) {
+  if (g.phase !== "recall" || index < 0 || index >= g.size * g.size) return false;
+  if (g.lit.has(index)) {
+    g.found.add(index);
+    if (g.found.size === g.lit.size) g.phase = "cleared";
+    return true;
+  }
+  if (!g.wrong.has(index)) {
+    g.wrong.add(index);
+    g.lives -= 1;
+    if (g.lives <= 0) g.phase = "over";
+  }
+  return false;
+}
+function nextLevel(g, seed) {
+  return newMatrix(g.level + 1, seed, g.lives);
+}
+
+// ===== 界面状态 =====
+let best = parseInt(localStorage.getItem("matrix.best") || "0", 10) || 0;
+let game = newMatrix(1, Date.now());
+let timer = null;
+
+const gridEl = document.getElementById("grid");
+
+function refresh() {
+  document.getElementById("level").textContent = `第 ${game.level} 关`;
+  document.getElementById("lives").textContent = "♥".repeat(Math.max(0, game.lives));
+  document.getElementById("best").textContent = best > 0 ? `最佳 第 ${best} 关` : "";
+  const status = game.phase === "showing" ? `记住 ${game.lit.size} 个亮格…`
+    : game.phase === "recall" ? `还剩 ${game.lit.size - game.found.size} 格`
+    : game.phase === "cleared" ? "过关！"
+    : `到第 ${game.level} 关`;
+  document.getElementById("status").textContent = status;
+
+  gridEl.style.gridTemplateColumns = `repeat(${game.size}, 1fr)`;
+  gridEl.innerHTML = "";
+  for (let i = 0; i < game.size * game.size; i++) {
+    const b = document.createElement("button");
+    b.className = "cell";
+    if (game.phase === "showing" && game.lit.has(i)) b.classList.add("lit");
+    if (game.found.has(i)) b.classList.add("found");
+    if (game.wrong.has(i)) b.classList.add("wrong");
+    if (game.phase === "cleared") b.classList.add("found");
+    if (game.phase === "over" && game.lit.has(i) && !game.found.has(i)) b.classList.add("miss");
+    b.disabled = game.phase !== "recall";
+    b.onclick = () => {
+      tap(game, i);
+      refresh();
+      if (game.phase === "cleared") onCleared();
+      if (game.phase === "over") onOver();
+    };
+    gridEl.appendChild(b);
+  }
+
+  const overlay = document.getElementById("overlay");
+  overlay.classList.toggle("show", game.phase === "over");
+  document.getElementById("overlayScore").textContent = `到第 ${game.level} 关`;
+}
+
+function armTimer() {
+  if (timer) clearTimeout(timer);
+  if (game.phase !== "showing") return;
+  timer = setTimeout(() => {
+    hide(game);
+    refresh();
+  }, showingSeconds(game) * 1000);
+}
+
+function onCleared() {
+  if (game.level > best) {
+    best = game.level;
+    localStorage.setItem("matrix.best", String(best));
+  }
+  setTimeout(() => {
+    if (game.phase !== "cleared") return;
+    game = nextLevel(game, Date.now());
+    refresh();
+    armTimer();
+  }, 900);
+}
+
+function onOver() {
+  refresh();
+}
+
+function restart() {
+  game = newMatrix(1, Date.now());
+  refresh();
+  armTimer();
+}
+
+document.getElementById("restartBtn").onclick = restart;
+document.getElementById("restartOverlayBtn").onclick = restart;
+refresh();
+armTimer();
+</script>
+</body>
+</html>

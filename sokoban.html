@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>推箱子</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.pickerRow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.stats { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; }
+.stats .tip { font-size: 11px; color: var(--game-secondary); font-weight: 400; }
+</style>
+</head>
+<body>
+<h1>📦 推箱子</h1>
+<div class="panel">
+  <div class="pickerRow">
+    <button id="pickerBtn">第 1 关 ▾</button>
+    <span class="progress" id="progress">已过 0/155</span>
+  </div>
+  <div class="stats">
+    <span>步数 <span id="moves">0</span></span>
+    <span class="tip">滑动或点按钮，把箱子推到红圈</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <div id="picker">
+    <div id="pickerHead">选择关卡 <button id="pickerClose">完成</button></div>
+    <div id="pickerGrid"></div>
+  </div>
+  <canvas id="board"></canvas>
+  <div id="overlay">
+    <div class="big">过关！</div>
+    <div class="sub" id="winMoves"></div>
+    <button class="btn purple" id="nextBtn">下一关</button>
+  </div>
+</div>
+<div class="dpad">
+  <button class="dir" data-dx="0" data-dy="-1">▲</button>
+  <div class="dpad-mid">
+    <button class="dir" data-dx="-1" data-dy="0">◀︎</button>
+    <div class="dpad-gap"></div>
+    <button class="dir" data-dx="1" data-dy="0">▶︎</button>
+  </div>
+  <button class="dir" data-dx="0" data-dy="1">▼</button>
+</div>
+<div class="actions">
+  <button class="btn blue" id="undoBtn">撤销</button>
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 关卡（同 iOS 版）=====
+const LEVELS_PACKED = `
+####
+# .#
+#  ###
+#*@  #
+#  $ #
+#  ###
+####
+;
+######
+#    #
+# #@ #
+# $* #
+# .* #
+#    #
+######
+;
+  ####
+###  ####
+#     $ #
+# #  #$ #
+# . .#@ #
+#########
+;
+########
+#      #
+# .**$@#
+#      #
+#####  #
+    ####
+;
+ #######
+ #     #
+ # .$. #
+## $@$ #
+#  .$. #
+#      #
+########
+;
+###### #####
+#    ###   #
+# $$     #@#
+# $ #...   #
+#   ########
+#####
+;
+#######
+#     #
+# .$. #
+# $.$ #
+# .$. #
+# $.$ #
+#  @  #
+#######
+;
+  ######
+  # ..@#
+  # $$ #
+  ## ###
+   # #
+   # #
+#### #
+#    ##
+# #   #
+#   # #
+###   #
+  #####
+;
+#####
+#.  ##
+#@$$ #
+##   #
+ ##  #
+  ##.#
+   ###
+;
+      #####
+      #.  #
+      #.# #
+#######.# #
+# @ $ $ $ #
+# # # # ###
+#       #
+#########
+;
+  ######
+  #    #
+  # ##@##
+### # $ #
+# ..# $ #
+#       #
+#  ######
+####
+;
+#####
+#   ##
+# $  #
+## $ ####
+ ###@.  #
+  #  .# #
+  #     #
+  #######
+;
+####
+#. ##
+#.@ #
+#. $#
+##$ ###
+ # $  #
+ #    #
+ #  ###
+ ####
+;
+#######
+#     #
+# # # #
+#. $*@#
+#   ###
+#####
+;
+     ###
+######@##
+#    .* #
+#   #   #
+#####$# #
+    #   #
+    #####
+;
+ ####
+ #  ####
+ #     ##
+## ##   #
+#. .# @$##
+#   # $$ #
+#  .#    #
+##########
+;
+#####
+# @ #
+#...#
+#$$$##
+#    #
+#    #
+######
+;
+#######
+#     #
+#. .  #
+# ## ##
+#  $ #
+###$ #
+  #@ #
+  #  #
+  ####
+;
+########
+#   .. #
+#  @$$ #
+##### ##
+   #  #
+   #  #
+   #  #
+   ####
+;
+#######
+#     ###
+#  @$$..#
+#### ## #
+  #     #
+  #  ####
+  #  #
+  ####
+;
+####
+#  ####
+# . . #
+# $$#@#
+##    #
+ ######
+;
+#####
+#   ###
+#. .  #
+#   # #
+## #  #
+ #@$$ #
+ #    #
+ #  ###
+ ####
+;
+#######
+#  *  #
+#     #
+## # ##
+ #$@.#
+ #   #
+ #####
+;
+# #####
+  #   #
+###$$@#
+#   ###
+#     #
+# . . #
+#######
+;
+ ####
+ #  ###
+ # $$ #
+##... #
+#  @$ #
+#   ###
+#####
+;
+ #####
+ # @ #
+ #   #
+###$ #
+# ...#
+# $$ #
+###  #
+  ####
+;
+######
+#   .#
+# ## ##
+#  $$@#
+# #   #
+#.  ###
+#####
+;
+#####
+#   #
+# @ #
+# $$###
+##. . #
+ #    #
+ ######
+;
+     #####
+     #   ##
+     #    #
+ ######   #
+##     #. #
+# $ $ @  ##
+# ######.#
+#        #
+##########
+;
+####
+#  ###
+# $$ #
+#... #
+# @$ #
+#   ##
+#####
+;
+  ####
+ ##  #
+##@$.##
+# $$  #
+# . . #
+###   #
+  #####
+;
+ ####
+##  ###
+#     #
+#.**$@#
+#   ###
+##  #
+ ####
+;
+#######
+#. #  #
+#  $  #
+#. $#@#
+#  $  #
+#. #  #
+#######
+;
+  ####
+###  ####
+#       #
+#@$***. #
+#       #
+#########
+;
+  ####
+ ##  #
+ #. $#
+ #.$ #
+ #.$ #
+ #.$ #
+ #. $##
+ #   @#
+ ##   #
+  #####
+;
+####
+#  ############
+# $ $ $ $ $ @ #
+# .....       #
+###############
+;
+      ###
+##### #.#
+#   ###.#
+#   $ #.#
+# $  $  #
+#####@# #
+    #   #
+    #####
+;
+##########
+#        #
+# ##.### #
+# # $$ . #
+# . @$## #
+#####    #
+    ######
+;
+#####
+#   ####
+# # # .#
+#    $ ###
+### #$.  #
+#   #@   #
+# # ######
+#   #
+#####
+;
+ #####
+ #   #
+##   ##
+# $$$ #
+# .+. #
+#######
+;
+#######
+#     #
+#@$$$ ##
+#  #...#
+##    ##
+ ######
+;
+   ####
+   #  #
+   #@ #
+####$.#
+#   $.#
+# # $.#
+#    ##
+######
+;
+     ####
+     # @#
+     #  #
+###### .#
+#   $  .#
+#  $$# .#
+#    ####
+###  #
+  ####
+;
+#####
+#@$.#
+#####
+;
+######
+#... #
+#  $ #
+# #$##
+#  $ #
+#  @ #
+######
+;
+ ######
+##    #
+#  ## #
+# # $ #
+#  * .#
+## #@##
+ #   #
+ #####
+;
+  #######
+###     #
+# $ $   #
+# ### #####
+# @ . .   #
+#   ###   #
+##### #####
+;
+######
+#  @ #
+#  # ##
+# .#  ##
+# .$$$ #
+# .#   #
+####   #
+   #####
+;
+######
+# @  #
+# $# #
+# $  #
+# $ ##
+### ####
+ #  #  #
+ #...  #
+ #     #
+ #######
+;
+  ####
+###  #####
+#  $  @..#
+# $    # #
+### #### #
+  #      #
+  ########
+;
+####
+#  ###
+#    ###
+#  $*@ #
+### .# #
+  #    #
+  ######
+;
+  ####
+### @#
+#  $ #
+#  *.#
+#  *.#
+#  $ #
+###  #
+  ####
+;
+ #####
+##. .##
+# * * #
+#  #  #
+# $ $ #
+## @ ##
+ #####
+;
+      ######
+      #    #
+  ##### .  #
+###  ###.  #
+# $  $  . ##
+# @$$ # . #
+##    #####
+ ######
+;
+########
+# @ #  #
+#      #
+#####$ #
+    #  ###
+ ## #$ ..#
+ ## #  ###
+    ####
+;
+#####
+#   ###
+#  $  #
+##* . #
+ #   @#
+ ######
+;
+  ####
+  #  #
+  #@ #
+  #  #
+### ####
+#    * #
+#  $   #
+#####. #
+    ####
+;
+####
+#  ####
+#.*$  #
+# .$# #
+## @  #
+ #   ##
+ #####
+;
+############
+#          #
+# ####### @##
+# #         #
+# #  $   #  #
+# $$ #####  #
+###  # # ...#
+  #### #    #
+       ######
+;
+ #########
+ #       #
+##@##### #
+#  #   # #
+#  #   $.#
+#  ##$##.#
+##$##  #.#
+#   $  #.#
+#   #  ###
+########
+;
+########
+#      #
+# #### #
+# #...@#
+# ###$###
+# #     #
+#  $$ $ #
+####   ##
+   #.###
+   ###
+;
+   ##########
+####    ##  #
+#  $$$....$@#
+#      ###  #
+#   #### ####
+#####
+;
+#####   ####
+#   ##### .#
+#       $  ########
+###  #### .$    @ #
+  #  #  #  ####   #
+  ####  ####  #####
+;
+ ######
+##    #
+#   $ #
+#  $$ #
+### .#####
+  ##.# @ #
+   #.  $ #
+   #. ####
+   ####
+;
+  ######
+  #    #
+  #  $ #
+ ####$ #
+## $ $ #
+#....# ##
+#     @ #
+##  #   #
+ ########
+;
+   ###
+   #@#
+ ###$###
+##  .  ##
+#  # #  #
+# #   # #
+# #   # #
+# #   # #
+#  # #  #
+## $ $ ##
+ ##. .##
+  #   #
+  #   #
+  #####
+;
+#####
+#   ##
+# #  #
+#@$*.##
+##  . #
+ # $# #
+ ##   #
+  #####
+;
+ ####
+ #  ######
+##    $  #
+# .# $   #
+# .#$#####
+# .@ #
+######
+;
+####  ####
+#  ####  #
+#  #  #  #
+#  #    $##
+#  . .#$  #
+#@ ## # $ #
+#   . #   #
+###########
+;
+#####
+# @ ####
+#      #
+# $ $$ #
+##$##  #
+#   ####
+# ..  #
+##..  #
+ ###  #
+   ####
+;
+###########
+#     #   ###
+# $@$ # .  .#
+# ## ### ## #
+# #       # #
+# #   #   # #
+# ######### #
+#           #
+#############
+;
+  ####
+ ##  #####
+ #  $  @ #
+ #  $#   #
+#### #####
+#  #   #
+#    $ #
+# ..#  #
+#  .####
+#  ##
+####
+;
+####
+#  #####
+# $$ $ #
+#      #
+## ## ##
+#...#@#
+# ### ##
+#      #
+#  #   #
+########
+;
+ ####
+ #  #######
+ #$ @#   .#
+## #$$   .#
+#  $  ##..#
+#   # #####
+###   #
+  #####
+;
+ #######
+## ....##
+#   ######
+#   $ $ @#
+###  $ $ #
+  ###    #
+    ######
+;
+ #####
+##   #
+#    #####
+#  #.#   #
+#@ #.# $ #
+#  #.#  ##
+#    #  #
+##  ##$$#
+ ##     #
+  #  ####
+  ####
+;
+##########
+# @ .... #
+#   ####$##
+## #  $ $ #
+ # $      #
+ #   ######
+ #####
+;
+ #######
+##     ##
+#  $ $  #
+# $ $ $ #
+## ### ####
+ #@  .....#
+ ##     ###
+  #######
+;
+ #########
+ #    #  #
+## $#$#  #
+#  .$.@  #
+#  .#    #
+##########
+;
+####
+#  #######
+#  . ## .#
+# $#    .#
+## ## # .#
+ #    #  #
+ #### #  #
+  # @$ ###
+  # $$ #
+  #    #
+  ######
+;
+ #####
+ #   #
+ # . #
+## * #
+#  *##
+#  @##
+## $ #
+ #   #
+ #####
+;
+#####
+#   ###
+# .   ##
+##*#$  #
+# .# $ #
+# @## ##
+#     #
+#######
+;
+######
+#    ##
+# $ $ ##
+## $$  #
+ # #   #
+ # ## ##
+ #  . .#
+ # @. .#
+ #  ####
+ ####
+;
+########
+#  ... #
+#  ### ##
+#  # $  #
+## #@$  #
+ # # $  #
+ # ### #####
+ #         #
+ #   ###   #
+ ##### #####
+;
+       ####
+ #######  #
+ # $      #
+ #   $ $  #
+ # ########
+## # .  #
+#  # #  #
+#  @ . ##
+## # # #
+ #   . #
+ #######
+;
+    ####
+  ###  ##
+ ## $   #
+## $  # #
+# @#$$  #
+# ..  ###
+# ..###
+#####
+;
+     ####
+######  #
+#       #
+#  ... .#
+##$######
+# $  #
+#   $###
+##  $  #
+ ## @  #
+  ######
+;
+     ####
+ # ###  #
+ # #    #
+ # #  # #
+ # #$ #.#
+ # #  # # #
+ # #$ #.# #
+   #  # # #
+####$ #.# #
+# @     # #
+#   #  ## #
+########
+;
+##########
+#   ##   #
+# $  $@# #
+#### # $ #
+   #.#  ##
+ # #.# $#
+ # #.   #
+ # #.   #
+   ######
+;
+ ########
+ #  @   #
+ # $  $ #
+### ## ###
+#  $..$  #
+#   ..   #
+##########
+;
+###########
+#    .##  #
+# $$@..$$ #
+#   ##.   #
+###########
+;
+  ####
+  #  #    #####
+  #  #    #   #
+  #  ######.# #
+####  $    .  #
+#   $$# ###.# #
+#   #   # #   #
+######### #@ ##
+          #  #
+          ####
+;
+ #########
+##   #   ##
+#    #    #
+#  $ # $  #
+#   *.*   #
+####.@.####
+#   *.*   #
+#  $ # $  #
+#    #    #
+##   #   ##
+ #########
+;
+#########
+# @ #   #
+# $ $   #
+##$### ##
+#  ...  #
+#   #   #
+######  #
+     ####
+;
+########
+#@     #
+# .$$. #
+# $..$ #
+# $..$ #
+# .$$. #
+#      #
+########
+;
+  ######
+  #    #
+  #    #
+#####  #
+#   #.#####
+#   $@$   #
+#####.#   #
+   ## ## ##
+   #   $.#
+   #   ###
+   #####
+;
+   ####
+   #  ########
+#### $ $.....#
+#   $   ######
+#@### ###
+#  $  #
+# $ # #
+## #  #
+ #    #
+ ######
+;
+#####
+#   ## ####
+#  $ ### .#
+# $   $  .#
+## $#####.# ####
+# $  # # .###  #
+#    # # .#  @ #
+###  # #       #
+  #### ##     ##
+        #######
+;
+               #####
+               #   #
+#######  ####### # #
+#     #  #  #      #
+#  @  ####  #     ####
+#  #    ....## ####  #
+#    ##### ## $$ $ $ #
+######   #           #
+         #  ##########
+         ####
+;
+#######
+# @#  #
+#.$   #
+#. # $##
+#.$#   #
+#. # $ #
+#  #   #
+########
+;
+  #####
+  #   #
+  # # #######
+  #  *  #   #
+  ## ##   # #
+  #     #*  #
+### # # # ###
+#  *#$+   #
+# #   ## ##
+#   #  *  #
+####### # #
+      #   #
+      #####
+;
+###########
+#....#    #
+#  #   $$ #
+#  @  ##  #
+#     ##$ #
+######  $ #
+     #    #
+     ######
+;
+  #####
+  # . ##
+### $  #
+# . $#@#
+# #$ . #
+#  $ ###
+## . #
+ #####
+;
+    #####
+#####   #
+#    $  #
+#  $#$#@#
+### #   #
+  # ... #
+  ###  ##
+    #  #
+    ####
+;
+ #### ####
+##  ###  ##
+#   # #   #
+#  *. .*  #
+###$   $###
+ #   @   #
+###$   $###
+#  *. .*  #
+#   # #   #
+##  ###  ##
+ #### ####
+;
+ ########
+ #      #
+ #@   $ #
+## ###$ #
+# .....###
+# $ $ $  #
+###### # #
+     #   #
+     #####
+;
+########
+#      #
+# $*** #
+# *  * #
+# *  * #
+# ***. #
+#     @#
+########
+;
+####     #####
+#  ###   #   ##
+#    #   #$ $ #
+#..# ##### #  #
+#  @    # $ $ #
+#..#         ##
+##   #########
+ #####
+;
+  #######
+# #     #
+# # # # #
+  # @ $ #
+### ### #
+#   ### #
+# $  ##.#
+## $  #.#
+ ## $  .#
+# ## $#.#
+## ## #.#
+### #   #
+### #####
+;
+  ####
+  #  #
+  # $####
+###. .  #
+# $ # $ #
+#  . .###
+####$ #
+   # @#
+   ####
+;
+######
+#    ####
+#    ...#
+#    ...#
+######  #
+  #  #  #
+  # $$ ##
+  # @$  #
+  # $$  #
+  ## $# #
+   #    #
+   ######
+;
+ #####
+##   ####
+#  $$$  #
+# #   $ #
+#   $## ##
+###  #.  #
+  #  #   #
+ ##### ###
+ #   # ##
+ # @....#
+ #      #
+ #   #  #
+ ########
+;
+   #####
+  ##   #
+###  # #
+#    . #
+#  ## #####
+#  . . #  ##
+#  # @ $   ###
+#####. #  $  #
+    ####  $  #
+       ## $ ##
+        #  ##
+        #  #
+        ####
+;
+######
+#    ###
+#  # $ #
+#  $ @ #
+## ## #####
+#  #......#
+# $ $ $ $ #
+##   ######
+ #####
+;
+    #####
+#####   ####
+#     #    #
+#  #.....  #
+##  ## # ###
+ #$$@$$$ #
+ #     ###
+ #######
+;
+     #####
+   ###   #
+####.....#
+# @$$$$$ #
+#     # ##
+#####   #
+    #####
+;
+ #### ####
+ #  ###  ##
+ #      @ #
+##..###   #
+#      #  #
+#...#$  # #
+# ## $$ $ #
+#  $    ###
+####  ###
+   ####
+;
+ #####
+##   ##
+#  $  ##
+# $ $  ##
+###$# . ##
+  # # .  #
+ ## ##.  #
+ # @  . ##
+ #   #  #
+ ########
+;
+  ######
+  #    ##
+ ## ##  #
+ # $$ # #
+ # @$ # #
+ #    # #
+#### #  #
+#  ... ##
+#     ##
+#######
+;
+      ####
+#######  #
+# $      ##
+# $#####  #
+#  @#  #  #
+## ##..   #
+#  # ..####
+# $  ###
+# $###
+#  #
+####
+;
+ ######
+ # .  #
+##$.# #
+#  *  #
+# ..###
+##$ # #####
+## ## #   #
+#  #### # #
+#   @ $ $ #
+##  #     #
+ ##########
+;
+#####
+#   ###
+# #$  #
+# $   #
+# $ $ #
+# $#  #
+#  @###
+## ########
+#      ...#
+#         #
+########..#
+       ####
+;
+########
+#      #
+# $ $$ ########
+##### @##. .  #
+    #$  # .   #
+    #   #. . ##
+    #$# ## # #
+    #        #
+    #  ###  ##
+    #  # ####
+    ####
+;
+##############
+#      #     #
+# $@$$ # . ..#
+## ## ### ## #
+ # #       # #
+ # #   #   # #
+ # ######### #
+ #           #
+ #############
+;
+      #####
+      #   ##
+      # $  #
+######## #@##
+# .  # $ $  #
+#        $# #
+#...#####   #
+#####   #####
+;
+ ###########
+##.......  #
+# $$$$$$$@ #
+#   # # # ##
+# # #     #
+#   #######
+#####
+;
+## ####
+####  ####
+ # $ $.  #
+## #  .$ #
+#   ##.###
+#  $  . #
+# @ #   #
+#  ######
+####
+;
+  #########
+###   #   #
+# * $ . . #
+#   $ ## ##
+####*#   #
+ #  @  ###
+ #   ###
+ #####
+;
+  #########
+### @ #   #
+# * $ *.. #
+#   $ #   #
+####*#  ###
+ #     ##
+ #   ###
+ #####
+;
+#####  #####
+#   ####.. #
+# $$$      #
+#   $#  .. #
+### @#  ## #
+  #  ##    #
+  ##########
+;
+#####
+#   #
+# . #
+#.@.###
+##.#  #
+#  $  #
+# $   #
+##$$  #
+ #  ###
+ #  #
+ ####
+;
+####
+# @###
+#.*  #####
+#..#$$ $ #
+##       #
+ # # ##  #
+ #   #####
+ #####
+;
+ #######
+ #  . .###
+ # . . . #
+### #### #
+#  @$  $ #
+#  $$  $ #
+####   ###
+   #####
+;
+        ####
+#########  #
+#   ## $   #
+#  $   ##  #
+### #. .# ##
+  # #. .#$##
+  # #   #  #
+  # @ $    #
+  #  #######
+  ####
+;
+#######
+#     #####
+# $$#@##..#
+# #       #
+#  $ # #  #
+#### $  ..#
+   ########
+;
+ #######
+ #     #
+## ###$##
+#.$   @ #
+# .. #$ #
+#.##  $ #
+#    ####
+######
+;
+       ####
+      ##  ###
+####  #  $  #
+#  #### $ $ #
+#   ..# #$  #
+#  #   @  ###
+## #..# ###
+ # ## # #
+ #      #
+ ########
+;
+  ####
+###  #
+#    ###
+# # . .#
+# @ ...####
+# # # #   ##
+#   # $$   #
+#####  $ $ #
+    ##$ # ##
+     #    #
+     ######
+;
+ ####
+##  ####
+#   ...#
+#   ...#
+#   # ##
+#   #@ #### ####
+##### $   ###  #
+    #  ##$ $   #
+   ###     $$  #
+   # $  ##   ###
+   #    ######
+   ######
+;
+######## #####
+#  #   ###   #
+#      ## $  #
+#.# @ ## $  ##
+#.#   # $  ##
+#.#    $  ##
+#. ## #####
+##    #
+ ######
+;
+  ########
+  #  # . #
+  #   .*.#
+  #  # * #
+####$##.##
+#      $ #
+# $ ## $ #
+#   @#   #
+##########
+;
+  ####
+  #  #
+  #  ####
+###$.$  #
+#  .@.  #
+#  $.$###
+####  #
+   #  #
+   ####
+;
+####
+#  ####
+# $   #
+# .#  #
+# $# ##
+# .  #
+#### #
+   # #
+ ### ###
+ #  $  #
+## #$# ##
+# $ @ $ #
+# ..#.. #
+###   ###
+  #####
+;
+   ####
+ ###  #####
+ # $$ #   #
+ # $ . .$$##
+ # .. #. $ #
+### #** .  #
+#  . **# ###
+# $ .# .. #
+##$$.@. $ #
+ #   # $$ #
+ #####  ###
+     ####
+;
+   #####
+   # @ #
+  ##   ##
+###.$$$.###
+#  $...$  #
+#  $.#.$  #
+#  $...$  #
+###.$$$.###
+  ##   ##
+   #   #
+   #####
+;
+ #######
+##  .  ##
+# .$$$. #
+# $. .$ #
+#.$ @ $.#
+# $. .$ #
+# .$$$. #
+##  .  ##
+ #######
+;
+       #####
+########   #
+#.   .  @#.#
+#  ###     #
+## $  #    #
+ # $   #####
+ # $#  #
+ ## #  #
+  #   ##
+  #####
+;
+###########
+#  .  #   #
+# #.  @   #
+#  #..# #######
+##  ## $$ $ $ #
+ ##           #
+  #############
+;
+ ####
+##  ###
+#@$   #
+### $ #
+ #  ######
+ #  $....#
+ #  # ####
+ ## # #
+ # $# #
+ #    #
+ #  ###
+ ####
+;
+     ####
+ #####  #
+ #     $#######
+## ## ..#  ...#
+# $ $$#$  @   #
+#        ###  #
+#######  # ####
+      ####
+;
+   ####
+   #  #
+ ###  #
+##  $ #
+#   # #
+# #$$ ######
+# #   #   .#
+#  $  @   .#
+###  ####..#
+  ####  ####
+;
+###### ####
+#     #    #
+#.##  #$##  #
+#   #     #  #
+#$  # ###  #  #
+# #      #  # #
+# # ####  # # #
+#. @    $ * . #
+###############
+;
+#############
+#.# @#  #   #
+#.#$$   # $ #
+#.#  # $#   #
+#.# $#  # $##
+#.#  # $#  #
+#.# $#  # $#
+#..  # $   #
+#..  #  #  #
+############
+;
+ ############################
+ #                          #
+ # ######################## #
+ # #                      # #
+ # # #################### # #
+ # # #                  # # #
+ # # # ################ # # #
+ # # # #              # # # #
+ # # # # ############ # # # #
+ # # # # #            # # # #
+ # # # # # ############ # # #
+ # # # # #              # # #
+ # # # # ################ # #
+ # # # #                  # #
+##$# # #################### #
+#. @ #                      #
+#############################
+;
+    ######               ####
+#####*#  #################  ##
+#   ###                      #
+#        ########  ####  ##  #
+### ####     #  ####  ####  ##
+#*# # .# # # #     #     #   #
+#*# #  #     # ##  # ##  ##  #
+###    ### ###  # ##  # ##  ##
+ #   # #*#      #     # #    #
+ #   # ###  #####  #### #    #
+ #####   #####  ####### ######
+ #   # # #**#               #
+## # #   #**#  #######  ##  #
+#    #########  #    ##### ###
+# #             # $        #*#
+#   #########  ### @#####  #*#
+#####       #### ####   ######
+`;
+
+// 解析打包关卡：; 一行分隔，空行忽略
+function parseLevels(packed) {
+  const levels = [];
+  let current = [];
+  for (const line of packed.split("\n")) {
+    if (line.startsWith(";")) {
+      if (current.length) { levels.push(current); current = []; }
+    } else if (line.length) {
+      current.push(line);
+    }
+  }
+  if (current.length) levels.push(current);
+  return levels;
+}
+
+const LEVELS = parseLevels(LEVELS_PACKED);
+
+// ===== 引擎（SokobanEngine 的 JS 移植）=====
+// 坐标用 "x,y" 字符串做 Set 键。
+function key(x, y) { return x + "," + y; }
+
+// 解析关卡字符：# 墙，@ 玩家，$ 箱子，. 目标点，* 箱子在点上，+ 玩家在点上。
+function parseLevel(level) {
+  const rows = level.length;
+  const cols = Math.max(...level.map(l => l.length));
+  const walls = new Set(), targets = new Set(), boxes = new Set();
+  let player = { x: 0, y: 0 };
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < level[y].length; x++) {
+      const ch = level[y][x];
+      const k = key(x, y);
+      if (ch === "#") walls.add(k);
+      else if (ch === ".") targets.add(k);
+      else if (ch === "$") boxes.add(k);
+      else if (ch === "@") player = { x, y };
+      else if (ch === "*") { boxes.add(k); targets.add(k); }
+      else if (ch === "+") { player = { x, y }; targets.add(k); }
+    }
+  }
+  // 内部地板：从玩家、箱子、目标点出发泛洪（有的关有密封区域，只从玩家走不到）；
+  // 轮廓外的空格到不了，自然排除不画。
+  const floors = new Set();
+  const queue = [player];
+  for (const b of boxes) { const [x, y] = b.split(",").map(Number); queue.push({ x, y }); }
+  for (const t of targets) { const [x, y] = t.split(",").map(Number); queue.push({ x, y }); }
+  while (queue.length) {
+    const head = queue.pop();
+    const hk = key(head.x, head.y);
+    if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) continue;
+    if (walls.has(hk) || floors.has(hk)) continue;
+    floors.add(hk);
+    queue.push({ x: head.x + 1, y: head.y }, { x: head.x - 1, y: head.y },
+               { x: head.x, y: head.y + 1 }, { x: head.x, y: head.y - 1 });
+  }
+  return { cols, rows, walls, targets, boxes, player, floors, moves: 0, history: [] };
+}
+
+// 全部目标点都被箱子占住即过关。
+function isWon(g) {
+  if (g.targets.size === 0) return false;
+  for (const t of g.targets) if (!g.boxes.has(t)) return false;
+  return true;
+}
+
+// 走一格；前面是箱子且箱子前面是空地就推。撞墙或双箱原地不动。
+function move(g, dx, dy) {
+  if (isWon(g)) return false;
+  const nx = g.player.x + dx, ny = g.player.y + dy;
+  const nk = key(nx, ny);
+  if (g.walls.has(nk)) return false;
+  g.history.push({ player: { ...g.player }, boxes: new Set(g.boxes) });
+  if (g.boxes.has(nk)) {
+    const bk = key(nx + dx, ny + dy);
+    if (g.walls.has(bk) || g.boxes.has(bk)) { g.history.pop(); return false; }
+    g.boxes.delete(nk);
+    g.boxes.add(bk);
+  }
+  g.player = { x: nx, y: ny };
+  g.moves++;
+  return true;
+}
+
+// 撤销一步（恢复玩家和箱子快照）。
+function undo(g) {
+  const last = g.history.pop();
+  if (!last) return;
+  g.player = last.player;
+  g.boxes = last.boxes;
+  g.moves--;
+}
+
+// ===== 界面状态 =====
+let levelIndex = parseInt(localStorage.getItem("sokoban.level") || "0", 10) || 0;
+// 已解锁到第几关（1 起）。过第 N 关解锁第 N+1 关。
+let unlocked = parseInt(localStorage.getItem("sokoban.unlocked") || "1", 10) || 1;
+// 兼容旧进度：之前玩到哪关，至少解锁到哪关
+if (levelIndex >= unlocked) unlocked = levelIndex + 1;
+let game = null;
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const movesEl = document.getElementById("moves");
+const overlay = document.getElementById("overlay");
+const winMoves = document.getElementById("winMoves");
+const nextBtn = document.getElementById("nextBtn");
+const undoBtn = document.getElementById("undoBtn");
+
+function loadLevel() {
+  levelIndex = Math.min(Math.max(levelIndex, 0), LEVELS.length - 1);
+  localStorage.setItem("sokoban.level", String(levelIndex));
+  game = parseLevel(LEVELS[levelIndex]);
+  document.getElementById("pickerBtn").textContent = "第 " + (levelIndex + 1) + " 关 ▾";
+  document.getElementById("progress").textContent = "已过 " + (unlocked - 1) + "/" + LEVELS.length;
+  overlay.classList.remove("show");
+  render();
+}
+
+function render() {
+  movesEl.textContent = game.moves;
+  undoBtn.disabled = game.history.length === 0;
+  draw();
+  if (isWon(game)) {
+    // 过当前最高关才解锁下一关，重玩旧关不重复解锁
+    if (levelIndex + 1 === unlocked && unlocked < LEVELS.length) {
+      unlocked++;
+      localStorage.setItem("sokoban.unlocked", String(unlocked));
+      document.getElementById("progress").textContent = "已过 " + (unlocked - 1) + "/" + LEVELS.length;
+    }
+    winMoves.textContent = "步数 " + game.moves;
+    nextBtn.style.display = levelIndex + 1 < LEVELS.length ? "" : "none";
+    overlay.classList.add("show");
+  }
+}
+
+function doMove(dx, dy) {
+  if (move(game, dx, dy)) render();
+}
+
+// ===== 绘制 =====
+function draw() {
+  const wrap = document.getElementById("boardWrap");
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const pad = 8;
+  const cell = Math.max(12, Math.min((w - pad * 2) / game.cols, (h - pad * 2) / game.rows));
+  const ox = (w - cell * game.cols) / 2;
+  const oy = (h - cell * game.rows) / 2;
+  const rect = (x, y) => [ox + x * cell, oy + y * cell, cell, cell];
+
+  // 地板和墙
+  for (let y = 0; y < game.rows; y++) {
+    for (let x = 0; x < game.cols; x++) {
+      const [rx, ry, rw, rh] = rect(x, y);
+      if (game.walls.has(key(x, y))) {
+        ctx.fillStyle = "#59527a";
+        roundRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1, 3);
+        ctx.fill();
+      } else if (game.floors.has(key(x, y))) {
+        // 只画关卡内的地板；轮廓外的空格留白
+        ctx.fillStyle = "#f8f5f0";
+        ctx.fillRect(rx, ry, rw, rh);
+      }
+    }
+  }
+  // 目标点
+  ctx.strokeStyle = "#e64d4d";
+  ctx.lineWidth = Math.max(1.5, cell * 0.06);
+  for (const t of game.targets) {
+    const [x, y] = t.split(",").map(Number);
+    const [rx, ry] = rect(x, y);
+    ctx.beginPath();
+    ctx.arc(rx + cell / 2, ry + cell / 2, cell * 0.17, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // 箱子
+  for (const b of game.boxes) {
+    const [x, y] = b.split(",").map(Number);
+    const [rx, ry] = rect(x, y);
+    ctx.fillStyle = game.targets.has(b) ? "#33b366" : "#d98c33";
+    roundRect(rx + 2, ry + 2, cell - 4, cell - 4, cell * 0.18);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.5)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(rx + 5, ry + 5);
+    ctx.lineTo(rx + cell - 5, ry + cell - 5);
+    ctx.moveTo(rx + cell - 5, ry + 5);
+    ctx.lineTo(rx + 5, ry + cell - 5);
+    ctx.stroke();
+  }
+  // 玩家
+  const [px, py] = rect(game.player.x, game.player.y);
+  ctx.font = Math.floor(cell * 0.72) + "px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🐻", px + cell / 2, py + cell / 2 + 1);
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// ===== 交互 =====
+// 选关弹层：绿色已过、紫色可玩、灰色带锁未解锁，当前关有描边
+const picker = document.getElementById("picker");
+const pickerGrid = document.getElementById("pickerGrid");
+
+function renderPicker() {
+  pickerGrid.innerHTML = "";
+  LEVELS.forEach((_, i) => {
+    const btn = document.createElement("button");
+    const isOpen = i < unlocked;
+    const isDone = i < unlocked - 1;
+    btn.className = "lv" + (isDone ? " done" : "") + (isOpen ? "" : " locked") + (i === levelIndex ? " current" : "");
+    btn.textContent = isOpen ? String(i + 1) : "🔒";
+    if (isOpen) {
+      btn.addEventListener("click", () => {
+        levelIndex = i;
+        loadLevel();
+        picker.classList.remove("show");
+      });
+    }
+    pickerGrid.appendChild(btn);
+  });
+}
+
+document.getElementById("pickerBtn").addEventListener("click", () => {
+  renderPicker();
+  picker.classList.add("show");
+});
+document.getElementById("pickerClose").addEventListener("click", () => picker.classList.remove("show"));
+
+document.querySelectorAll(".dir").forEach(btn => {
+  btn.addEventListener("click", () => doMove(Number(btn.dataset.dx), Number(btn.dataset.dy)));
+});
+undoBtn.addEventListener("click", () => { undo(game); render(); });
+document.getElementById("restartBtn").addEventListener("click", loadLevel);
+nextBtn.addEventListener("click", () => { levelIndex++; loadLevel(); });
+
+// 滑动走一格
+let touchStart = null;
+canvas.addEventListener("pointerdown", e => { touchStart = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener("pointerup", e => {
+  if (!touchStart) return;
+  const dx = e.clientX - touchStart.x, dy = e.clientY - touchStart.y;
+  touchStart = null;
+  if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+  if (Math.abs(dx) > Math.abs(dy)) doMove(dx > 0 ? 1 : -1, 0);
+  else doMove(0, dy > 0 ? 1 : -1);
+});
+
+// 键盘
+window.addEventListener("keydown", e => {
+  const map = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+                w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] };
+  const d = map[e.key];
+  if (d) { e.preventDefault(); doMove(d[0], d[1]); }
+  else if (e.key === "z" || e.key === "u") { undo(game); render(); }
+});
+
+window.addEventListener("resize", draw);
+
+loadLevel();
+</script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>俄罗斯方块</title>
+    <link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#toolbar { display: flex; align-items: center; gap: 12px; }
+#nextWrap { margin-left: auto; text-align: center; }
+#nextWrap .label { font-size: 11px; color: var(--game-secondary); }
+#next { width: 44px; height: 44px; }
+</style>
+</head>
+<body>
+<div id="app">
+    <header>俄罗斯方块</header>
+
+    <div id="toolbar">
+        <div class="stat"><div class="label">分数</div><div class="value" id="scoreText">0</div></div>
+        <div class="stat"><div class="label">行数</div><div class="value" id="linesText">0</div></div>
+        <div class="stat"><div class="label">等级</div><div class="value accent" id="levelText">1</div></div>
+        <div id="nextWrap">
+            <div class="label">下一块</div>
+            <canvas id="next" width="44" height="44"></canvas>
+        </div>
+    </div>
+
+    <div id="boardWrap">
+        <canvas id="board"></canvas>
+        <div id="cover">
+            <div id="coverTitle">已暂停</div>
+            <div id="coverSub"></div>
+        </div>
+    </div>
+
+    <div id="bottomBar" class="col">
+        <div class="row">
+            <button type="button" class="chip btn-move" id="leftBtn">◀︎</button>
+            <button type="button" class="chip btn-undo" id="rotateBtn">旋转</button>
+            <button type="button" class="chip btn-move" id="rightBtn">▶︎</button>
+        </div>
+        <div class="row">
+            <button type="button" class="chip btn-check" id="downBtn">下落</button>
+            <button type="button" class="chip btn-hint" id="dropBtn">硬降</button>
+            <button type="button" class="chip btn-pause" id="pauseBtn">暂停</button>
+            <button type="button" class="chip btn-danger" id="restartBtn">重开</button>
+        </div>
+    </div>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+ * 引擎（移植 TetrisEngine.swift）：10×20，7 种方块，
+ * 旋转/移动/硬降/消行/计分/等级。
+ * ============================================================ */
+const COLS = 10, ROWS = 20;
+
+/** 七种方块的 4×4 基础形状。 */
+const SHAPES = {
+    i: [[0, 1], [1, 1], [2, 1], [3, 1]],
+    o: [[1, 0], [2, 0], [1, 1], [2, 1]],
+    t: [[1, 0], [0, 1], [1, 1], [2, 1]],
+    s: [[1, 0], [2, 0], [0, 1], [1, 1]],
+    z: [[0, 0], [1, 0], [1, 1], [2, 1]],
+    j: [[0, 0], [0, 1], [1, 1], [2, 1]],
+    l: [[2, 0], [0, 1], [1, 1], [2, 1]],
+};
+const KINDS = Object.keys(SHAPES);
+
+/** 4×4 内顺时针转：(x, y) → (y, 3 − x)，转完归一化到左上角。 */
+function cellsFor(kind, rotation) {
+    let out = SHAPES[kind].map(([x, y]) => [x, y]);
+    const turns = ((rotation % 4) + 4) % 4;
+    for (let t = 0; t < turns; t++) {
+        out = out.map(([x, y]) => [y, 3 - x]);
+    }
+    const minX = Math.min(...out.map(([x]) => x));
+    const minY = Math.min(...out.map(([, y]) => y));
+    return out.map(([x, y]) => [x - minX, y - minY]);
+}
+
+/** 消行得分：1/2/3/4 行 = 100/300/500/800，乘等级。 */
+function pointsFor(cleared, level) {
+    const base = [0, 100, 300, 500, 800][cleared] || 0;
+    return base * Math.max(level, 1);
+}
+
+const levelFor = (lines) => Math.floor(lines / 10) + 1;
+/** 等级越高掉得越快，最快 0.08 秒一格。 */
+const fallInterval = (level) => Math.max(80, 850 - (Math.max(level, 1) - 1) * 70);
+
+const game = {
+    grid: [],       // 已固定的方块，null 是空格
+    current: null,  // {kind, rotation, x, y}
+    next: null,
+    phase: "playing", // playing | paused | gameOver
+    score: 0,
+    lines: 0,
+    level: 1,
+};
+
+const randomKind = () => KINDS[Math.floor(Math.random() * KINDS.length)];
+
+function newGame() {
+    game.grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(null));
+    game.phase = "playing";
+    game.score = 0;
+    game.lines = 0;
+    game.level = 1;
+    game.next = randomKind();
+    spawn();
+}
+
+/** 方块在棋盘内且没压到已固定的格子才算放得下。 */
+function fits(piece) {
+    for (const [cx, cy] of cellsFor(piece.kind, piece.rotation)) {
+        const x = piece.x + cx, y = piece.y + cy;
+        if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return false;
+        if (game.grid[y][x] !== null) return false;
+    }
+    return true;
+}
+
+/** 从顶部生成下一块。放不进去就结束。 */
+function spawn() {
+    const kind = game.next || randomKind();
+    game.next = randomKind();
+    const piece = { kind, rotation: 0, x: 3, y: 0 };
+    if (fits(piece)) {
+        game.current = piece;
+    } else {
+        game.current = null;
+        game.phase = "gameOver";
+    }
+}
+
+/** 移动一格。下落被挡住时直接锁定。 */
+function move(dx, dy) {
+    if (game.phase !== "playing" || !game.current) return false;
+    const piece = { ...game.current, x: game.current.x + dx, y: game.current.y + dy };
+    if (fits(piece)) {
+        game.current = piece;
+        return true;
+    }
+    if (dy > 0) lock();
+    return false;
+}
+
+/** 顺时针转 90°。贴墙/贴块时往左右挪 1~2 格试试（踢墙）。 */
+function rotate() {
+    if (game.phase !== "playing" || !game.current) return false;
+    const rotated = { ...game.current, rotation: (game.current.rotation + 1) % 4 };
+    for (const kick of [0, -1, 1, -2, 2]) {
+        const shifted = { ...rotated, x: rotated.x + kick };
+        if (fits(shifted)) {
+            game.current = shifted;
+            return true;
+        }
+    }
+    return false;
+}
+
+/** 直接落到底，每落一格加 2 分。 */
+function hardDrop() {
+    if (game.phase !== "playing" || !game.current) return;
+    const piece = { ...game.current };
+    let distance = 0;
+    while (fits({ ...piece, y: piece.y + 1 })) {
+        piece.y++;
+        distance++;
+    }
+    game.current = piece;
+    game.score += distance * 2;
+    lock();
+}
+
+/** 当前方块固定到棋盘，消行，再出下一块。 */
+function lock() {
+    const piece = game.current;
+    if (!piece) return;
+    for (const [cx, cy] of cellsFor(piece.kind, piece.rotation)) {
+        const x = piece.x + cx, y = piece.y + cy;
+        if (y >= 0 && y < ROWS && x >= 0 && x < COLS) game.grid[y][x] = piece.kind;
+    }
+    game.current = null;
+    clearLines();
+    spawn();
+}
+
+/** 满行删掉，上面整体下落，顶部补空行，然后结算行数 / 等级 / 分数。 */
+function clearLines() {
+    const kept = game.grid.filter((row) => row.some((cell) => cell === null));
+    const cleared = ROWS - kept.length;
+    if (cleared === 0) return;
+    for (let i = 0; i < cleared; i++) kept.unshift(new Array(COLS).fill(null));
+    game.grid = kept;
+    game.lines += cleared;
+    game.level = levelFor(game.lines);
+    game.score += pointsFor(cleared, game.level);
+}
+
+function togglePause() {
+    if (game.phase === "playing") game.phase = "paused";
+    else if (game.phase === "paused") game.phase = "playing";
+}
+
+/* ============================================================
+ * 界面：数据栏 / 棋盘 / 下一块 / 覆盖层
+ * ============================================================ */
+const $ = (id) => document.getElementById(id);
+const scoreEl = $("scoreText");
+const linesEl = $("linesText");
+const levelEl = $("levelText");
+const coverEl = $("cover");
+const coverTitleEl = $("coverTitle");
+const coverSubEl = $("coverSub");
+
+/** 方块颜色，和 iOS 版一致。 */
+const COLORS = {
+    i: "rgb(51, 179, 230)",
+    o: "rgb(242, 204, 51)",
+    t: "rgb(179, 102, 230)",
+    s: "rgb(51, 204, 102)",
+    z: "rgb(230, 77, 77)",
+    j: "rgb(77, 102, 230)",
+    l: "rgb(242, 153, 51)",
+};
+
+const boardWrap = $("boardWrap");
+const canvas = $("board");
+const ctx = canvas.getContext("2d");
+const nextCanvas = $("next");
+const nextCtx = nextCanvas.getContext("2d");
+let layout = null;
+
+function computeLayout(w, h) {
+    const pad = 8;
+    const cell = Math.max(8, Math.min((w - pad * 2) / COLS, (h - pad * 2) / ROWS));
+    const boardW = cell * COLS, boardH = cell * ROWS;
+    return { cell, ox: (w - boardW) / 2, oy: (h - boardH) / 2, boardW, boardH };
+}
+
+function draw() {
+    if (!layout) return;
+    const L = layout;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 格子线
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for (let r = 0; r <= ROWS; r++) {
+        ctx.moveTo(L.ox, L.oy + r * L.cell);
+        ctx.lineTo(L.ox + L.boardW, L.oy + r * L.cell);
+    }
+    for (let c = 0; c <= COLS; c++) {
+        ctx.moveTo(L.ox + c * L.cell, L.oy);
+        ctx.lineTo(L.ox + c * L.cell, L.oy + L.boardH);
+    }
+    ctx.stroke();
+
+    // 已固定的 + 当前下落的
+    const fillCell = (x, y, kind) => {
+        ctx.fillStyle = COLORS[kind];
+        ctx.beginPath();
+        ctx.roundRect(L.ox + x * L.cell + 1, L.oy + y * L.cell + 1, L.cell - 2, L.cell - 2, 2);
+        ctx.fill();
+    };
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            if (game.grid[r][c] !== null) fillCell(c, r, game.grid[r][c]);
+        }
+    }
+    if (game.current) {
+        for (const [cx, cy] of cellsFor(game.current.kind, game.current.rotation)) {
+            fillCell(game.current.x + cx, game.current.y + cy, game.current.kind);
+        }
+    }
+}
+
+/** 下一块预览：按实际宽高居中画在 44×44 上。 */
+function drawNext() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    if (nextCanvas.width !== 44 * dpr) {
+        nextCanvas.width = 44 * dpr;
+        nextCanvas.height = 44 * dpr;
+    }
+    nextCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    nextCtx.clearRect(0, 0, 44, 44);
+    if (!game.next) return;
+    const cells = cellsFor(game.next, 0);
+    const cell = 44 / 4;
+    const xs = cells.map(([x]) => x), ys = cells.map(([, y]) => y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const offX = (44 - (maxX - minX + 1) * cell) / 2;
+    const offY = (44 - (maxY - minY + 1) * cell) / 2;
+    nextCtx.fillStyle = COLORS[game.next];
+    for (const [x, y] of cells) {
+        nextCtx.beginPath();
+        nextCtx.roundRect(offX + (x - minX) * cell + 0.5, offY + (y - minY) * cell + 0.5, cell - 1, cell - 1, 1.5);
+        nextCtx.fill();
+    }
+}
+
+let lastChrome = "";
+function updateChrome() {
+    // 暂停 / 结束盖在棋盘上，游戏区位置和大小保持不变。
+    const key = `${game.score}|${game.lines}|${game.level}|${game.phase}|${game.next}`;
+    if (key === lastChrome) return;
+    lastChrome = key;
+    scoreEl.textContent = String(game.score);
+    linesEl.textContent = String(game.lines);
+    levelEl.textContent = String(game.level);
+    $("pauseBtn").textContent = game.phase === "paused" ? "继续" : "暂停";
+    if (game.phase === "playing") {
+        coverEl.classList.remove("show");
+    } else {
+        coverEl.classList.add("show");
+        coverTitleEl.textContent = game.phase === "paused" ? "已暂停" : "游戏结束";
+        coverSubEl.textContent = game.phase === "gameOver" ? `分数 ${game.score} · 行数 ${game.lines}` : "";
+    }
+    drawNext();
+}
+
+/* ============================================================
+ * 计时器与输入
+ * ============================================================ */
+let timer = null;
+
+function vibrate(ms) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+}
+
+/** 按当前等级重设计时器；升级后下落会变快，需要重开。 */
+function startTimer() {
+    stopTimer();
+    timer = setInterval(() => {
+        if (game.phase !== "playing") return;
+        const oldLevel = game.level;
+        move(0, 1);
+        if (game.level !== oldLevel) startTimer();
+        if (game.phase === "gameOver") {
+            stopTimer();
+            vibrate(80);
+        }
+    }, fallInterval(game.level));
+}
+
+function stopTimer() {
+    if (timer !== null) clearInterval(timer);
+    timer = null;
+}
+
+/** 按钮统一入口：动作生效就给一下轻震动。 */
+function play(fn) {
+    if (game.phase !== "playing") return;
+    if (fn()) vibrate(8);
+}
+
+$("leftBtn").addEventListener("click", () => play(() => move(-1, 0)));
+$("rightBtn").addEventListener("click", () => play(() => move(1, 0)));
+$("downBtn").addEventListener("click", () => play(() => move(0, 1)));
+$("rotateBtn").addEventListener("click", () => play(rotate));
+$("dropBtn").addEventListener("click", () => play(() => { hardDrop(); return true; }));
+$("pauseBtn").addEventListener("click", () => {
+    togglePause();
+    if (game.phase === "paused") stopTimer();
+    else if (game.phase === "playing") startTimer();
+});
+$("restartBtn").addEventListener("click", () => {
+    newGame();
+    startTimer();
+});
+
+/** 桌面键盘：←→ 移动，↓ 下落，↑/X 旋转，空格硬降，P 暂停。 */
+window.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+    switch (e.key) {
+        case "ArrowLeft": play(() => move(-1, 0)); break;
+        case "ArrowRight": play(() => move(1, 0)); break;
+        case "ArrowDown": play(() => move(0, 1)); break;
+        case "ArrowUp": case "x": case "X": play(rotate); break;
+        case " ": play(() => { hardDrop(); return true; }); break;
+        case "p": case "P": $("pauseBtn").click(); break;
+        default: return;
+    }
+    e.preventDefault();
+});
+
+function resize() {
+    const w = boardWrap.clientWidth, h = boardWrap.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout = computeLayout(w, h);
+}
+
+new ResizeObserver(resize).observe(boardWrap);
+
+function frame() {
+    draw();
+    updateChrome();
+    requestAnimationFrame(frame);
+}
+
+resize();
+newGame();
+startTimer();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

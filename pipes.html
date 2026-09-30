@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>水管</title>
+    <link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.chip.ghost { background: #fff; color: var(--game-text); border: 1px solid rgba(0,0,0,.08); }
+.chip.group-on { outline: 2px solid rgba(0,0,0,.25); outline-offset: 1px; }
+#statusText { font-size: 12px; font-weight: 600; color: var(--game-text); min-height: 14px; }
+#dailyBest { font-size: 11px; font-weight: 600; color: var(--game-text); margin-left: auto; }
+</style>
+</head>
+<body>
+<div id="app">
+    <header>水管</header>
+
+    <div id="toolbar">
+        <div class="tb-row">
+            <button type="button" class="chip" data-size="5">5×5</button>
+            <button type="button" class="chip" data-size="7">7×7</button>
+            <button type="button" class="chip" data-size="10">10×10</button>
+            <button type="button" class="chip" id="modeBtn">随机</button>
+            <span id="timeText">0:00</span>
+        </div>
+        <div class="tb-row">
+            <button type="button" class="chip" data-diff="easy">简单</button>
+            <button type="button" class="chip" data-diff="normal">普通</button>
+            <button type="button" class="chip" data-diff="hard">困难</button>
+            <button type="button" class="chip" data-diff="evil">极难</button>
+        </div>
+        <div class="tb-row">
+            <span class="hint">点格顺时针转 90°，长按锁定。管子要连成一整片。</span>
+            <span id="dailyBest"></span>
+        </div>
+        <div class="tb-row"><span id="statusText"></span></div>
+    </div>
+
+    <div id="boardWrap"><canvas id="board"></canvas></div>
+
+    <div id="bottomBar">
+        <button type="button" class="chip btn-accent" id="newBtn">新题</button>
+        <button type="button" class="chip btn-move" id="restartBtn">重开</button>
+        <button type="button" class="chip btn-check" id="checkBtn">检查</button>
+        <button type="button" class="chip btn-hint" id="hintBtn">提示</button>
+    </div>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+"use strict";
+
+/* 随机数 / 计时见 game-shared.js */
+function dayKey(d = new Date()) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** FNV-1a 64 位，和 iOS 端同一公式。 */
+function seedFor(text) {
+    let hash = 14695981039346656037n;
+    for (const byte of new TextEncoder().encode(text)) {
+        hash ^= BigInt(byte);
+        hash = (hash * 1099511628211n) & MASK64;
+    }
+    return hash;
+}
+
+/* ============================================================
+ * 管子基础（移植 PipeTile）：开口位 北=1 东=2 南=4 西=8
+ * ============================================================ */
+const N = 1, E = 2, S = 4, W = 8;
+
+/** 顺时针转 90°：位循环左移。 */
+function rotateMask(mask) {
+    return ((mask << 1) | (mask >> 3)) & 0b1111;
+}
+
+/* ============================================================
+ * 解题（移植 PipeSolver）：开口对齐 + 整盘连通 + 无环。
+ * ============================================================ */
+/** 这一格的某个方向开口是否真的接到对面开口。 */
+function hasLink(rows, cols, openings, index, dir) {
+    if (!openings[index] || (openings[index] & dir) === 0) return false;
+    const r = Math.floor(index / cols), c = index % cols;
+    if (dir === N) return r > 0 && (openings[(r - 1) * cols + c] & S) !== 0;
+    if (dir === S) return r + 1 < rows && (openings[(r + 1) * cols + c] & N) !== 0;
+    if (dir === W) return c > 0 && (openings[r * cols + (c - 1)] & E) !== 0;
+    return c + 1 < cols && (openings[r * cols + (c + 1)] & W) !== 0;
+}
+
+/** 这一格的所有开口都对上了邻居。 */
+function isMatched(rows, cols, openings, index) {
+    const mask = openings[index];
+    for (const dir of [N, E, S, W]) {
+        if ((mask & dir) !== 0 && !hasLink(rows, cols, openings, index, dir)) return false;
+    }
+    return true;
+}
+
+/** 从 0 格出发能连到多少格（开口对上才算）。 */
+function connectedCount(rows, cols, openings) {
+    const seen = new Array(rows * cols).fill(false);
+    const queue = [0];
+    seen[0] = true;
+    for (let i = 0; i < queue.length; i++) {
+        const index = queue[i];
+        const r = Math.floor(index / cols), c = index % cols;
+        const tryPush = (dir, next) => {
+            if (hasLink(rows, cols, openings, index, dir) && !seen[next]) {
+                seen[next] = true;
+                queue.push(next);
+            }
+        };
+        if (r > 0) tryPush(N, (r - 1) * cols + c);
+        if (r + 1 < rows) tryPush(S, (r + 1) * cols + c);
+        if (c > 0) tryPush(W, r * cols + (c - 1));
+        if (c + 1 < cols) tryPush(E, r * cols + (c + 1));
+    }
+    return queue.length;
+}
+
+/** 合法 = 每格开口都对上 + 边数 = 格数 − 1（无环）+ 整盘连通。 */
+function isValid(rows, cols, openings) {
+    let edges = 0;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const mask = openings[r * cols + c];
+            if ((mask & N) !== 0 && (r === 0 || (openings[(r - 1) * cols + c] & S) === 0)) return false;
+            if ((mask & W) !== 0 && (c === 0 || (openings[r * cols + (c - 1)] & E) === 0)) return false;
+            if ((mask & E) !== 0) {
+                if (c === cols - 1 || (openings[r * cols + (c + 1)] & W) === 0) return false;
+                edges++;
+            }
+            if ((mask & S) !== 0) {
+                if (r === rows - 1 || (openings[(r + 1) * cols + c] & N) === 0) return false;
+                edges++;
+            }
+        }
+    }
+    if (edges !== rows * cols - 1) return false;
+    return connectedCount(rows, cols, openings) === rows * cols;
+}
+
+/** 最大连通块：只有这块是「有水」的主网，用来上色。 */
+function waterCells(rows, cols, openings) {
+    const total = rows * cols;
+    const seen = new Array(total).fill(false);
+    let best = new Set();
+    for (let start = 0; start < total; start++) {
+        if (seen[start]) continue;
+        const component = [];
+        const queue = [start];
+        seen[start] = true;
+        for (let i = 0; i < queue.length; i++) {
+            const index = queue[i];
+            component.push(index);
+            const r = Math.floor(index / cols), c = index % cols;
+            const tryPush = (dir, next) => {
+                if (hasLink(rows, cols, openings, index, dir) && !seen[next]) {
+                    seen[next] = true;
+                    queue.push(next);
+                }
+            };
+            if (r > 0) tryPush(N, (r - 1) * cols + c);
+            if (r + 1 < rows) tryPush(S, (r + 1) * cols + c);
+            if (c > 0) tryPush(W, r * cols + (c - 1));
+            if (c + 1 < cols) tryPush(E, r * cols + (c + 1));
+        }
+        if (component.length > best.size) best = new Set(component);
+    }
+    return best;
+}
+
+/* ============================================================
+ * 出题（移植 PipeGenerator）：网格生成树当答案，再打乱朝向。
+ * 难度越高，开局就摆对并锁定的格子越少。
+ * ============================================================ */
+const LOCK_RATIO = { easy: 0.32, normal: 0.16, hard: 0.08, evil: 0 };
+
+function spanningTree(rows, cols, rng) {
+    // 并查集
+    const parent = [...Array(rows * cols).keys()];
+    const find = (x) => {
+        let cur = x;
+        while (parent[cur] !== cur) {
+            parent[cur] = parent[parent[cur]];
+            cur = parent[cur];
+        }
+        return cur;
+    };
+    const unite = (a, b) => {
+        const ra = find(a), rb = find(b);
+        if (ra === rb) return false;
+        parent[rb] = ra;
+        return true;
+    };
+
+    // 所有相邻格之间的边，洗牌后逐个加，不成环。
+    const edges = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const index = r * cols + c;
+            if (c + 1 < cols) edges.push([index, index + 1, E, W]);
+            if (r + 1 < rows) edges.push([index, index + cols, S, N]);
+        }
+    }
+    rng.shuffle(edges);
+
+    const openings = new Array(rows * cols).fill(0);
+    let added = 0;
+    const need = rows * cols - 1;
+    for (const [a, b, from, to] of edges) {
+        if (unite(a, b)) {
+            openings[a] |= from;
+            openings[b] |= to;
+            if (++added === need) break;
+        }
+    }
+    return openings;
+}
+
+function generatePuzzle(rows, cols, difficulty, rng) {
+    const solution = spanningTree(rows, cols, rng);
+    const initial = solution.slice();
+    const clueLocked = new Array(rows * cols).fill(false);
+    const order = rng.shuffle([...solution.keys()]);
+    const lockCount = Math.round(rows * cols * LOCK_RATIO[difficulty]);
+    for (const index of order.slice(0, lockCount)) clueLocked[index] = true;
+
+    // 没锁的格随机转 1~3 次，保证和答案不同。
+    for (const index of order) {
+        if (clueLocked[index]) continue;
+        const original = solution[index];
+        let rotated = original;
+        const turns = rng.range(1, 3);
+        for (let t = 0; t < turns; t++) rotated = rotateMask(rotated);
+        if (rotated === original) rotated = rotateMask(rotated);
+        initial[index] = rotated;
+    }
+    // 万一打乱后仍是解（直管/口字转一圈会重合），再转一格直到不是解。
+    if (isValid(rows, cols, initial)) {
+        for (const index of order) {
+            if (clueLocked[index]) continue;
+            initial[index] = rotateMask(initial[index]);
+            if (!isValid(rows, cols, initial)) break;
+        }
+    }
+    return { rows, cols, solution, initial, clueLocked };
+}
+
+/* ============================================================
+ * 一局状态（移植 PipeGameEngine）
+ * ============================================================ */
+const game = {
+    puzzle: null,
+    openings: [],   // 当前朝向
+    locked: [],
+    isSolved: false,
+    mistake: new Set(),
+    elapsed: 0,
+};
+
+function newGame(puzzle) {
+    game.puzzle = puzzle;
+    game.openings = puzzle.initial.slice();
+    game.locked = puzzle.clueLocked.slice();
+    game.isSolved = false;
+    game.mistake = new Set();
+    game.elapsed = 0;
+    refreshSolved();
+}
+
+function refreshSolved() {
+    game.isSolved = isValid(game.puzzle.rows, game.puzzle.cols, game.openings);
+}
+
+function rotateCell(index) {
+    if (game.isSolved || game.locked[index]) return;
+    game.openings[index] = rotateMask(game.openings[index]);
+    game.mistake.clear();
+    refreshSolved();
+}
+
+function toggleLock(index) {
+    if (game.isSolved) return;
+    game.locked[index] = !game.locked[index];
+}
+
+function restartGame() {
+    game.openings = game.puzzle.initial.slice();
+    game.locked = game.puzzle.clueLocked.slice();
+    game.isSolved = false;
+    game.mistake.clear();
+    game.elapsed = 0;
+    refreshSolved();
+}
+
+function checkMistakes() {
+    game.mistake = new Set();
+    game.openings.forEach((mask, i) => {
+        if (mask !== game.puzzle.solution[i]) game.mistake.add(i);
+    });
+}
+
+/** 随机转正一个朝向不对且没锁的格子。 */
+function revealHint() {
+    if (game.isSolved) return false;
+    const candidates = [];
+    game.openings.forEach((mask, i) => {
+        if (!game.locked[i] && mask !== game.puzzle.solution[i]) candidates.push(i);
+    });
+    if (!candidates.length) return false;
+    const index = candidates[Math.floor(Math.random() * candidates.length)];
+    game.openings[index] = game.puzzle.solution[index];
+    game.mistake.clear();
+    refreshSolved();
+    return true;
+}
+
+/* ============================================================
+ * 界面：设置 / 出题 / 计时 / 每日最佳
+ * ============================================================ */
+const settings = {
+    size: parseInt(localStorage.getItem("pipe.size") || "7", 10),
+    difficulty: localStorage.getItem("pipe.difficulty") || "normal",
+    daily: localStorage.getItem("pipe.daily") === "1",
+};
+if (![5, 7, 10].includes(settings.size)) settings.size = 7;
+if (!LOCK_RATIO.hasOwnProperty(settings.difficulty)) settings.difficulty = "normal";
+
+let startedAt = null;
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $("statusText");
+const timeEl = $("timeText");
+const dailyBestEl = $("dailyBest");
+
+function dailyBestKey() {
+    return `pipe.daily.best.${dayKey()}.${settings.size}.${settings.difficulty}`;
+}
+
+function loadDailyBest() {
+    const v = parseFloat(localStorage.getItem(dailyBestKey()) || "0");
+    return v > 0 ? v : null;
+}
+
+function saveDailyBest(elapsed) {
+    const key = dailyBestKey();
+    const cur = parseFloat(localStorage.getItem(key) || "0");
+    if (cur === 0 || elapsed < cur) localStorage.setItem(key, String(elapsed));
+}
+
+function refreshChips() {
+    document.querySelectorAll("[data-size]").forEach((btn) => {
+        btn.style.background = CHIP_COLORS.size;
+        btn.classList.toggle("group-on", parseInt(btn.dataset.size, 10) === settings.size);
+    });
+    document.querySelectorAll("[data-diff]").forEach((btn) => {
+        btn.style.background = CHIP_COLORS[btn.dataset.diff];
+        btn.classList.toggle("group-on", btn.dataset.diff === settings.difficulty);
+    });
+    const modeBtn = $("modeBtn");
+    modeBtn.textContent = settings.daily ? "每日" : "随机";
+    modeBtn.style.background = settings.daily ? CHIP_COLORS.modeDaily : CHIP_COLORS.modeRandom;
+    $("newBtn").style.display = settings.daily ? "none" : "";
+    dailyBestEl.textContent = settings.daily && loadDailyBest() ? `今日最佳 ${formatTime(loadDailyBest())}` : "";
+}
+
+/** 出题。每日用日期种子；随机用随机种子。生成树很快，不用后台。 */
+function buildPuzzle() {
+    const seed = settings.daily
+        ? seedFor(`pipe|${dayKey()}|${settings.size}|${settings.difficulty}`)
+        : BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) + 1n;
+    const rng = makeRng(seed);
+    newGame(generatePuzzle(settings.size, settings.size, settings.difficulty, rng));
+    startedAt = Date.now();
+    statusEl.textContent = "";
+    refreshChips();
+}
+
+function handleWin() {
+    game.elapsed = (Date.now() - startedAt) / 1000;
+    statusEl.textContent = `完成 ${formatTime(game.elapsed)}`;
+    if (settings.daily) {
+        saveDailyBest(game.elapsed);
+        refreshChips();
+    }
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+}
+
+/* ============================================================
+ * 画布（移植 PipeBoardCanvas / PipeBoardLayout）
+ * 管子按格子裁切，不会画到邻格；出水口（单开口）圆头更大。
+ * ============================================================ */
+const boardWrap = $("boardWrap");
+const canvas = $("board");
+const ctx = canvas.getContext("2d");
+let layout = null;
+
+function computeLayout(w, h) {
+    const pad = 14;
+    const { rows, cols } = game.puzzle;
+    const cell = Math.max(16, Math.min((w - pad * 2) / cols, (h - pad * 2) / rows));
+    const boardW = cell * cols, boardH = cell * rows;
+    return {
+        rows, cols, cell,
+        ox: (w - boardW) / 2,
+        oy: (h - boardH) / 2,
+        cellRect(r, c) { return [this.ox + c * cell, this.oy + r * cell, cell, cell]; },
+        cellCenter(r, c) { return [this.ox + (c + 0.5) * cell, this.oy + (r + 0.5) * cell]; },
+        hitTest(x, y) {
+            const c = Math.floor((x - this.ox) / cell);
+            const r = Math.floor((y - this.oy) / cell);
+            return r >= 0 && c >= 0 && r < rows && c < cols ? r * cols + c : null;
+        },
+    };
+}
+
+function popcount(mask) {
+    let n = 0;
+    while (mask) { n += mask & 1; mask >>= 1; }
+    return n;
+}
+
+function draw() {
+    if (!layout || !game.puzzle) return;
+    const L = layout;
+    const { rows, cols } = game.puzzle;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 格子线
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let r = 0; r <= rows; r++) {
+        ctx.moveTo(L.ox, L.oy + r * L.cell);
+        ctx.lineTo(L.ox + cols * L.cell, L.oy + r * L.cell);
+    }
+    for (let c = 0; c <= cols; c++) {
+        ctx.moveTo(L.ox + c * L.cell, L.oy);
+        ctx.lineTo(L.ox + c * L.cell, L.oy + rows * L.cell);
+    }
+    ctx.stroke();
+
+    // 检查标错的红框
+    ctx.strokeStyle = "rgb(255,59,48)";
+    ctx.lineWidth = 2;
+    for (const index of game.mistake) {
+        const r = Math.floor(index / cols), c = index % cols;
+        const [x, y, w, h] = L.cellRect(r, c);
+        ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+    }
+
+    // 管子：整格一个色——在主水网且开口全对上才亮，否则灰。
+    const water = waterCells(rows, cols, game.openings);
+    const lineWidth = Math.max(6, L.cell * 0.28);
+    const dry = "rgb(140, 148, 163)";
+    const wet = game.isSolved ? "rgb(84, 74, 158)" : "rgb(41, 133, 219)";
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const index = r * cols + c;
+            const mask = game.openings[index];
+            const lit = game.isSolved || (water.has(index) && isMatched(rows, cols, game.openings, index));
+            const color = lit ? wet : dry;
+            const [x, y, cw, ch] = L.cellRect(r, c);
+            const [cx, cy] = L.cellCenter(r, c);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, cw, ch);
+            ctx.clip();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = "butt";
+            ctx.beginPath();
+            if (mask & W) { ctx.moveTo(cx, cy); ctx.lineTo(x, cy); }
+            if (mask & E) { ctx.moveTo(cx, cy); ctx.lineTo(x + cw, cy); }
+            if (mask & N) { ctx.moveTo(cx, cy); ctx.lineTo(cx, y); }
+            if (mask & S) { ctx.moveTo(cx, cy); ctx.lineTo(cx, y + ch); }
+            ctx.stroke();
+            // 中心圆节：出水口（单开口）更大。
+            const isOutlet = popcount(mask) === 1;
+            const bulb = Math.min(isOutlet ? Math.max(lineWidth * 1.85, L.cell * 0.46) : lineWidth, L.cell - 2);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, bulb / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // 锁定标记：右上角小锁。
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const index = r * cols + c;
+            if (!game.locked[index]) continue;
+            const [x, y] = L.cellRect(r, c);
+            const s = Math.max(9, L.cell * 0.18);
+            const lx = x + L.cell - s - 4, ly = y + 4;
+            ctx.strokeStyle = "rgba(84, 74, 158, 0.85)";
+            ctx.fillStyle = "rgba(84, 74, 158, 0.85)";
+            ctx.lineWidth = Math.max(1.2, s * 0.16);
+            // 锁梁
+            ctx.beginPath();
+            ctx.arc(lx + s / 2, ly + s * 0.42, s * 0.3, Math.PI, 0);
+            ctx.stroke();
+            // 锁体
+            ctx.beginPath();
+            ctx.roundRect(lx, ly + s * 0.4, s, s * 0.62, s * 0.14);
+            ctx.fill();
+        }
+    }
+}
+
+/* ============================================================
+ * 事件：点按旋转，长按（0.4s）锁定
+ * ============================================================ */
+let pressTimer = null;
+let pressIndex = null;
+let longPressed = false;
+
+function eventIndex(e) {
+    if (!layout) return null;
+    const rect = canvas.getBoundingClientRect();
+    return layout.hitTest(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+    if (!layout || game.isSolved) return;
+    pressIndex = eventIndex(e);
+    longPressed = false;
+    if (pressIndex !== null) {
+        // 长按锁定；计时内松手算点按。
+        pressTimer = setTimeout(() => {
+            longPressed = true;
+            toggleLock(pressIndex);
+            if (navigator.vibrate) navigator.vibrate(20);
+        }, 400);
+    }
+    e.preventDefault();
+});
+
+canvas.addEventListener("pointerup", (e) => {
+    clearTimeout(pressTimer);
+    if (!layout || game.isSolved) return;
+    if (!longPressed && pressIndex !== null && eventIndex(e) === pressIndex) {
+        rotateCell(pressIndex);
+        if (navigator.vibrate) navigator.vibrate(8);
+        if (game.isSolved) handleWin();
+    }
+    pressIndex = null;
+});
+
+canvas.addEventListener("pointercancel", () => {
+    clearTimeout(pressTimer);
+    pressIndex = null;
+});
+
+document.querySelectorAll("[data-size]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        settings.size = parseInt(btn.dataset.size, 10);
+        localStorage.setItem("pipe.size", String(settings.size));
+        buildPuzzle();
+    });
+});
+document.querySelectorAll("[data-diff]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        settings.difficulty = btn.dataset.diff;
+        localStorage.setItem("pipe.difficulty", settings.difficulty);
+        buildPuzzle();
+    });
+});
+$("modeBtn").addEventListener("click", () => {
+    settings.daily = !settings.daily;
+    localStorage.setItem("pipe.daily", settings.daily ? "1" : "0");
+    buildPuzzle();
+});
+$("newBtn").addEventListener("click", buildPuzzle);
+$("restartBtn").addEventListener("click", () => {
+    if (!game.puzzle) return;
+    restartGame();
+    startedAt = Date.now();
+    statusEl.textContent = "";
+});
+$("checkBtn").addEventListener("click", () => {
+    if (!game.puzzle || game.isSolved) return;
+    checkMistakes();
+    statusEl.textContent = game.mistake.size === 0 ? "朝向都对，检查连接" : "红框格子朝向不对";
+});
+$("hintBtn").addEventListener("click", () => {
+    if (!game.puzzle || game.isSolved) return;
+    statusEl.textContent = revealHint() ? "转正了一格" : "没有可提示的格子了";
+    if (game.isSolved) handleWin();
+});
+
+
+function resize() {
+    const w = boardWrap.clientWidth, h = boardWrap.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (game.puzzle) layout = computeLayout(w, h);
+}
+
+new ResizeObserver(resize).observe(boardWrap);
+
+function frame() {
+    if (game.puzzle && !game.isSolved && startedAt) {
+        timeEl.textContent = formatTime((Date.now() - startedAt) / 1000);
+    } else if (game.isSolved) {
+        timeEl.textContent = formatTime(game.elapsed);
+    }
+    draw();
+    requestAnimationFrame(frame);
+}
+
+refreshChips();
+resize();
+buildPuzzle();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>数回</title>
+    <link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.chip.ghost { background: #fff; color: var(--game-text); border: 1px solid rgba(0,0,0,.08); }
+.chip.group-on { outline: 2px solid rgba(0,0,0,.25); outline-offset: 1px; }
+#statusText { font-size: 12px; font-weight: 600; color: var(--game-text); min-height: 14px; }
+#dailyBest { font-size: 11px; font-weight: 600; color: var(--game-text); margin-left: auto; }
+</style>
+</head>
+<body>
+<div id="app">
+    <header>数回</header>
+
+    <div id="toolbar">
+        <div class="tb-row">
+            <button type="button" class="chip" data-size="5">5×5</button>
+            <button type="button" class="chip" data-size="7">7×7</button>
+            <button type="button" class="chip" data-size="10">10×10</button>
+            <button type="button" class="chip" id="modeBtn">随机</button>
+            <span id="timeText">0:00</span>
+        </div>
+        <div class="tb-row">
+            <button type="button" class="chip" data-diff="easy">简单</button>
+            <button type="button" class="chip" data-diff="normal">普通</button>
+            <button type="button" class="chip" data-diff="hard">困难</button>
+            <button type="button" class="chip" data-diff="evil">极难</button>
+        </div>
+        <div class="tb-row">
+            <span class="hint">点边：空 → 线 → X。数字是周围应有几条线。</span>
+            <span id="dailyBest"></span>
+        </div>
+        <div class="tb-row"><span id="statusText"></span></div>
+    </div>
+
+    <div id="boardWrap"><canvas id="board"></canvas></div>
+
+    <div id="bottomBar">
+        <button type="button" class="chip btn-accent" id="newBtn">新题</button>
+        <button type="button" class="chip btn-move" id="restartBtn">重开</button>
+        <button type="button" class="chip btn-check" id="checkBtn">检查</button>
+        <button type="button" class="chip btn-hint" id="hintBtn">提示</button>
+    </div>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+"use strict";
+
+/* 随机数 / 计时见 game-shared.js */
+function dayKey(d = new Date()) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** FNV-1a 64 位，和 iOS 端同一公式。 */
+function seedFor(text) {
+    let hash = 14695981039346656037n;
+    for (const byte of new TextEncoder().encode(text)) {
+        hash ^= BigInt(byte);
+        hash = (hash * 1099511628211n) & MASK64;
+    }
+    return hash;
+}
+
+/* ============================================================
+ * 出题（移植 LoopGenerator）：随机无洞多连方块的边界当回路，再按难度删线索。
+ * ============================================================ */
+const CLUE_RATIO = { easy: 0.72, normal: 0.52, hard: 0.36, evil: 0.22 };
+
+function neighborsOf(index, rows, cols) {
+    const r = Math.floor(index / cols), c = index % cols;
+    const out = [];
+    if (r > 0) out.push((r - 1) * cols + c);
+    if (r + 1 < rows) out.push((r + 1) * cols + c);
+    if (c > 0) out.push(r * cols + (c - 1));
+    if (c + 1 < cols) out.push(r * cols + (c + 1));
+    return out;
+}
+
+/** 从边界洪泛，集合外还有到不了边界的格就是有洞。 */
+function hasHole(set, rows, cols) {
+    const queue = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (r === 0 || c === 0 || r === rows - 1 || c === cols - 1) {
+                const i = r * cols + c;
+                if (!set.has(i)) queue.push(i);
+            }
+        }
+    }
+    const visited = new Set();
+    for (let i = 0; i < queue.length; i++) {
+        const cur = queue[i];
+        if (visited.has(cur)) continue;
+        visited.add(cur);
+        for (const n of neighborsOf(cur, rows, cols)) {
+            if (!set.has(n) && !visited.has(n)) queue.push(n);
+        }
+    }
+    for (let i = 0; i < rows * cols; i++) {
+        if (!set.has(i) && !visited.has(i)) return true;
+    }
+    return false;
+}
+
+function randomPolyomino(rows, cols, target, rng) {
+    const total = rows * cols;
+    const set = new Set([rng.int(total)]);
+    while (set.size < target) {
+        let candidates = [];
+        for (const cell of [...set].sort((a, b) => a - b)) {
+            for (const n of neighborsOf(cell, rows, cols)) {
+                if (!set.has(n)) candidates.push(n);
+            }
+        }
+        candidates = [...new Set(candidates)].sort((a, b) => a - b);
+        if (candidates.length === 0) break;
+        rng.shuffle(candidates);
+        let added = false;
+        for (const candidate of candidates) {
+            const trial = new Set(set);
+            trial.add(candidate);
+            if (!hasHole(trial, rows, cols)) {
+                set.clear();
+                trial.forEach((v) => set.add(v));
+                added = true;
+                break;
+            }
+        }
+        if (!added) break;
+    }
+    if (set.size === 1) {
+        const only = [...set][0];
+        const around = neighborsOf(only, rows, cols);
+        if (around.length) set.add(rng.pick(around));
+    }
+    return set;
+}
+
+/** 多连方块边界：格内/外不同就是线。 */
+function boundary(rows, cols, poly) {
+    const h = new Array((rows + 1) * cols).fill(false);
+    const v = new Array(rows * (cols + 1)).fill(false);
+    for (let r = 0; r <= rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const above = r > 0 && poly.has((r - 1) * cols + c);
+            const below = r < rows && poly.has(r * cols + c);
+            h[r * cols + c] = above !== below;
+        }
+    }
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c <= cols; c++) {
+            const left = c > 0 && poly.has(r * cols + (c - 1));
+            const right = c < cols && poly.has(r * cols + c);
+            v[r * (cols + 1) + c] = left !== right;
+        }
+    }
+    return { h, v };
+}
+
+function cellLineCount(rows, cols, h, v, row, col) {
+    let n = 0;
+    if (h[row * cols + col]) n++;
+    if (h[(row + 1) * cols + col]) n++;
+    if (v[row * (cols + 1) + col]) n++;
+    if (v[row * (cols + 1) + col + 1]) n++;
+    return n;
+}
+
+function generatePuzzle(rows, cols, difficulty, rng, timeoutMs) {
+    const cells = rows * cols;
+    const lo = Math.max(2, Math.floor(cells * 40 / 100));
+    const hi = Math.max(lo, Math.floor(cells * 65 / 100));
+    const target = rng.range(lo, hi);
+    const poly = randomPolyomino(rows, cols, target, rng);
+    const { h: solutionH, v: solutionV } = boundary(rows, cols, poly);
+    const clues = [];
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            clues.push(cellLineCount(rows, cols, solutionH, solutionV, r, c));
+        }
+    }
+
+    // 按难度删线索；≤10 的盘尽量保证唯一解，超时就多留。
+    const deadline = Date.now() + timeoutMs;
+    const targetClues = Math.max(1, Math.round(cells * CLUE_RATIO[difficulty]));
+    const uniqueCheck = rows <= 10 && cols <= 10;
+    const order = rng.shuffle([...clues.keys()]);
+    let remaining = clues.length;
+    for (const index of order) {
+        if (remaining <= targetClues) break;
+        if (Date.now() > deadline) break;
+        const saved = clues[index];
+        clues[index] = null;
+        if (uniqueCheck) {
+            if (!hasUniqueSolution(rows, cols, clues, deadline)) {
+                clues[index] = saved;
+                continue;
+            }
+        }
+        remaining--;
+    }
+    return { rows, cols, clues, solutionH, solutionV };
+}
+
+/* ============================================================
+ * 解题（移植 LoopSolver）：传播 + 回溯，最多数到 2 个解。
+ * ============================================================ */
+function lineDegree(puzzle, h, v, vr, vc) {
+    const { rows, cols } = puzzle;
+    let n = 0;
+    if (vr > 0 && v[(vr - 1) * (cols + 1) + vc]) n++;
+    if (vr < rows && v[vr * (cols + 1) + vc]) n++;
+    if (vc > 0 && h[vr * cols + vc - 1]) n++;
+    if (vc < cols && h[vr * cols + vc]) n++;
+    return n;
+}
+
+function lineNeighbors(puzzle, h, v, vr, vc) {
+    const { rows, cols } = puzzle;
+    const out = [];
+    if (vr > 0 && v[(vr - 1) * (cols + 1) + vc]) out.push([vr - 1, vc]);
+    if (vr < rows && v[vr * (cols + 1) + vc]) out.push([vr + 1, vc]);
+    if (vc > 0 && h[vr * cols + vc - 1]) out.push([vr, vc - 1]);
+    if (vc < cols && h[vr * cols + vc]) out.push([vr, vc + 1]);
+    return out;
+}
+
+/** 沿线走一圈：是环且覆盖所有线才是单环。 */
+function walkLines(puzzle, h, v) {
+    const { rows, cols } = puzzle;
+    let start = null;
+    outer:
+    for (let r = 0; r <= rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (h[r * cols + c]) { start = [[r, c], [r, c + 1]]; break outer; }
+        }
+    }
+    if (!start) {
+        outer2:
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c <= cols; c++) {
+                if (v[r * (cols + 1) + c]) { start = [[r, c], [r + 1, c]]; break outer2; }
+            }
+        }
+    }
+    if (!start) return { isCycle: false, edgeCount: 0 };
+    const origin = start[0];
+    let prev = start[0], cur = start[1], count = 1;
+    const limit = h.length + v.length + 2;
+    while (cur[0] !== origin[0] || cur[1] !== origin[1]) {
+        const nexts = lineNeighbors(puzzle, h, v, cur[0], cur[1]);
+        if (nexts.length !== 2) return { isCycle: false, edgeCount: count };
+        const next = (nexts[0][0] === prev[0] && nexts[0][1] === prev[1]) ? nexts[1] : nexts[0];
+        if (next[0] === prev[0] && next[1] === prev[1]) return { isCycle: false, edgeCount: count };
+        count++;
+        prev = cur;
+        cur = next;
+        if (count > limit) return { isCycle: false, edgeCount: 0 };
+    }
+    const back = lineNeighbors(puzzle, h, v, origin[0], origin[1]);
+    return { isCycle: back.length === 2, edgeCount: count };
+}
+
+function cluesMatch(puzzle, h, v) {
+    const { rows, cols, clues } = puzzle;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const clue = clues[r * cols + c];
+            if (clue !== null && cellLineCount(rows, cols, h, v, r, c) !== clue) return false;
+        }
+    }
+    return true;
+}
+
+function isValidSolution(puzzle, h, v) {
+    if (!cluesMatch(puzzle, h, v)) return false;
+    for (let vr = 0; vr <= puzzle.rows; vr++) {
+        for (let vc = 0; vc <= puzzle.cols; vc++) {
+            const d = lineDegree(puzzle, h, v, vr, vc);
+            if (d !== 0 && d !== 2) return false;
+        }
+    }
+    const lines = h.filter(Boolean).length + v.filter(Boolean).length;
+    if (lines === 0) return false;
+    const walk = walkLines(puzzle, h, v);
+    return walk.isCycle && walk.edgeCount === lines;
+}
+
+/** 回溯搜索：0=未知 1=线 2=X。超时算 0 个解，避免误删线索。 */
+function solutionCount(puzzle, limit, deadline) {
+    const { rows, cols, clues } = puzzle;
+    const hCount = (rows + 1) * cols, vCount = rows * (cols + 1);
+    let solutions = 0, timedOut = false;
+
+    const cellEdges = (r, c) => [
+        ["h", r * cols + c], ["h", (r + 1) * cols + c],
+        ["v", r * (cols + 1) + c], ["v", r * (cols + 1) + c + 1],
+    ];
+    const vertexEdges = (vr, vc) => {
+        const out = [];
+        if (vr > 0) out.push(["v", (vr - 1) * (cols + 1) + vc]);
+        if (vr < rows) out.push(["v", vr * (cols + 1) + vc]);
+        if (vc > 0) out.push(["h", vr * cols + vc - 1]);
+        if (vc < cols) out.push(["h", vr * cols + vc]);
+        return out;
+    };
+    const getE = (h, v, e) => (e[0] === "h" ? h[e[1]] : v[e[1]]);
+    const setE = (h, v, e, val) => { if (e[0] === "h") h[e[1]] = val; else v[e[1]] = val; };
+
+    function propagate(h, v) {
+        let changed = true, guard = 0;
+        while (changed) {
+            changed = false;
+            if (++guard > 4000) return false;
+            // 格子线索：线数够了其余打 X，未知刚好够就全补线。
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const clue = clues[r * cols + c];
+                    if (clue === null) continue;
+                    let lines = 0;
+                    const unknowns = [];
+                    for (const e of cellEdges(r, c)) {
+                        const val = getE(h, v, e);
+                        if (val === 1) lines++;
+                        else if (val === 0) unknowns.push(e);
+                    }
+                    if (lines > clue) return false;
+                    if (lines + unknowns.length < clue) return false;
+                    if (unknowns.length === 0) continue;
+                    if (lines === clue) {
+                        for (const e of unknowns) { setE(h, v, e, 2); changed = true; }
+                    } else if (lines + unknowns.length === clue) {
+                        for (const e of unknowns) { setE(h, v, e, 1); changed = true; }
+                    }
+                }
+            }
+            // 顶点度数：只能是 0 或 2。
+            for (let vr = 0; vr <= rows; vr++) {
+                for (let vc = 0; vc <= cols; vc++) {
+                    const edges = vertexEdges(vr, vc);
+                    let lines = 0;
+                    const unknowns = [];
+                    for (const e of edges) {
+                        const val = getE(h, v, e);
+                        if (val === 1) lines++;
+                        else if (val === 0) unknowns.push(e);
+                    }
+                    if (lines > 2) return false;
+                    if (lines === 2) {
+                        for (const e of unknowns) { setE(h, v, e, 2); changed = true; }
+                    } else if (lines === 1 && unknowns.length === 0) {
+                        return false;
+                    } else if (lines === 1 && unknowns.length === 1) {
+                        setE(h, v, unknowns[0], 1); changed = true;
+                    } else if (lines === 0 && unknowns.length === 1) {
+                        setE(h, v, unknowns[0], 2); changed = true;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    function explore(h, v) {
+        if (solutions >= limit || timedOut) return;
+        if (Date.now() > deadline) { timedOut = true; return; }
+        if (!propagate(h, v)) return;
+
+        const boolH = h.map((x) => x === 1);
+        const boolV = v.map((x) => x === 1);
+        const lines = boolH.filter(Boolean).length + boolV.filter(Boolean).length;
+        if (lines > 0) {
+            const walk = walkLines(puzzle, boolH, boolV);
+            // 提前闭环：要么验收要么剪枝，不再往下搜。
+            if (walk.isCycle) {
+                if (walk.edgeCount === lines && cluesMatch(puzzle, boolH, boolV)) solutions++;
+                return;
+            }
+        }
+
+        let edge = null;
+        for (let i = 0; i < hCount; i++) if (h[i] === 0) { edge = ["h", i]; break; }
+        if (!edge) for (let i = 0; i < vCount; i++) if (v[i] === 0) { edge = ["v", i]; break; }
+        if (!edge) {
+            if (isValidSolution(puzzle, boolH, boolV)) solutions++;
+            return;
+        }
+
+        const hLine = h.slice(), vLine = v.slice();
+        setE(hLine, vLine, edge, 1);
+        explore(hLine, vLine);
+        if (solutions >= limit || timedOut) return;
+        const hX = h.slice(), vX = v.slice();
+        setE(hX, vX, edge, 2);
+        explore(hX, vX);
+    }
+
+    explore(new Uint8Array(hCount), new Uint8Array(vCount));
+    return timedOut ? 0 : solutions;
+}
+
+function hasUniqueSolution(rows, cols, clues, deadline) {
+    return solutionCount({ rows, cols, clues }, 2, deadline) === 1;
+}
+
+/* ============================================================
+ * 一局状态（移植 LoopGameEngine）
+ * ============================================================ */
+const game = {
+    puzzle: null,
+    h: [],          // 0=空 1=线 2=X
+    v: [],
+    isSolved: false,
+    mistakeH: new Set(),
+    mistakeV: new Set(),
+    elapsed: 0,     // 通关时冻结的秒数
+};
+
+function newGame(puzzle) {
+    game.puzzle = puzzle;
+    game.h = new Array((puzzle.rows + 1) * puzzle.cols).fill(0);
+    game.v = new Array(puzzle.rows * (puzzle.cols + 1)).fill(0);
+    game.isSolved = false;
+    game.mistakeH = new Set();
+    game.mistakeV = new Set();
+    game.elapsed = 0;
+}
+
+function refreshSolved() {
+    game.isSolved = isValidSolution(
+        game.puzzle,
+        game.h.map((x) => x === 1),
+        game.v.map((x) => x === 1)
+    );
+}
+
+function cycleEdge(kind, index) {
+    if (game.isSolved) return;
+    const arr = kind === "h" ? game.h : game.v;
+    if (index < 0 || index >= arr.length) return;
+    arr[index] = (arr[index] + 1) % 3;
+    game.mistakeH.clear();
+    game.mistakeV.clear();
+    refreshSolved();
+}
+
+function restartGame() {
+    game.h.fill(0);
+    game.v.fill(0);
+    game.isSolved = false;
+    game.mistakeH.clear();
+    game.mistakeV.clear();
+    game.elapsed = 0;
+}
+
+function checkMistakes() {
+    game.mistakeH = new Set();
+    game.mistakeV = new Set();
+    game.h.forEach((s, i) => { if (s === 1 && !game.puzzle.solutionH[i]) game.mistakeH.add(i); });
+    game.v.forEach((s, i) => { if (s === 1 && !game.puzzle.solutionV[i]) game.mistakeV.add(i); });
+}
+
+/** 随机揭开一条还没画出的答案边。 */
+function revealHint() {
+    if (game.isSolved) return false;
+    const candidates = [];
+    game.puzzle.solutionH.forEach((s, i) => { if (s && game.h[i] !== 1) candidates.push(["h", i]); });
+    game.puzzle.solutionV.forEach((s, i) => { if (s && game.v[i] !== 1) candidates.push(["v", i]); });
+    if (!candidates.length) return false;
+    const [kind, index] = candidates[Math.floor(Math.random() * candidates.length)];
+    (kind === "h" ? game.h : game.v)[index] = 1;
+    game.mistakeH.clear();
+    game.mistakeV.clear();
+    refreshSolved();
+    return true;
+}
+
+/* ============================================================
+ * 界面：设置 / 出题 / 计时 / 每日最佳
+ * ============================================================ */
+const settings = {
+    size: parseInt(localStorage.getItem("loop.size") || "7", 10),
+    difficulty: localStorage.getItem("loop.difficulty") || "normal",
+    daily: localStorage.getItem("loop.daily") === "1",
+};
+if (![5, 7, 10].includes(settings.size)) settings.size = 7;
+if (!CLUE_RATIO[settings.difficulty]) settings.difficulty = "normal";
+
+let startedAt = null;
+let generating = false;
+
+const $ = (id) => document.getElementById(id);
+const statusEl = $("statusText");
+const timeEl = $("timeText");
+const dailyBestEl = $("dailyBest");
+
+function dailyBestKey() {
+    return `loop.daily.best.${dayKey()}.${settings.size}.${settings.difficulty}`;
+}
+
+function loadDailyBest() {
+    const v = parseFloat(localStorage.getItem(dailyBestKey()) || "0");
+    return v > 0 ? v : null;
+}
+
+function saveDailyBest(elapsed) {
+    const key = dailyBestKey();
+    const cur = parseFloat(localStorage.getItem(key) || "0");
+    if (cur === 0 || elapsed < cur) localStorage.setItem(key, String(elapsed));
+}
+
+function refreshChips() {
+    document.querySelectorAll("[data-size]").forEach((btn) => {
+        const on = parseInt(btn.dataset.size, 10) === settings.size;
+        btn.style.background = CHIP_COLORS.size;
+        btn.classList.toggle("group-on", on);
+        btn.disabled = generating;
+    });
+    document.querySelectorAll("[data-diff]").forEach((btn) => {
+        const on = btn.dataset.diff === settings.difficulty;
+        btn.style.background = CHIP_COLORS[btn.dataset.diff];
+        btn.classList.toggle("group-on", on);
+        btn.disabled = generating;
+    });
+    const modeBtn = $("modeBtn");
+    modeBtn.textContent = settings.daily ? "每日" : "随机";
+    modeBtn.style.background = settings.daily ? CHIP_COLORS.modeDaily : CHIP_COLORS.modeRandom;
+    modeBtn.disabled = generating;
+    $("newBtn").style.display = settings.daily ? "none" : "";
+    dailyBestEl.textContent = settings.daily && loadDailyBest() ? `今日最佳 ${formatTime(loadDailyBest())}` : "";
+}
+
+/** 出题。每日用日期种子；随机用随机种子。10×10 给更长唯一解时间。 */
+function buildPuzzle() {
+    generating = true;
+    statusEl.textContent = "出题中…";
+    refreshChips();
+    const seed = settings.daily
+        ? seedFor(`loop|${dayKey()}|${settings.size}|${settings.difficulty}`)
+        : BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) + 1n;
+    // 让出一帧再出题，避免卡住按钮状态刷新。
+    setTimeout(() => {
+        const rng = makeRng(seed);
+        const timeout = settings.size >= 10 ? 6000 : 4000;
+        const puzzle = generatePuzzle(settings.size, settings.size, settings.difficulty, rng, timeout);
+        newGame(puzzle);
+        startedAt = Date.now();
+        generating = false;
+        statusEl.textContent = "";
+        refreshChips();
+    }, 30);
+}
+
+function handleWin() {
+    game.elapsed = (Date.now() - startedAt) / 1000;
+    statusEl.textContent = `完成 ${formatTime(game.elapsed)}`;
+    if (settings.daily) {
+        saveDailyBest(game.elapsed);
+        refreshChips();
+    }
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+}
+
+/* ============================================================
+ * 画布：点阵 + 线索 + 线 + X（移植 LoopBoardCanvas / LoopBoardLayout）
+ * ============================================================ */
+const boardWrap = $("boardWrap");
+const canvas = $("board");
+const ctx = canvas.getContext("2d");
+let layout = null;
+
+function computeLayout(w, h) {
+    const pad = 18;
+    const { rows, cols } = game.puzzle;
+    const cell = Math.max(12, Math.min((w - pad * 2) / cols, (h - pad * 2) / rows));
+    const boardW = cell * cols, boardH = cell * rows;
+    return {
+        rows, cols, cell,
+        ox: (w - boardW) / 2,
+        oy: (h - boardH) / 2,
+        dot(r, c) { return [this.ox + c * cell, this.oy + r * cell]; },
+        cellCenter(r, c) { return [this.ox + (c + 0.5) * cell, this.oy + (r + 0.5) * cell]; },
+    };
+}
+
+/** 点到最近边的命中，阈值随格子大小走。 */
+function hitTest(x, y) {
+    const L = layout;
+    let best = null, bestDist = Math.max(14, L.cell * 0.34);
+    const distSeg = (px, py, ax, ay, bx, by) => {
+        const abx = bx - ax, aby = by - ay;
+        const len2 = abx * abx + aby * aby;
+        if (len2 < 0.001) return Math.hypot(px - ax, py - ay);
+        const t = Math.min(1, Math.max(0, ((px - ax) * abx + (py - ay) * aby) / len2));
+        return Math.hypot(px - (ax + abx * t), py - (ay + aby * t));
+    };
+    for (let r = 0; r <= L.rows; r++) {
+        for (let c = 0; c < L.cols; c++) {
+            const [ax, ay] = L.dot(r, c), [bx, by] = L.dot(r, c + 1);
+            const d = distSeg(x, y, ax, ay, bx, by);
+            if (d < bestDist) { bestDist = d; best = ["h", r * L.cols + c]; }
+        }
+    }
+    for (let r = 0; r < L.rows; r++) {
+        for (let c = 0; c <= L.cols; c++) {
+            const [ax, ay] = L.dot(r, c), [bx, by] = L.dot(r + 1, c);
+            const d = distSeg(x, y, ax, ay, bx, by);
+            if (d < bestDist) { bestDist = d; best = ["v", r * (L.cols + 1) + c]; }
+        }
+    }
+    return best;
+}
+
+function draw() {
+    if (!layout || !game.puzzle) return;
+    const L = layout;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { rows, cols, clues } = game.puzzle;
+
+    // 线索数字：超线索红，刚好灰，未到黑。
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `700 ${Math.max(11, L.cell * 0.42)}px -apple-system, 'PingFang SC', sans-serif`;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const clue = clues[r * cols + c];
+            if (clue === null) continue;
+            const lines = cellLineCount(rows, cols,
+                game.h.map((x) => x === 1), game.v.map((x) => x === 1), r, c);
+            ctx.fillStyle = lines > clue ? "rgb(255,59,48)"
+                : lines === clue ? "rgba(97,92,128,0.7)"
+                : "rgb(46,41,82)";
+            const [cx, cy] = L.cellCenter(r, c);
+            ctx.fillText(String(clue), cx, cy);
+        }
+    }
+
+    // X 标记
+    if (!game.isSolved) {
+        ctx.strokeStyle = "rgba(97,92,128,0.7)";
+        ctx.lineWidth = Math.max(1.5, L.cell * 0.045);
+        ctx.lineCap = "round";
+        const s = L.cell * 0.16;
+        const drawX = (mx, my) => {
+            ctx.beginPath();
+            ctx.moveTo(mx - s, my - s); ctx.lineTo(mx + s, my + s);
+            ctx.moveTo(mx + s, my - s); ctx.lineTo(mx - s, my + s);
+            ctx.stroke();
+        };
+        for (let r = 0; r <= rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (game.h[r * cols + c] !== 2) continue;
+                const [ax, ay] = L.dot(r, c), [bx, by] = L.dot(r, c + 1);
+                drawX((ax + bx) / 2, (ay + by) / 2);
+            }
+        }
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c <= cols; c++) {
+                if (game.v[r * (cols + 1) + c] !== 2) continue;
+                const [ax, ay] = L.dot(r, c), [bx, by] = L.dot(r + 1, c);
+                drawX((ax + bx) / 2, (ay + by) / 2);
+            }
+        }
+    }
+
+    // 线：普通深蓝，通关紫，标错红。
+    const width = Math.max(3, L.cell * 0.13);
+    const strokeSegs = (segs, color, lw) => {
+        if (!segs.length) return;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lw;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        for (const [ax, ay, bx, by] of segs) {
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+        }
+        ctx.stroke();
+    };
+    const normal = [], mistakes = [], solved = [];
+    for (let r = 0; r <= rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const i = r * cols + c;
+            if (game.h[i] !== 1) continue;
+            const seg = [...L.dot(r, c), ...L.dot(r, c + 1)];
+            (game.mistakeH.has(i) ? mistakes : game.isSolved ? solved : normal).push(seg);
+        }
+    }
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c <= cols; c++) {
+            const i = r * (cols + 1) + c;
+            if (game.v[i] !== 1) continue;
+            const seg = [...L.dot(r, c), ...L.dot(r + 1, c)];
+            (game.mistakeV.has(i) ? mistakes : game.isSolved ? solved : normal).push(seg);
+        }
+    }
+    strokeSegs(normal, "rgb(56,46,122)", width);
+    strokeSegs(solved, "rgb(84,74,158)", width + 1);
+    strokeSegs(mistakes, "rgb(255,59,48)", width);
+
+    // 点阵
+    const radius = Math.max(2.4, L.cell * 0.075);
+    ctx.fillStyle = "rgb(46,41,82)";
+    for (let r = 0; r <= rows; r++) {
+        for (let c = 0; c <= cols; c++) {
+            const [x, y] = L.dot(r, c);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+/* ============================================================
+ * 事件与主循环
+ * ============================================================ */
+canvas.addEventListener("pointerdown", (e) => {
+    if (!layout || generating || game.isSolved) return;
+    const rect = canvas.getBoundingClientRect();
+    const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+    if (hit) {
+        cycleEdge(hit[0], hit[1]);
+        if (navigator.vibrate) navigator.vibrate(8);
+        if (game.isSolved) handleWin();
+    }
+    e.preventDefault();
+});
+
+document.querySelectorAll("[data-size]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        settings.size = parseInt(btn.dataset.size, 10);
+        localStorage.setItem("loop.size", String(settings.size));
+        buildPuzzle();
+    });
+});
+document.querySelectorAll("[data-diff]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        settings.difficulty = btn.dataset.diff;
+        localStorage.setItem("loop.difficulty", settings.difficulty);
+        buildPuzzle();
+    });
+});
+$("modeBtn").addEventListener("click", () => {
+    settings.daily = !settings.daily;
+    localStorage.setItem("loop.daily", settings.daily ? "1" : "0");
+    buildPuzzle();
+});
+$("newBtn").addEventListener("click", buildPuzzle);
+$("restartBtn").addEventListener("click", () => {
+    if (!game.puzzle) return;
+    restartGame();
+    startedAt = Date.now();
+    statusEl.textContent = "";
+});
+$("checkBtn").addEventListener("click", () => {
+    if (!game.puzzle || game.isSolved) return;
+    checkMistakes();
+    const n = game.mistakeH.size + game.mistakeV.size;
+    statusEl.textContent = n === 0 ? "还没画错，继续连线" : "标红的线不在答案上";
+});
+$("hintBtn").addEventListener("click", () => {
+    if (!game.puzzle || game.isSolved) return;
+    statusEl.textContent = revealHint() ? "提示了一条线" : "没有可提示的线了";
+    if (game.isSolved) handleWin();
+});
+
+
+function resize() {
+    const w = boardWrap.clientWidth, h = boardWrap.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (game.puzzle) layout = computeLayout(w, h);
+}
+
+new ResizeObserver(resize).observe(boardWrap);
+
+function frame() {
+    if (game.puzzle && !game.isSolved && startedAt) {
+        timeEl.textContent = formatTime((Date.now() - startedAt) / 1000);
+    } else if (game.isSolved) {
+        timeEl.textContent = formatTime(game.elapsed);
+    }
+    draw();
+    requestAnimationFrame(frame);
+}
+
+refreshChips();
+resize();
+buildPuzzle();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

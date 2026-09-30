@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>连线</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#boardWrap { background: #f7f7f7; }
+</style>
+</head>
+<body>
+<h1>🌈 连线</h1>
+<div class="panel">
+  <div class="row">
+    <button class="levelBtn" id="levelBtn">第 1 关 ▾</button>
+    <span class="sub" id="progress"></span>
+  </div>
+  <div class="row">
+    <span class="left" id="left">已连 0/0</span>
+    <span class="hint">同色点连线，不能交叉，格子要填满</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <canvas id="board"></canvas>
+  <div id="overlay">
+    <div class="big">全部连上！</div>
+    <button class="btn purple" id="nextBtn" style="width:140px">下一关</button>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+<div id="picker">
+  <div class="sheet">
+    <h2>选择关卡</h2>
+    <div class="grid" id="levelGrid"></div>
+  </div>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+/* 随机数 / 计时见 game-shared.js */
+function parsePuzzle(text) {
+  const parts = text.split("|");
+  const size = parseInt(parts[0], 10);
+  if (!size || parts.length !== size + 1) return null;
+  const map = {};
+  for (let y = 0; y < size; y++) {
+    const row = parts[y + 1];
+    if (row.length !== size) return null;
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x];
+      if (ch === ".") continue;
+      (map[ch] ||= []).push({ x, y });
+    }
+  }
+  const ends = [];
+  for (const ch of Object.keys(map).sort()) {
+    if (map[ch].length !== 2) return null;
+    ends.push(map[ch]);
+  }
+  return { size, ends };
+}
+
+function hamiltonian(size, rng) {
+  const transpose = rng.int(2) === 0;
+  const flipX = rng.int(2) === 0;
+  const flipY = rng.int(2) === 0;
+  const path = [];
+  for (let y0 = 0; y0 < size; y0++) {
+    const y = flipY ? size - 1 - y0 : y0;
+    const rowRev = (y0 % 2 === 1) !== flipX;
+    for (let x0 = 0; x0 < size; x0++) {
+      const x = rowRev ? size - 1 - x0 : x0;
+      path.push(transpose ? { x: y, y: x } : { x, y });
+    }
+  }
+  if (rng.int(2) === 0) path.reverse();
+  return path;
+}
+
+function splitPath(path, size, rng) {
+  const ends = [];
+  let i = 0;
+  while (i < path.length) {
+    const remain = path.length - i;
+    if (remain === 1) {
+      if (ends.length) ends[ends.length - 1][1] = path[i];
+      break;
+    }
+    const maxLen = Math.min(remain, Math.max(3, size + 2));
+    let len = 2 + rng.int(maxLen - 1);
+    if (remain - len === 1) len = remain;
+    if (!ends.length && len === remain && remain > 4) len = Math.floor(remain / 2);
+    ends.push([path[i], path[i + len - 1]]);
+    i += len;
+  }
+  return ends;
+}
+
+// 颜色对上限：超了换种子重试，保证调色板够用。首次尝试的种子和旧版一致，老关卡题目不变。
+const MAX_COLORS = 16;
+function generate(size, seed) {
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const s = attempt === 0 ? seed : (seed + BigInt(attempt) * 2654435761n) & MASK64;
+    const rng = makeRng(s);
+    const path = hamiltonian(size, rng);
+    let ends = splitPath(path, size, rng);
+    if (ends.length < 2 && path.length >= 4) {
+      const mid = Math.floor(path.length / 2);
+      ends = [[path[0], path[mid - 1]], [path[mid], path[path.length - 1]]];
+    }
+    if (ends.length >= 2 && ends.length <= MAX_COLORS) return { size, ends };
+  }
+  // 兜底：均切三段，几乎不会走到。
+  const rng = makeRng(seed);
+  const path = hamiltonian(size, rng);
+  const third = Math.floor(path.length / 3);
+  return { size, ends: [[path[0], path[third - 1]], [path[third], path[third * 2 - 1]], [path[third * 2], path[path.length - 1]]] };
+}
+
+function same(a, b) { return a.x === b.x && a.y === b.y; }
+function adj(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1; }
+function inBoard(g, p) {
+  const n = g.puzzle.size;
+  return p.x >= 0 && p.x < n && p.y >= 0 && p.y < n;
+}
+function ownerEndpoint(g, p) {
+  for (let c = 0; c < g.puzzle.ends.length; c++) {
+    if (g.puzzle.ends[c].some(q => same(q, p))) return c;
+  }
+  return null;
+}
+function colorAt(g, p) {
+  if (!inBoard(g, p)) return null;
+  for (let c = 0; c < g.pipes.length; c++) {
+    if (g.pipes[c].some(q => same(q, p))) return c;
+  }
+  return ownerEndpoint(g, p);
+}
+function newGame(puzzle) {
+  return { puzzle, pipes: puzzle.ends.map(() => []), drawing: null };
+}
+function begin(g, p) {
+  const c = colorAt(g, p);
+  if (c === null) return false;
+  g.drawing = c;
+  if (g.puzzle.ends[c].some(q => same(q, p))) {
+    g.pipes[c] = [{ x: p.x, y: p.y }];
+  } else {
+    const i = g.pipes[c].findIndex(q => same(q, p));
+    if (i < 0) { g.drawing = null; return false; }
+    g.pipes[c] = g.pipes[c].slice(0, i + 1);
+  }
+  return true;
+}
+function drag(g, p) {
+  if (g.drawing === null) return false;
+  const c = g.drawing;
+  const pipe = g.pipes[c];
+  const last = pipe[pipe.length - 1];
+  if (!last || !inBoard(g, p)) return false;
+  if (same(p, last)) return true;
+  if (!adj(last, p)) return false;
+  const ep = ownerEndpoint(g, p);
+  if (ep !== null && ep !== c) return false;
+  if (g.puzzle.ends[c].some(q => same(q, p)) && !same(p, pipe[0])) {
+    pipe.push({ x: p.x, y: p.y });
+    return true;
+  }
+  const i = pipe.findIndex(q => same(q, p));
+  if (i >= 0) {
+    g.pipes[c] = pipe.slice(0, i + 1);
+    return true;
+  }
+  const other = colorAt(g, p);
+  if (other !== null && other !== c) g.pipes[other] = [];
+  if (ownerEndpoint(g, p) !== null) return false;
+  g.pipes[c].push({ x: p.x, y: p.y });
+  return true;
+}
+function endDrag(g) { g.drawing = null; }
+function connects(g, c) {
+  const pipe = g.pipes[c];
+  if (pipe.length < 2) return false;
+  const a = pipe[0], b = pipe[pipe.length - 1];
+  const ends = g.puzzle.ends[c];
+  return (same(a, ends[0]) && same(b, ends[1])) || (same(a, ends[1]) && same(b, ends[0]));
+}
+function solvedColors(g) {
+  let n = 0;
+  for (let c = 0; c < g.puzzle.ends.length; c++) if (connects(g, c)) n++;
+  return n;
+}
+function isWon(g) {
+  if (!g.puzzle.ends.length) return false;
+  let filled = 0;
+  for (let c = 0; c < g.puzzle.ends.length; c++) {
+    if (!connects(g, c)) return false;
+    filled += g.pipes[c].length;
+  }
+  return filled === g.puzzle.size * g.puzzle.size;
+}
+// 40 关：5×5 / 6×6 / 7×7 / 8×8 / 9×9 各 8 关，盘越大颜色对越多、越难。
+function catalogSize(index) { return index < 8 ? 5 : index < 16 ? 6 : index < 24 ? 7 : index < 32 ? 8 : 9; }
+function catalogPuzzle(index) {
+  return generate(catalogSize(index), Number((BigInt(index + 1) * 2654435761n) & MASK64));
+}
+const LEVEL_COUNT = 40;
+
+// ===== 界面状态 =====
+let levelIndex = parseInt(localStorage.getItem("flow.level") || "0", 10) || 0;
+let unlocked = parseInt(localStorage.getItem("flow.unlocked") || "1", 10) || 1;
+let game = null;
+const palette = ["#e53847","#337ae8","#2eb861","#fa9e1f","#9e52e0","#1eb8c7","#f2619e","#735233","#8cc738","#475cb8","#e07a38","#6194eb","#eccd00","#009688","#c218d8","#555555"];
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const wrap = document.getElementById("boardWrap");
+const overlay = document.getElementById("overlay");
+const nextBtn = document.getElementById("nextBtn");
+
+function save() {
+  localStorage.setItem("flow.level", String(levelIndex));
+  localStorage.setItem("flow.unlocked", String(unlocked));
+}
+
+function layout() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const n = game.puzzle.size;
+  const pad = 10;
+  const cell = Math.min((w - pad * 2) / n, (h - pad * 2) / n);
+  const ox = (w - cell * n) / 2, oy = (h - cell * n) / 2;
+  return { cell, ox, oy, n };
+}
+
+function hit(x, y) {
+  const L = layout();
+  const gx = Math.floor((x - L.ox) / L.cell);
+  const gy = Math.floor((y - L.oy) / L.cell);
+  if (gx < 0 || gy < 0 || gx >= L.n || gy >= L.n) return null;
+  return { x: gx, y: gy };
+}
+
+function draw() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  const L = layout();
+  const gap = Math.max(1, L.cell * 0.06);
+  for (let y = 0; y < L.n; y++) {
+    for (let x = 0; x < L.n; x++) {
+      const c = colorAt(game, { x, y });
+      ctx.fillStyle = c === null ? "#ebebeb" : palette[c % palette.length] + "38";
+      const r = Math.max(3, L.cell * 0.16);
+      roundRect(L.ox + x * L.cell + gap, L.oy + y * L.cell + gap, L.cell - gap * 2, L.cell - gap * 2, r);
+      ctx.fill();
+    }
+  }
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  ctx.lineWidth = L.cell * 0.38;
+  for (let c = 0; c < game.pipes.length; c++) {
+    const pipe = game.pipes[c];
+    if (pipe.length < 2) continue;
+    ctx.strokeStyle = palette[c % palette.length];
+    ctx.beginPath();
+    pipe.forEach((p, i) => {
+      const px = L.ox + (p.x + 0.5) * L.cell;
+      const py = L.oy + (p.y + 0.5) * L.cell;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  }
+  for (let c = 0; c < game.puzzle.ends.length; c++) {
+    ctx.fillStyle = palette[c % palette.length];
+    for (const p of game.puzzle.ends[c]) {
+      ctx.beginPath();
+      ctx.arc(L.ox + (p.x + 0.5) * L.cell, L.oy + (p.y + 0.5) * L.cell, L.cell * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,.7)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function refresh() {
+  document.getElementById("levelBtn").textContent = `第 ${levelIndex + 1} 关 ▾`;
+  document.getElementById("progress").textContent = `已过 ${Math.max(0, unlocked - 1)}/${LEVEL_COUNT}`;
+  document.getElementById("left").textContent = `已连 ${solvedColors(game)}/${game.puzzle.ends.length}`;
+  overlay.classList.toggle("show", isWon(game));
+  nextBtn.style.display = levelIndex + 1 < LEVEL_COUNT ? "block" : "none";
+  draw();
+}
+
+function loadLevel() {
+  levelIndex = Math.min(Math.max(levelIndex, 0), LEVEL_COUNT - 1);
+  if (levelIndex >= unlocked) unlocked = levelIndex + 1;
+  game = newGame(catalogPuzzle(levelIndex));
+  save();
+  refresh();
+  renderPicker();
+}
+
+function handleWin() {
+  if (isWon(game) && levelIndex + 1 === unlocked && unlocked < LEVEL_COUNT) {
+    unlocked += 1;
+    save();
+  }
+}
+
+function pointerCell(ev) {
+  const rect = canvas.getBoundingClientRect();
+  const t = ev.touches ? ev.touches[0] : ev;
+  return hit(t.clientX - rect.left, t.clientY - rect.top);
+}
+
+function onDown(ev) {
+  if (isWon(game)) return;
+  ev.preventDefault();
+  const p = pointerCell(ev);
+  if (p) begin(game, p);
+  refresh();
+}
+function onMove(ev) {
+  if (game.drawing === null || isWon(game)) return;
+  ev.preventDefault();
+  const p = pointerCell(ev.touches ? ev.touches[0] : ev);
+  if (p) drag(game, p);
+  refresh();
+  if (isWon(game)) handleWin();
+}
+function onUp() {
+  endDrag(game);
+  refresh();
+  if (isWon(game)) handleWin();
+}
+
+canvas.addEventListener("pointerdown", (ev) => {
+  canvas.setPointerCapture(ev.pointerId);
+  onDown(ev);
+});
+canvas.addEventListener("pointermove", onMove);
+canvas.addEventListener("pointerup", onUp);
+canvas.addEventListener("pointercancel", onUp);
+
+document.getElementById("restartBtn").onclick = loadLevel;
+nextBtn.onclick = () => { if (levelIndex + 1 < LEVEL_COUNT) { levelIndex += 1; loadLevel(); } };
+document.getElementById("levelBtn").onclick = () => document.getElementById("picker").classList.add("show");
+document.getElementById("picker").onclick = (e) => {
+  if (e.target.id === "picker") e.currentTarget.classList.remove("show");
+};
+
+function renderPicker() {
+  const grid = document.getElementById("levelGrid");
+  grid.innerHTML = "";
+  for (let i = 0; i < LEVEL_COUNT; i++) {
+    const b = document.createElement("button");
+    b.className = "cell " + (i < unlocked - 1 ? "done" : i < unlocked ? "open" : "lock") + (i === levelIndex ? " cur" : "");
+    b.textContent = String(i + 1);
+    b.disabled = i >= unlocked;
+    b.onclick = () => {
+      levelIndex = i;
+      document.getElementById("picker").classList.remove("show");
+      loadLevel();
+    };
+    grid.appendChild(b);
+  }
+}
+
+new ResizeObserver(() => { if (game) draw(); }).observe(wrap);
+loadLevel();
+</script>
+</body>
+</html>

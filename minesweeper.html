@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>扫雷</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.chip { flex: 1; padding: 8px 0; font-size: 13px; background: var(--game-muted); white-space: nowrap; }
+.chip.active { background: var(--game-accent); }
+.stats { justify-content: space-between; font-size: 14px; font-weight: 700; }
+.stats .sub { font-size: 11px; color: var(--game-secondary); font-weight: 400; }
+</style>
+</head>
+<body>
+<h1>💣 扫雷</h1>
+<div class="panel">
+  <div class="row">
+    <button class="chip active" data-level="0">简单 9×9</button>
+    <button class="chip" data-level="1">困难 16×16</button>
+    <span class="timer" id="timer">0:00</span>
+  </div>
+  <div class="row stats">
+    <span>💣 <span id="left">10</span></span>
+    <span class="sub" id="best"></span>
+    <span class="sub">点翻开 · 长按/右键插旗</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <canvas id="board"></canvas>
+  <div id="overlay">
+    <div class="big" id="endTitle"></div>
+    <div class="sub" id="endTime"></div>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（MinesweeperEngine 的 JS 移植）=====
+const LEVELS = [
+  { cols: 9, rows: 9, mines: 10 },
+  { cols: 16, rows: 16, mines: 40 },
+];
+
+function newGame(cfg) {
+  return {
+    cols: cfg.cols, rows: cfg.rows, mineCount: cfg.mines,
+    mines: new Set(), revealed: new Set(), flagged: new Set(),
+    phase: "ready", // ready | playing | won | lost
+    explodedAt: -1,
+  };
+}
+
+function neighborsOf(g, index) {
+  const x = index % g.cols, y = (index / g.cols) | 0;
+  const out = [];
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx, ny = y + dy;
+      if (nx >= 0 && nx < g.cols && ny >= 0 && ny < g.rows) out.push(ny * g.cols + nx);
+    }
+  }
+  return out;
+}
+
+// 布雷：避开首点 3×3；候选不够时只避开首点本身
+function placeMines(g, avoid) {
+  const safe = new Set([avoid, ...neighborsOf(g, avoid)]);
+  let candidates = [];
+  for (let i = 0; i < g.cols * g.rows; i++) if (!safe.has(i)) candidates.push(i);
+  if (candidates.length < g.mineCount) {
+    candidates = [];
+    for (let i = 0; i < g.cols * g.rows; i++) if (i !== avoid) candidates.push(i);
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  g.mines = new Set(candidates.slice(0, g.mineCount));
+}
+
+function clue(g, index) {
+  return neighborsOf(g, index).filter(i => g.mines.has(i)).length;
+}
+
+// 翻开一格：首翻布雷，0 线索连片翻开，踩雷判负，翻完非雷格判赢
+function reveal(g, index) {
+  if (g.phase !== "ready" && g.phase !== "playing") return false;
+  if (index < 0 || index >= g.cols * g.rows || g.revealed.has(index) || g.flagged.has(index)) return false;
+  if (g.phase === "ready") { placeMines(g, index); g.phase = "playing"; }
+  if (g.mines.has(index)) { g.explodedAt = index; g.phase = "lost"; return true; }
+  const queue = [index];
+  while (queue.length) {
+    const i = queue.pop();
+    if (g.revealed.has(i) || g.flagged.has(i) || g.mines.has(i)) continue;
+    g.revealed.add(i);
+    if (clue(g, i) === 0) queue.push(...neighborsOf(g, i));
+  }
+  if (g.revealed.size === g.cols * g.rows - g.mineCount) g.phase = "won";
+  return true;
+}
+
+// 插旗/拔旗，已翻开不能插
+function toggleFlag(g, index) {
+  if (g.phase !== "ready" && g.phase !== "playing") return false;
+  if (index < 0 || index >= g.cols * g.rows || g.revealed.has(index)) return false;
+  if (g.flagged.has(index)) g.flagged.delete(index); else g.flagged.add(index);
+  return true;
+}
+
+// ===== 界面状态 =====
+let levelIndex = parseInt(localStorage.getItem("mine.level") || "0", 10) || 0;
+let game = null;
+let startedAt = 0;
+let finalSeconds = null;
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const leftEl = document.getElementById("left");
+const timerEl = document.getElementById("timer");
+const bestEl = document.getElementById("best");
+const overlay = document.getElementById("overlay");
+const endTitle = document.getElementById("endTitle");
+const endTime = document.getElementById("endTime");
+
+const CLUE_COLORS = ["", "#3366e6", "#26994d", "#e64040", "#7340bf", "#a65926", "#2699a6", "#333340", "#80808c"];
+
+function bestKey() { return "mine.best." + levelIndex; }
+
+function startNewGame() {
+  game = newGame(LEVELS[levelIndex]);
+  startedAt = 0;
+  finalSeconds = null;
+  overlay.classList.remove("show");
+  render();
+}
+
+function render() {
+  leftEl.textContent = game.mineCount - game.flagged.size;
+  const best = parseInt(localStorage.getItem(bestKey()) || "0", 10);
+  bestEl.textContent = best ? "最佳 " + formatTime(best) : "";
+  draw();
+  if (game.phase === "won" || game.phase === "lost") {
+    endTitle.textContent = game.phase === "won" ? "排雷成功！" : "踩到雷了";
+    endTime.textContent = "用时 " + formatTime(finalSeconds || 0);
+    overlay.classList.add("show");
+  }
+}
+
+function onReveal(index) {
+  if (!reveal(game, index)) return;
+  if (!startedAt) startedAt = Date.now();
+  if (game.phase === "won" || game.phase === "lost") {
+    finalSeconds = Math.floor((Date.now() - startedAt) / 1000);
+    if (game.phase === "won") {
+      const best = parseInt(localStorage.getItem(bestKey()) || "0", 10);
+      if (!best || finalSeconds < best) localStorage.setItem(bestKey(), String(finalSeconds));
+    }
+  }
+  render();
+}
+
+function onFlag(index) {
+  if (toggleFlag(game, index)) render();
+}
+
+// ===== 绘制 =====
+function layout() {
+  const wrap = document.getElementById("boardWrap");
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  const pad = 8;
+  const cell = Math.max(10, Math.min((w - pad * 2) / game.cols, (h - pad * 2) / game.rows));
+  return { cell, ox: (w - cell * game.cols) / 2, oy: (h - cell * game.rows) / 2, w, h };
+}
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const L = layout();
+  if (canvas.width !== L.w * dpr || canvas.height !== L.h * dpr) {
+    canvas.width = L.w * dpr;
+    canvas.height = L.h * dpr;
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, L.w, L.h);
+
+  for (let i = 0; i < game.cols * game.rows; i++) {
+    const x = i % game.cols, y = (i / game.cols) | 0;
+    const rx = L.ox + x * L.cell, ry = L.oy + y * L.cell;
+    const revealed = game.revealed.has(i);
+    const showMine = game.phase === "lost" && game.mines.has(i);
+
+    if (revealed || showMine) {
+      // 翻开的底色；踩中的那颗雷标红
+      ctx.fillStyle = i === game.explodedAt ? "#f27373" : "#eeecf5";
+      ctx.fillRect(rx + 0.5, ry + 0.5, L.cell - 1, L.cell - 1);
+      if (showMine) {
+        drawText("💣", rx + L.cell / 2, ry + L.cell / 2, L.cell * 0.6);
+      } else {
+        const c = clue(game, i);
+        if (c > 0) {
+          ctx.fillStyle = CLUE_COLORS[c];
+          ctx.font = "700 " + Math.floor(L.cell * 0.52) + "px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(c), rx + L.cell / 2, ry + L.cell / 2 + 1);
+        }
+      }
+    } else {
+      // 盖着的格子：立体蓝灰块
+      ctx.fillStyle = "#8c85bf";
+      ctx.fillRect(rx + 0.5, ry + 0.5, L.cell - 1, L.cell - 1);
+      ctx.fillStyle = "#a8a1d9";
+      ctx.fillRect(rx + 2, ry + 2, L.cell - 4, L.cell - 4);
+      if (game.flagged.has(i)) {
+        drawText("🚩", rx + L.cell / 2, ry + L.cell / 2, L.cell * 0.55);
+      }
+    }
+  }
+}
+
+function drawText(text, x, y, size) {
+  ctx.font = Math.floor(size) + "px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y + 1);
+}
+
+// ===== 交互 =====
+function hitTest(e) {
+  const rect = canvas.getBoundingClientRect();
+  const L = layout();
+  const x = Math.floor((e.clientX - rect.left - L.ox) / L.cell);
+  const y = Math.floor((e.clientY - rect.top - L.oy) / L.cell);
+  if (x < 0 || x >= game.cols || y < 0 || y >= game.rows) return -1;
+  return y * game.cols + x;
+}
+
+// 左键翻开，右键插旗；触屏长按插旗
+let pressTimer = null;
+let longPressed = false;
+
+canvas.addEventListener("pointerdown", e => {
+  if (e.button === 2) return; // 右键走 contextmenu
+  longPressed = false;
+  const index = hitTest(e);
+  pressTimer = setTimeout(() => {
+    longPressed = true;
+    if (index >= 0) onFlag(index);
+  }, 350);
+});
+canvas.addEventListener("pointerup", e => {
+  clearTimeout(pressTimer);
+  if (e.button === 2 || longPressed) return;
+  const index = hitTest(e);
+  if (index >= 0) onReveal(index);
+});
+canvas.addEventListener("pointerleave", () => clearTimeout(pressTimer));
+canvas.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  const index = hitTest(e);
+  if (index >= 0) onFlag(index);
+});
+
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    levelIndex = Number(chip.dataset.level);
+    localStorage.setItem("mine.level", String(levelIndex));
+    document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", Number(c.dataset.level) === levelIndex));
+    startNewGame();
+  });
+});
+document.getElementById("restartBtn").addEventListener("click", startNewGame);
+
+setInterval(() => {
+  if (!game) return;
+  if (finalSeconds != null) { timerEl.textContent = formatTime(finalSeconds); return; }
+  if (startedAt) timerEl.textContent = formatTime((Date.now() - startedAt) / 1000);
+}, 250);
+
+window.addEventListener("resize", draw);
+
+document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", Number(c.dataset.level) === levelIndex));
+startNewGame();
+</script>
+</body>
+</html>

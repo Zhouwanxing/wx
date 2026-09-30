@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>打地鼠</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#boardWrap { display: flex; align-items: center; justify-content: center; }
+.chip { flex: 1; padding: 8px 0; font-size: 14px; border-radius: 12px; }
+.holes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: min(92%, 360px); aspect-ratio: 1; }
+.hole { border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pit {
+  width: 82%; height: 82%; border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #6b4729, #472e1a);
+  box-shadow: inset 0 4px 8px rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center; font-size: 42px;
+}
+</style>
+</head>
+<body>
+<h1>🐹 打地鼠</h1>
+<div class="panel">
+  <div class="row" id="diffRow">
+    <button class="chip" data-diff="easy">简单</button>
+    <button class="chip" data-diff="normal">普通</button>
+    <button class="chip" data-diff="hard">困难</button>
+  </div>
+  <div class="row">
+    <span class="score" id="score">分数 0</span>
+    <span class="sub" id="best">暂无纪录</span>
+  </div>
+  <div class="row">
+    <span class="left" id="status">准备开始</span>
+    <span class="hint">约 30 秒 · 简单慢、困难快</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <div class="holes" id="holes"></div>
+  <div id="overlay">
+    <div class="big" id="overlayTitle">打地鼠</div>
+    <div class="scoreLine" id="overlayScore"></div>
+    <button class="btn purple" id="startBtn">开始</button>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+/* 随机数 / 计时见 game-shared.js */
+const HOLES = 9;
+const DIFFICULTIES = {
+  easy: { minLife: 3, lifeSpan: 2, cooldownTicks: 2, tickMs: 700, totalTicks: Math.floor(30000 / 700) },
+  normal: { minLife: 2, lifeSpan: 2, cooldownTicks: 1, tickMs: 500, totalTicks: Math.floor(30000 / 500) },
+  hard: { minLife: 1, lifeSpan: 2, cooldownTicks: 0, tickMs: 320, totalTicks: Math.floor(30000 / 320) },
+};
+const TOTAL_TICKS = DIFFICULTIES.normal.totalTicks;
+
+function configOf(g) { return DIFFICULTIES[g.difficulty] || DIFFICULTIES.normal; }
+
+function newMole(seed, difficulty) {
+  return {
+    score: 0, phase: "ready", active: null, life: 0, ticks: 0, cooldown: 0,
+    rng: makeRng(seed), difficulty: DIFFICULTIES[difficulty] ? difficulty : "normal",
+  };
+}
+function start(g) {
+  g.score = 0; g.phase = "playing"; g.active = null; g.life = 0; g.ticks = 0; g.cooldown = 0;
+}
+function spawn(g, hole, life) {
+  if (g.phase !== "playing" || hole < 0 || hole >= HOLES || life <= 0) return;
+  g.active = hole; g.life = life; g.cooldown = 0;
+}
+function spawnRandom(g) {
+  const d = configOf(g);
+  g.active = g.rng.int(HOLES);
+  g.life = d.minLife + g.rng.int(d.lifeSpan);
+}
+function tick(g) {
+  if (g.phase !== "playing") return;
+  const d = configOf(g);
+  g.ticks += 1;
+  if (g.ticks >= d.totalTicks) { g.phase = "over"; g.active = null; return; }
+  if (g.active !== null) {
+    g.life -= 1;
+    if (g.life <= 0) {
+      g.active = null;
+      g.cooldown = d.cooldownTicks;
+      if (g.cooldown === 0) spawnRandom(g);
+    }
+  } else if (g.cooldown > 0) {
+    g.cooldown -= 1;
+    if (g.cooldown === 0) spawnRandom(g);
+  } else {
+    spawnRandom(g);
+  }
+}
+function tap(g, hole) {
+  if (g.phase !== "playing" || g.active !== hole) return false;
+  g.score += 1; g.active = null; g.cooldown = configOf(g).cooldownTicks;
+  return true;
+}
+
+// ===== 界面状态 =====
+let difficulty = localStorage.getItem("mole.level") || "normal";
+if (!DIFFICULTIES[difficulty]) difficulty = "normal";
+let game = newMole(Date.now(), difficulty);
+let timer = null;
+
+function bestKey() { return "mole.best." + difficulty; }
+function readBest() {
+  const stored = parseInt(localStorage.getItem(bestKey()) || "0", 10) || 0;
+  if (difficulty === "normal") {
+    const legacy = parseInt(localStorage.getItem("mole.best") || "0", 10) || 0;
+    return Math.max(stored, legacy);
+  }
+  return stored;
+}
+function writeBest(value) {
+  localStorage.setItem(bestKey(), String(value));
+  if (difficulty === "normal") localStorage.setItem("mole.best", String(value));
+}
+
+const holesEl = document.getElementById("holes");
+for (let i = 0; i < HOLES; i++) {
+  const b = document.createElement("button");
+  b.className = "hole";
+  b.innerHTML = `<span class="pit" data-i="${i}"></span>`;
+  b.onclick = () => {
+    if (tap(game, i)) refresh();
+  };
+  holesEl.appendChild(b);
+}
+
+function remaining() {
+  const d = configOf(game);
+  return Math.max(0, Math.floor((d.totalTicks - game.ticks) * d.tickMs / 1000));
+}
+
+function refresh() {
+  document.querySelectorAll("#diffRow .chip").forEach((el) => {
+    const on = el.dataset.diff === difficulty;
+    el.classList.toggle("on", on);
+    el.classList.toggle("off", !on);
+  });
+  const best = readBest();
+  document.getElementById("score").textContent = `分数 ${game.score}`;
+  document.getElementById("best").textContent = best > 0 ? `最佳 ${best}` : "暂无纪录";
+  const status = game.phase === "ready" ? "准备开始"
+    : game.phase === "playing" ? `剩余 ${remaining()} 秒`
+    : `时间到 · 得分 ${game.score}`;
+  document.getElementById("status").textContent = status;
+  document.querySelectorAll(".pit").forEach((el, i) => {
+    el.textContent = game.phase === "playing" && game.active === i ? "🐹" : "";
+  });
+  const overlay = document.getElementById("overlay");
+  overlay.classList.toggle("show", game.phase !== "playing");
+  document.getElementById("overlayTitle").textContent = game.phase === "over" ? "时间到！" : "打地鼠";
+  document.getElementById("overlayScore").textContent = game.phase === "over" ? `得分 ${game.score}` : "";
+  document.getElementById("startBtn").textContent = game.phase === "over" ? "再来一局" : "开始";
+}
+
+function startGame() {
+  game = newMole(Date.now(), difficulty);
+  start(game);
+  armTimer();
+  refresh();
+}
+
+function selectDifficulty(value) {
+  if (!DIFFICULTIES[value] || value === difficulty) return;
+  difficulty = value;
+  localStorage.setItem("mole.level", difficulty);
+  game = newMole(Date.now(), difficulty);
+  armTimer();
+  refresh();
+}
+
+function onOver() {
+  const best = readBest();
+  if (game.score > best) writeBest(game.score);
+}
+
+function armTimer() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => {
+    if (game.phase !== "playing") return;
+    tick(game);
+    if (game.phase === "over") onOver();
+    refresh();
+  }, configOf(game).tickMs);
+}
+
+document.querySelectorAll("#diffRow .chip").forEach((el) => {
+  el.onclick = () => selectDifficulty(el.dataset.diff);
+});
+document.getElementById("startBtn").onclick = startGame;
+document.getElementById("restartBtn").onclick = startGame;
+armTimer();
+refresh();
+</script>
+</body>
+</html>

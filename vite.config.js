@@ -39,7 +39,23 @@ export default defineConfig(({command, mode}) => {
                     o: path.resolve(__dirname, "./o.html"),
                     f1: path.resolve(__dirname, "./f1.html"),
                     m: path.resolve(__dirname, "./m.html"),
-                    marble: path.resolve(__dirname, "./marble.html")
+                    marble: path.resolve(__dirname, "./marble.html"),
+                    loop: path.resolve(__dirname, "./loop.html"),
+                    pipes: path.resolve(__dirname, "./pipes.html"),
+                    tetris: path.resolve(__dirname, "./tetris.html"),
+                    snake: path.resolve(__dirname, "./snake.html"),
+                    sokoban: path.resolve(__dirname, "./sokoban.html"),
+                    memory: path.resolve(__dirname, "./memory.html"),
+                    gomoku: path.resolve(__dirname, "./gomoku.html"),
+                    minesweeper: path.resolve(__dirname, "./minesweeper.html"),
+                    blocks: path.resolve(__dirname, "./blocks.html"),
+                    checkers: path.resolve(__dirname, "./checkers.html"),
+                    flow: path.resolve(__dirname, "./flow.html"),
+                    mole: path.resolve(__dirname, "./mole.html"),
+                    bulls: path.resolve(__dirname, "./bulls.html"),
+                    matrix: path.resolve(__dirname, "./matrix.html"),
+                    twenty48: path.resolve(__dirname, "./twenty48.html"),
+                    lights: path.resolve(__dirname, "./lights.html")
                 },
             }
         }

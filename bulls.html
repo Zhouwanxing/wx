@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>1A2B</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.title { font-size: 18px; font-weight: 800; color: var(--game-accent); font-variant-numeric: tabular-nums; }
+.title.won { color: var(--game-cleared); }
+#history {
+  width: 100%; max-width: var(--game-max); flex: 1; min-height: 180px;
+  background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 18px;
+  overflow: auto; padding: 10px 12px;
+}
+.empty { color: var(--game-secondary); font-size: 14px; text-align: center; margin-top: 40px; }
+.guess { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-variant-numeric: tabular-nums; font-weight: 700; }
+.guess .n { width: 28px; color: var(--game-secondary); }
+.guess .d { flex: 1; }
+.guess .ab.ok { color: var(--game-cleared); }
+.draft { width: 100%; max-width: var(--game-max); display: flex; gap: 10px; margin: 10px 0; }
+.slot {
+  flex: 1; height: 52px; border-radius: 12px; background: #f2f2f2;
+  border: 1px solid rgba(0,0,0,.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.slot.empty { color: var(--game-secondary); }
+.keys { width: 100%; max-width: var(--game-max); display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.key {
+  border: 0; border-radius: 12px; padding: 12px 0;
+  font-size: 16px; font-weight: 700; color: #fff; background: var(--game-move); cursor: pointer;
+}
+.key:disabled { opacity: .4; }
+.key.gray { background: var(--game-regret); }
+.key.accent { background: var(--game-accent); }
+</style>
+</head>
+<body>
+<h1>🔢 1A2B</h1>
+<div class="panel">
+  <div class="row">
+    <span class="title" id="title">已猜 0 次</span>
+    <span class="sub" id="best">暂无纪录</span>
+  </div>
+  <div class="row">
+    <span class="left">四位不重复数字</span>
+    <span class="hint">A 对位，B 对数字错位</span>
+  </div>
+</div>
+<div id="history"></div>
+<div class="draft" id="draft"></div>
+<div class="keys" id="keys"></div>
+<div class="actions">
+  <button class="btn red" id="newBtn">新局</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+/* 随机数 / 计时见 game-shared.js */
+function newBulls(secret) { return { secret: secret.slice(), history: [] }; }
+function randomBulls(rng) {
+  const digits = rng.shuffle([0,1,2,3,4,5,6,7,8,9]);
+  return newBulls(digits.slice(0, 4));
+}
+function submit(g, guess) {
+  if (!guess || guess.length !== 4) return null;
+  if (new Set(guess).size !== 4) return null;
+  if (guess.some(d => d < 0 || d > 9)) return null;
+  let a = 0;
+  for (let i = 0; i < 4; i++) if (g.secret[i] === guess[i]) a++;
+  const b = guess.filter(d => g.secret.includes(d)).length - a;
+  g.history.push({ digits: guess.slice(), a, b });
+  return { a, b };
+}
+function isWon(g) { return g.history.length > 0 && g.history[g.history.length - 1].a === 4; }
+
+// ===== 界面状态 =====
+let best = parseInt(localStorage.getItem("bulls.best") || "0", 10) || 0;
+let game = randomBulls(makeRng(Date.now()));
+let draft = [];
+
+const keysEl = document.getElementById("keys");
+const labels = ["1","2","3","4","5","6","7","8","9","删","0","猜"];
+labels.forEach((label) => {
+  const b = document.createElement("button");
+  b.className = "key" + (label === "删" ? " gray" : label === "猜" ? " accent" : "");
+  b.textContent = label;
+  b.onclick = () => press(label);
+  keysEl.appendChild(b);
+});
+
+function canType(d) {
+  return !isWon(game) && draft.length < 4 && !draft.includes(d);
+}
+
+function press(label) {
+  if (label === "删") {
+    if (draft.length && !isWon(game)) draft.pop();
+  } else if (label === "猜") {
+    if (draft.length === 4 && !isWon(game)) {
+      const r = submit(game, draft);
+      draft = [];
+      if (r && r.a === 4) {
+        const tries = game.history.length;
+        if (best === 0 || tries < best) {
+          best = tries;
+          localStorage.setItem("bulls.best", String(best));
+        }
+      }
+    }
+  } else {
+    const d = parseInt(label, 10);
+    if (canType(d)) draft.push(d);
+  }
+  refresh();
+}
+
+function refresh() {
+  const title = document.getElementById("title");
+  title.textContent = isWon(game) ? "猜中了！" : `已猜 ${game.history.length} 次`;
+  title.classList.toggle("won", isWon(game));
+  document.getElementById("best").textContent = best > 0 ? `最少 ${best} 次` : "暂无纪录";
+  const hist = document.getElementById("history");
+  if (!game.history.length) {
+    hist.innerHTML = `<div class="empty">用数字键盘输入四位，再点「猜」</div>`;
+  } else {
+    hist.innerHTML = game.history.map((item, i) =>
+      `<div class="guess"><span class="n">${i + 1}.</span><span class="d">${item.digits.join("")}</span><span class="ab${item.a === 4 ? " ok" : ""}">${item.a}A${item.b}B</span></div>`
+    ).join("");
+    hist.scrollTop = hist.scrollHeight;
+  }
+  document.getElementById("draft").innerHTML = [0,1,2,3].map(i =>
+    `<div class="slot${i < draft.length ? "" : " empty"}">${i < draft.length ? draft[i] : "·"}</div>`
+  ).join("");
+  [...keysEl.children].forEach((b) => {
+    const label = b.textContent;
+    if (label === "删") b.disabled = !draft.length || isWon(game);
+    else if (label === "猜") b.disabled = draft.length !== 4 || isWon(game);
+    else b.disabled = !canType(parseInt(label, 10));
+  });
+}
+
+document.getElementById("newBtn").onclick = () => {
+  game = randomBulls(makeRng(Date.now()));
+  draft = [];
+  refresh();
+};
+refresh();
+</script>
+</body>
+</html>

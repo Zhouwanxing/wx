@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>记忆翻牌</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.chip { flex: 1; padding: 8px 0; font-size: 13px; background: var(--game-muted); }
+.chip.active { background: var(--game-accent); }
+.stats { justify-content: space-between; font-size: 14px; font-weight: 700; }
+.stats .best { font-size: 11px; color: var(--game-secondary); font-weight: 600; }
+#boardWrap { display: flex; align-items: center; padding: 10px; }
+#grid { display: grid; gap: 6px; width: 100%; }
+.card {
+  border: 0; border-radius: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; aspect-ratio: 1;
+  background: #544a9e; font-size: clamp(24px, 9vmin, 48px); transition: background .15s;
+}
+.card.up { background: #fff; border: 2px solid rgba(0,0,0,.12); }
+.card.matched { background: #e6f5ec; border: 2px solid var(--game-cleared); }
+</style>
+</head>
+<body>
+<h1>🃏 记忆翻牌</h1>
+<div class="panel">
+  <div class="row">
+    <button class="chip active" data-pairs="8">4×4</button>
+    <button class="chip" data-pairs="18">6×6</button>
+    <span class="timer" id="timer">0:00</span>
+  </div>
+  <div class="row stats">
+    <span>步数 <span id="moves">0</span></span>
+    <span class="best" id="best"></span>
+  </div>
+</div>
+<div id="boardWrap">
+  <div id="grid"></div>
+  <div id="overlay">
+    <div class="big">全部配对！</div>
+    <div class="sub" id="winText"></div>
+  </div>
+</div>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（MemoryEngine 的 JS 移植）=====
+const EMOJI_POOL = ["🍎","🍊","🍋","🍇","🍓","🍑","🥝","🍉","🐶","🐱","🐰","🦊","🐻","🐼","🦁","🐸","🌵","🌻"];
+
+// 成对取图案、洗牌开局。
+function newGame(pairs) {
+  const chosen = EMOJI_POOL.slice(0, Math.max(1, pairs));
+  const cards = chosen.concat(chosen);
+  // Fisher–Yates 洗牌
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  return { cards, matched: new Set(), faceUp: new Set(), moves: 0 };
+}
+
+function isWon(g) { return g.cards.length > 0 && g.matched.size === g.cards.length; }
+
+// 翻一张牌。已配对、已朝上、或已有两张待定（等盖回）时不能翻。
+function flip(g, index) {
+  if (index < 0 || index >= g.cards.length) return false;
+  if (g.matched.has(index) || g.faceUp.has(index) || g.faceUp.size >= 2) return false;
+  g.faceUp.add(index);
+  if (g.faceUp.size === 2) {
+    g.moves++;
+    const [a, b] = [...g.faceUp];
+    if (g.cards[a] === g.cards[b]) {
+      g.matched.add(a); g.matched.add(b);
+      g.faceUp.clear();
+    }
+  }
+  return true;
+}
+
+// 两张不配的牌盖回去（界面延迟一下再调，让玩家看清）。
+function closeMismatch(g) {
+  if (g.faceUp.size !== 2) return;
+  const [a, b] = [...g.faceUp];
+  if (g.cards[a] !== g.cards[b]) g.faceUp.clear();
+}
+
+// ===== 界面状态 =====
+let pairs = parseInt(localStorage.getItem("memory.pairs") || "8", 10) || 8;
+let game = null;
+let startedAt = 0;
+let wonElapsed = 0;
+let closeTimer = null;
+
+const grid = document.getElementById("grid");
+const movesEl = document.getElementById("moves");
+const bestEl = document.getElementById("best");
+const timerEl = document.getElementById("timer");
+const overlay = document.getElementById("overlay");
+const winText = document.getElementById("winText");
+
+function bestKey() { return "memory.best.moves." + pairs; }
+
+function startNewGame() {
+  clearTimeout(closeTimer);
+  game = newGame(pairs);
+  startedAt = Date.now();
+  wonElapsed = 0;
+  overlay.classList.remove("show");
+  const cols = pairs === 8 ? 4 : 6;
+  grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+  grid.innerHTML = "";
+  game.cards.forEach((_, i) => {
+    const card = document.createElement("button");
+    card.className = "card";
+    card.dataset.index = i;
+    card.textContent = "❓";
+    card.addEventListener("click", () => onFlip(i));
+    grid.appendChild(card);
+  });
+  render();
+}
+
+function onFlip(index) {
+  if (isWon(game)) return;
+  if (!flip(game, index)) return;
+  render();
+  if (game.faceUp.size === 2) {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(() => { closeMismatch(game); render(); }, 700);
+  }
+  if (isWon(game)) {
+    wonElapsed = Date.now() - startedAt;
+    const best = parseInt(localStorage.getItem(bestKey()) || "0", 10);
+    if (!best || game.moves < best) localStorage.setItem(bestKey(), String(game.moves));
+    winText.textContent = "步数 " + game.moves + " · 用时 " + formatTime(wonElapsed / 1000);
+    overlay.classList.add("show");
+  }
+}
+
+function render() {
+  movesEl.textContent = game.moves;
+  const best = parseInt(localStorage.getItem(bestKey()) || "0", 10);
+  bestEl.textContent = best ? "最佳 " + best + " 步" : "";
+  grid.querySelectorAll(".card").forEach(el => {
+    const i = Number(el.dataset.index);
+    const up = game.faceUp.has(i) || game.matched.has(i);
+    el.classList.toggle("up", up && !game.matched.has(i));
+    el.classList.toggle("matched", game.matched.has(i));
+    el.textContent = up ? game.cards[i] : "❓";
+  });
+}
+
+setInterval(() => {
+  if (!game || isWon(game)) {
+    if (wonElapsed) timerEl.textContent = formatTime(wonElapsed / 1000);
+    return;
+  }
+  timerEl.textContent = formatTime((Date.now() - startedAt) / 1000);
+}, 250);
+
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    pairs = Number(chip.dataset.pairs);
+    localStorage.setItem("memory.pairs", String(pairs));
+    document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", Number(c.dataset.pairs) === pairs));
+    startNewGame();
+  });
+});
+document.getElementById("restartBtn").addEventListener("click", startNewGame);
+
+document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", Number(c.dataset.pairs) === pairs));
+startNewGame();
+</script>
+</body>
+</html>

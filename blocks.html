@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>方块消除</title>
+<link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+.score { font-size: 20px; }
+.best { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--game-secondary); font-variant-numeric: tabular-nums; }
+#tray { display: flex; gap: 10px; width: 100%; max-width: var(--game-max); margin-top: 10px; }
+.slot { flex: 1; height: 100px; border-radius: 14px; background: var(--game-panel); display: flex; align-items: center; justify-content: center; }
+.slot.empty { background: transparent; border: 1px dashed rgba(0,0,0,.12); }
+.slot.dragging { opacity: .25; }
+.slot canvas { cursor: grab; }
+#floatPiece { position: fixed; pointer-events: none; display: none; z-index: 10; }
+</style>
+</head>
+<body>
+<h1>🧱 方块消除</h1>
+<div class="panel">
+  <div class="row">
+    <span class="score">分数 <span id="score">0</span></span>
+    <span class="best" id="best"></span>
+    <span class="sub">拖方块到棋盘，满行满列消除</span>
+  </div>
+</div>
+<div id="boardWrap">
+  <canvas id="board"></canvas>
+  <div id="overlay">
+    <div class="big">无处可放！</div>
+    <div class="sub2" id="endScore"></div>
+  </div>
+</div>
+<div id="tray"></div>
+<canvas id="floatPiece"></canvas>
+<div class="actions">
+  <button class="btn red" id="restartBtn">重开</button>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+'use strict';
+
+// ===== 引擎（BlockEngine 的 JS 移植）=====
+const SIZE = 9;
+const TRAY_COLORS = ["#e68c33", "#33a6a6", "#8c73d9"]; // 橙 / 青 / 紫
+
+// 基础形状 × 4 旋转去重，和 iOS 端同一份目录
+const SHAPES = (() => {
+  const bases = [
+    [[0,0]],
+    [[0,0],[1,0]],
+    [[0,0],[1,0],[2,0]],
+    [[0,0],[1,0],[2,0],[3,0]],
+    [[0,0],[1,0],[2,0],[3,0],[4,0]],
+    [[0,0],[1,0],[0,1],[1,1]],
+    [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,2],[1,2],[2,2]],
+    [[0,0],[0,1],[1,1]],
+    [[0,0],[0,1],[0,2],[1,2]],
+    [[0,0],[1,0],[2,0],[1,1]],
+    [[0,0],[1,0],[1,1],[2,1]],
+  ];
+  const seen = new Set();
+  const out = [];
+  for (const base of bases) {
+    let cells = base;
+    for (let r = 0; r < 4; r++) {
+      const minX = Math.min(...cells.map(c => c[0]));
+      const minY = Math.min(...cells.map(c => c[1]));
+      const norm = cells.map(c => [c[0] - minX, c[1] - minY]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+      const key = norm.map(c => c.join(",")).join(";");
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push({
+          cells: norm,
+          cols: Math.max(...norm.map(c => c[0])) + 1,
+          rows: Math.max(...norm.map(c => c[1])) + 1,
+        });
+      }
+      cells = cells.map(c => [c[1], -c[0]]); // 顺时针 90°
+    }
+  }
+  return out;
+})();
+
+function newGame() {
+  const g = { filled: {}, tray: [null, null, null], score: 0, phase: "playing" };
+  deal(g);
+  return g;
+}
+
+function deal(g) {
+  for (let i = 0; i < 3; i++) {
+    if (!g.tray[i]) g.tray[i] = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+  }
+}
+
+function canPlace(g, shape, x, y) {
+  for (const [cx, cy] of shape.cells) {
+    const nx = x + cx, ny = y + cy;
+    if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) return false;
+    if (g.filled[ny * SIZE + nx] !== undefined) return false;
+  }
+  return true;
+}
+
+// 摆放：填格加分、消除、补货、判结束
+function place(g, shape, x, y, trayIndex) {
+  if (g.phase !== "playing" || g.tray[trayIndex] !== shape || !canPlace(g, shape, x, y)) return false;
+  for (const [cx, cy] of shape.cells) g.filled[(y + cy) * SIZE + (x + cx)] = trayIndex;
+  g.tray[trayIndex] = null;
+  g.score += shape.cells.length;
+  clearLines(g);
+  if (g.tray.every(s => !s)) deal(g);
+  checkGameOver(g);
+  return true;
+}
+
+// 满行满列消除，奖励 = 10 × 线数²
+function clearLines(g) {
+  const rows = [], cols = [];
+  for (let y = 0; y < SIZE; y++) {
+    let full = true;
+    for (let x = 0; x < SIZE; x++) if (g.filled[y * SIZE + x] === undefined) { full = false; break; }
+    if (full) rows.push(y);
+  }
+  for (let x = 0; x < SIZE; x++) {
+    let full = true;
+    for (let y = 0; y < SIZE; y++) if (g.filled[y * SIZE + x] === undefined) { full = false; break; }
+    if (full) cols.push(x);
+  }
+  const lines = rows.length + cols.length;
+  if (!lines) return;
+  for (const y of rows) for (let x = 0; x < SIZE; x++) delete g.filled[y * SIZE + x];
+  for (const x of cols) for (let y = 0; y < SIZE; y++) delete g.filled[y * SIZE + x];
+  g.score += 10 * lines * lines;
+}
+
+function anyFit(g) {
+  for (const shape of g.tray) {
+    if (!shape) continue;
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++)
+        if (canPlace(g, shape, x, y)) return true;
+  }
+  return false;
+}
+
+function checkGameOver(g) {
+  if (g.phase === "playing" && !anyFit(g)) g.phase = "gameOver";
+}
+
+// ===== 界面状态 =====
+let game = null;
+let drag = null; // { index, shape, clientX, clientY }
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const floatCanvas = document.getElementById("floatPiece");
+const floatCtx = floatCanvas.getContext("2d");
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const overlay = document.getElementById("overlay");
+const endScore = document.getElementById("endScore");
+const trayEl = document.getElementById("tray");
+
+function startNewGame() {
+  game = newGame();
+  drag = null;
+  floatCanvas.style.display = "none";
+  overlay.classList.remove("show");
+  render();
+}
+
+function render() {
+  scoreEl.textContent = game.score;
+  const best = parseInt(localStorage.getItem("block.best") || "0", 10);
+  bestEl.textContent = best ? "最佳 " + best : "";
+  draw();
+  renderTray();
+  if (game.phase === "gameOver") {
+    endScore.textContent = "得分 " + game.score;
+    overlay.classList.add("show");
+  }
+}
+
+// ===== 棋盘绘制 =====
+function layout() {
+  const wrap = document.getElementById("boardWrap");
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  const pad = 8;
+  const cell = Math.max(10, Math.min(w, h) - pad * 2) / SIZE;
+  return { cell, ox: (w - cell * SIZE) / 2, oy: (h - cell * SIZE) / 2, w, h };
+}
+
+// 手指位置 → 目标格（方块浮在手指上方 30px，水平居中，左上角吸附）
+function dragTarget() {
+  if (!drag) return null;
+  const rect = canvas.getBoundingClientRect();
+  const L = layout();
+  const localX = drag.clientX - rect.left;
+  const localY = drag.clientY - rect.top - drag.shape.rows * L.cell - 30;
+  const x = Math.round((localX - L.ox - drag.shape.cols * L.cell / 2) / L.cell);
+  const y = Math.round((localY - L.oy) / L.cell);
+  if (x < 0 || y < 0 || x + drag.shape.cols > SIZE || y + drag.shape.rows > SIZE) return null;
+  return { x, y };
+}
+
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.roundRect(x, y, w, h, r);
+}
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const L = layout();
+  if (canvas.width !== Math.round(L.w * dpr) || canvas.height !== Math.round(L.h * dpr)) {
+    canvas.width = Math.round(L.w * dpr);
+    canvas.height = Math.round(L.h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, L.w, L.h);
+
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const x = i % SIZE, y = (i / SIZE) | 0;
+    const rx = L.ox + x * L.cell, ry = L.oy + y * L.cell;
+    const colorIndex = game.filled[i];
+    ctx.fillStyle = colorIndex !== undefined ? TRAY_COLORS[colorIndex % 3] : "#f0eef7";
+    roundRect(ctx, rx + 1, ry + 1, L.cell - 2, L.cell - 2, 4);
+    ctx.fill();
+  }
+
+  // 拖拽预览：能放槽位色，不能放红色
+  if (drag) {
+    const target = dragTarget();
+    if (target) {
+      const fits = canPlace(game, drag.shape, target.x, target.y);
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = fits ? TRAY_COLORS[drag.index % 3] : "#e64d4d";
+      for (const [cx, cy] of drag.shape.cells) {
+        const rx = L.ox + (target.x + cx) * L.cell, ry = L.oy + (target.y + cy) * L.cell;
+        roundRect(ctx, rx + 1, ry + 1, L.cell - 2, L.cell - 2, 4);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ===== 托盘 =====
+function drawPiece(c, shape, cell, color) {
+  c.clearRect(0, 0, shape.cols * cell, shape.rows * cell);
+  c.fillStyle = color;
+  for (const [cx, cy] of shape.cells) {
+    roundRect(c, cx * cell + 1, cy * cell + 1, cell - 2, cell - 2, cell * 0.22);
+    c.fill();
+  }
+}
+
+function renderTray() {
+  trayEl.innerHTML = "";
+  for (let i = 0; i < 3; i++) {
+    const slot = document.createElement("div");
+    slot.className = "slot";
+    const shape = game.tray[i];
+    if (shape) {
+      if (drag && drag.index === i) slot.classList.add("dragging");
+      const dpr = window.devicePixelRatio || 1;
+      const cell = 16;
+      const pc = document.createElement("canvas");
+      pc.width = shape.cols * cell * dpr;
+      pc.height = shape.rows * cell * dpr;
+      pc.style.width = shape.cols * cell + "px";
+      pc.style.height = shape.rows * cell + "px";
+      const pctx = pc.getContext("2d");
+      pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawPiece(pctx, shape, cell, TRAY_COLORS[i % 3]);
+      pc.addEventListener("pointerdown", e => startDrag(e, i));
+      slot.appendChild(pc);
+    } else {
+      slot.classList.add("empty");
+    }
+    trayEl.appendChild(slot);
+  }
+}
+
+// ===== 拖拽 =====
+function startDrag(e, index) {
+  if (game.phase !== "playing" || !game.tray[index]) return;
+  e.preventDefault();
+  drag = { index, shape: game.tray[index], clientX: e.clientX, clientY: e.clientY };
+  renderTray();
+  moveFloat();
+  draw();
+}
+
+function moveFloat() {
+  if (!drag) return;
+  const L = layout();
+  const dpr = window.devicePixelRatio || 1;
+  const w = drag.shape.cols * L.cell, h = drag.shape.rows * L.cell;
+  floatCanvas.width = Math.round(w * dpr);
+  floatCanvas.height = Math.round(h * dpr);
+  floatCanvas.style.width = w + "px";
+  floatCanvas.style.height = h + "px";
+  floatCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawPiece(floatCtx, drag.shape, L.cell, TRAY_COLORS[drag.index % 3]);
+  // 水平居中于手指，整体浮在手指上方 30px
+  floatCanvas.style.left = (drag.clientX - w / 2) + "px";
+  floatCanvas.style.top = (drag.clientY - h - 30) + "px";
+  floatCanvas.style.display = "block";
+}
+
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  drag.clientX = e.clientX;
+  drag.clientY = e.clientY;
+  moveFloat();
+  draw();
+});
+
+window.addEventListener("pointerup", e => {
+  if (!drag) return;
+  drag.clientX = e.clientX;
+  drag.clientY = e.clientY;
+  const target = dragTarget();
+  const { index, shape } = drag;
+  drag = null;
+  floatCanvas.style.display = "none";
+  if (target && place(game, shape, target.x, target.y, index)) {
+    if (game.phase === "gameOver") {
+      const best = parseInt(localStorage.getItem("block.best") || "0", 10);
+      if (game.score > best) localStorage.setItem("block.best", String(game.score));
+    }
+  }
+  render();
+});
+
+document.getElementById("restartBtn").addEventListener("click", startNewGame);
+window.addEventListener("resize", () => { draw(); });
+
+startNewGame();
+</script>
+</body>
+</html>

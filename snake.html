@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>贪吃蛇</title>
+    <link rel="stylesheet" href="./src/game-shared.css">
+<style>
+/* 本页棋盘/控件差异，共用面板见 game-shared.css */
+#toolbar { display: flex; align-items: center; gap: 12px; }
+#toolbar .tip { margin-left: auto; font-size: 11px; color: var(--game-secondary); }
+</style>
+</head>
+<body>
+<div id="app">
+    <header>贪吃蛇</header>
+
+    <div id="toolbar">
+        <div class="stat"><div class="label">分数</div><div class="value" id="scoreText">0</div></div>
+        <div class="stat"><div class="label">最佳</div><div class="value accent" id="bestText">0</div></div>
+        <span class="tip">滑动或点按钮转向</span>
+    </div>
+
+    <div id="boardWrap">
+        <canvas id="board"></canvas>
+        <div id="cover">
+            <div id="coverTitle">已暂停</div>
+            <div id="coverSub"></div>
+        </div>
+    </div>
+
+    <div id="bottomBar" class="col">
+        <div class="dpad">
+            <button type="button" class="chip" id="upBtn">▲</button>
+            <div class="dpad-mid">
+                <button type="button" class="chip" id="leftBtn">◀︎</button>
+                <span class="dpad-gap"></span>
+                <button type="button" class="chip" id="rightBtn">▶︎</button>
+            </div>
+            <button type="button" class="chip" id="downBtn">▼</button>
+        </div>
+        <div class="row">
+            <button type="button" class="chip btn-pause" id="pauseBtn">暂停</button>
+            <button type="button" class="chip btn-danger" id="restartBtn">重开</button>
+        </div>
+    </div>
+</div>
+
+<script src="./src/game-shared.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+ * 引擎（移植 SnakeEngine.swift）：转向、移动、吃果子变长、
+ * 撞墙/撞自己结束。
+ * ============================================================ */
+const COLS = 17, ROWS = 17;
+
+/** 方向：反方向不能转（180° 掉头会直接咬到自己）。 */
+const DIRS = {
+    up: { dx: 0, dy: -1 },
+    down: { dx: 0, dy: 1 },
+    left: { dx: -1, dy: 0 },
+    right: { dx: 1, dy: 0 },
+};
+const isOpposite = (a, b) => DIRS[a].dx + DIRS[b].dx === 0 && DIRS[a].dy + DIRS[b].dy === 0;
+
+/** 分越高越快，最快 0.08 秒一步。 */
+const stepInterval = (score) => Math.max(80, 260 - score * 6);
+
+const game = {
+    snake: [],      // 第一节是头
+    direction: "right",
+    queued: null,   // 两次移动之间连续转向时先存一个，避免一帧内掉头
+    food: null,
+    phase: "playing", // playing | paused | gameOver
+    score: 0,
+};
+
+function newGame() {
+    const midY = Math.floor(ROWS / 2);
+    const headX = Math.floor(COLS / 3);
+    // 开局横在棋盘中间偏左，头朝右。
+    game.snake = [
+        { x: headX, y: midY },
+        { x: headX - 1, y: midY },
+        { x: headX - 2, y: midY },
+    ];
+    game.direction = "right";
+    game.queued = null;
+    game.phase = "playing";
+    game.score = 0;
+    placeFood();
+}
+
+function turn(to) {
+    if (game.phase !== "playing") return;
+    // 以「下一步真正会用的方向」为基准判断反向。
+    const base = game.queued || game.direction;
+    if (isOpposite(to, base) || to === base) return;
+    if (game.queued === null) game.queued = to;
+}
+
+/** 前进一步：撞墙/撞自己结束；吃到果子长一节并补新果子。 */
+function step() {
+    if (game.phase !== "playing") return;
+    if (game.queued) {
+        game.direction = game.queued;
+        game.queued = null;
+    }
+    const head = game.snake[0];
+    const dir = DIRS[game.direction];
+    const next = { x: head.x + dir.dx, y: head.y + dir.dy };
+    if (next.x < 0 || next.x >= COLS || next.y < 0 || next.y >= ROWS) {
+        game.phase = "gameOver";
+        return;
+    }
+    // 尾巴这格马上要挪走，撞上去不算咬自己。
+    const eats = game.food !== null && next.x === game.food.x && next.y === game.food.y;
+    const body = eats ? game.snake : game.snake.slice(0, -1);
+    if (body.some((p) => p.x === next.x && p.y === next.y)) {
+        game.phase = "gameOver";
+        return;
+    }
+    game.snake.unshift(next);
+    if (eats) {
+        game.score += 1;
+        placeFood();
+    } else {
+        game.snake.pop();
+    }
+}
+
+/** 在空格子里随机放一个；没空格就是通关（棋盘被蛇占满）。 */
+function placeFood() {
+    const empty = [];
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            if (!game.snake.some((p) => p.x === x && p.y === y)) empty.push({ x, y });
+        }
+    }
+    game.food = empty.length ? empty[Math.floor(Math.random() * empty.length)] : null;
+}
+
+function togglePause() {
+    if (game.phase === "playing") game.phase = "paused";
+    else if (game.phase === "paused") game.phase = "playing";
+}
+
+/* ============================================================
+ * 界面：数据栏 / 棋盘 / 覆盖层
+ * ============================================================ */
+const $ = (id) => document.getElementById(id);
+const scoreEl = $("scoreText");
+const bestEl = $("bestText");
+const coverEl = $("cover");
+const coverTitleEl = $("coverTitle");
+const coverSubEl = $("coverSub");
+
+let best = parseInt(localStorage.getItem("snake.best") || "0", 10) || 0;
+
+const boardWrap = $("boardWrap");
+const canvas = $("board");
+const ctx = canvas.getContext("2d");
+let layout = null;
+
+function computeLayout(w, h) {
+    const pad = 8;
+    const cell = Math.max(8, Math.min((w - pad * 2) / COLS, (h - pad * 2) / ROWS));
+    const boardW = cell * COLS, boardH = cell * ROWS;
+    return { cell, ox: (w - boardW) / 2, oy: (h - boardH) / 2, boardW, boardH };
+}
+
+function draw() {
+    if (!layout) return;
+    const L = layout;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 格子线
+    ctx.strokeStyle = "rgba(0,0,0,0.06)";
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for (let r = 0; r <= ROWS; r++) {
+        ctx.moveTo(L.ox, L.oy + r * L.cell);
+        ctx.lineTo(L.ox + L.boardW, L.oy + r * L.cell);
+    }
+    for (let c = 0; c <= COLS; c++) {
+        ctx.moveTo(L.ox + c * L.cell, L.oy);
+        ctx.lineTo(L.ox + c * L.cell, L.oy + L.boardH);
+    }
+    ctx.stroke();
+
+    // 果子
+    if (game.food) {
+        ctx.fillStyle = "rgb(230, 77, 77)";
+        ctx.beginPath();
+        ctx.arc(
+            L.ox + (game.food.x + 0.5) * L.cell,
+            L.oy + (game.food.y + 0.5) * L.cell,
+            L.cell / 2 - 2,
+            0, Math.PI * 2
+        );
+        ctx.fill();
+    }
+
+    // 蛇：头最深，越往尾巴越浅。
+    const count = game.snake.length;
+    game.snake.forEach((p, index) => {
+        const t = count > 1 ? index / (count - 1) : 0;
+        ctx.fillStyle = index === 0
+            ? "rgb(26, 143, 77)"
+            : `rgb(${Math.round(51 + 115 * t)}, ${Math.round(179 + 38 * t)}, ${Math.round(102 + 89 * t)})`;
+        const inset = index === 0 ? 1 : 1.5;
+        ctx.beginPath();
+        ctx.roundRect(
+            L.ox + p.x * L.cell + inset,
+            L.oy + p.y * L.cell + inset,
+            L.cell - inset * 2,
+            L.cell - inset * 2,
+            L.cell * 0.25
+        );
+        ctx.fill();
+    });
+}
+
+let lastChrome = "";
+function updateChrome() {
+    const shownBest = Math.max(best, game.score);
+    const key = `${game.score}|${shownBest}|${game.phase}`;
+    if (key === lastChrome) return;
+    lastChrome = key;
+    scoreEl.textContent = String(game.score);
+    bestEl.textContent = String(shownBest);
+    $("pauseBtn").textContent = game.phase === "paused" ? "继续" : "暂停";
+    // 暂停 / 结束盖在棋盘上，游戏区位置和大小保持不变。
+    if (game.phase === "playing") {
+        coverEl.classList.remove("show");
+    } else {
+        coverEl.classList.add("show");
+        coverTitleEl.textContent = game.phase === "paused" ? "已暂停" : "游戏结束";
+        coverSubEl.textContent = game.phase === "gameOver" ? `分数 ${game.score} · 最佳 ${shownBest}` : "";
+    }
+}
+
+/* ============================================================
+ * 计时器与输入
+ * ============================================================ */
+let timer = null;
+
+function vibrate(ms) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+}
+
+/** 按当前分数重设计时器；吃果子加速后需要重开。 */
+function startTimer() {
+    stopTimer();
+    timer = setInterval(() => {
+        if (game.phase !== "playing") return;
+        const oldScore = game.score;
+        step();
+        if (game.score !== oldScore) {
+            vibrate(8);
+            startTimer();
+        }
+        if (game.phase === "gameOver") {
+            stopTimer();
+            if (game.score > best) {
+                best = game.score;
+                localStorage.setItem("snake.best", String(best));
+            }
+            vibrate(80);
+        }
+    }, stepInterval(game.score));
+}
+
+function stopTimer() {
+    if (timer !== null) clearInterval(timer);
+    timer = null;
+}
+
+/** 按钮统一入口：进行中才转向。 */
+function turnBtn(dir) {
+    if (game.phase !== "playing") return;
+    turn(dir);
+}
+
+$("leftBtn").addEventListener("click", () => turnBtn("left"));
+$("rightBtn").addEventListener("click", () => turnBtn("right"));
+$("upBtn").addEventListener("click", () => turnBtn("up"));
+$("downBtn").addEventListener("click", () => turnBtn("down"));
+$("pauseBtn").addEventListener("click", () => {
+    togglePause();
+    if (game.phase === "paused") stopTimer();
+    else if (game.phase === "playing") startTimer();
+});
+$("restartBtn").addEventListener("click", () => {
+    newGame();
+    startTimer();
+});
+
+/** 棋盘上滑一下转向，按位移大的轴判断方向。 */
+let touchStart = null;
+canvas.addEventListener("pointerdown", (e) => {
+    touchStart = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+});
+canvas.addEventListener("pointerup", (e) => {
+    if (!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    touchStart = null;
+    if (Math.hypot(dx, dy) < 12) return;
+    if (Math.abs(dx) > Math.abs(dy)) turnBtn(dx > 0 ? "right" : "left");
+    else turnBtn(dy > 0 ? "down" : "up");
+});
+canvas.addEventListener("pointercancel", () => { touchStart = null; });
+
+/** 桌面键盘：方向键 / WASD 转向，P 暂停，空格重开。 */
+window.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+    switch (e.key) {
+        case "ArrowLeft": case "a": case "A": turnBtn("left"); break;
+        case "ArrowRight": case "d": case "D": turnBtn("right"); break;
+        case "ArrowUp": case "w": case "W": turnBtn("up"); break;
+        case "ArrowDown": case "s": case "S": turnBtn("down"); break;
+        case "p": case "P": $("pauseBtn").click(); break;
+        case " ": $("restartBtn").click(); break;
+        default: return;
+    }
+    e.preventDefault();
+});
+
+function resize() {
+    const w = boardWrap.clientWidth, h = boardWrap.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout = computeLayout(w, h);
+}
+
+new ResizeObserver(resize).observe(boardWrap);
+
+function frame() {
+    draw();
+    updateChrome();
+    requestAnimationFrame(frame);
+}
+
+resize();
+newGame();
+startTimer();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
