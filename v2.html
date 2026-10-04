@@ -2,7 +2,8 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <title>video</title>
     <style>
         body {
@@ -13,15 +14,18 @@
             touch-action: manipulation;
             -webkit-text-size-adjust: 100%;
         }
+
         .video-wrap {
             position: relative;
             width: 100%;
         }
+
         #myVideo {
             width: 100%;
             height: 100%;
             display: block;
         }
+
         .marker-track {
             position: absolute;
             left: 0;
@@ -31,6 +35,7 @@
             pointer-events: none;
             z-index: 1;
         }
+
         .marker-dot {
             position: absolute;
             bottom: -18px;
@@ -44,6 +49,7 @@
             cursor: pointer;
             padding: 0;
         }
+
         .marker-dot::after {
             content: '';
             position: absolute;
@@ -57,9 +63,11 @@
             border-radius: 50%;
             box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
         }
+
         .marker-dot:active::after {
             transform: scale(1.2);
         }
+
         .marker-list-item {
             display: inline-flex;
             align-items: center;
@@ -71,9 +79,11 @@
             cursor: pointer;
             border-radius: 8px;
         }
+
         .marker-list-item:active {
             background: rgba(255, 87, 34, 0.15);
         }
+
         .actions {
             text-align: center;
             width: 100%;
@@ -84,6 +94,7 @@
             padding: 0 8px;
             box-sizing: border-box;
         }
+
         .actions button {
             flex: 1 1 30%;
             min-height: 44px;
@@ -91,16 +102,19 @@
             border-radius: 8px;
             font-size: 14px;
         }
+
         .actions.row2 button {
             flex: 1 1 45%;
         }
+
         .actions.row3 button {
             flex: 1 1 100%;
         }
+
         .sticky-actions {
             position: sticky;
             bottom: 0;
-            background: rgba(255,255,255,.96);
+            background: rgba(255, 255, 255, .96);
             padding-bottom: env(safe-area-inset-bottom, 0);
             z-index: 5;
         }
@@ -116,22 +130,23 @@
 </div>
 
 <div class="sticky-actions">
-<div class="actions">
-    <button onclick="mOne()">降级</button>
-    <button onclick="changePlayMode()">切换播放源</button>
-    <button onclick="openInXx()">官网打开</button>
-</div>
-<div class="actions row2" style="margin-top: 8px;">
-    <button onclick="randomMp4('_blank')">随机(新窗口)</button>
-    <button onclick="randomMp4('_self')">随机(当前窗口)</button>
-</div>
-<div class="actions row3" style="margin-top: 8px;">
-    <button onclick="addOne()">+1</button>
-</div>
-<div class="actions row2" style="margin-top: 8px;">
-    <button onclick="clearMarkers()">清除标记</button>
-    <button onclick="addMarker()">添加标记</button>
-</div>
+    <div class="actions">
+        <button onclick="mOne()">降级</button>
+        <button onclick="changePlayMode()">切换播放源</button>
+        <button onclick="openInXx()">官网打开</button>
+    </div>
+    <div class="actions" style="margin-top: 8px;">
+        <button onclick="setMarkerText()" id="changeMarkerBtn"></button>
+        <button onclick="randomMp4('_blank')">随机(新窗口)</button>
+        <button onclick="randomMp4('_self')">随机(当前窗口)</button>
+    </div>
+    <div class="actions row3" style="margin-top: 8px;">
+        <button onclick="addOne()">+1</button>
+    </div>
+    <div class="actions row2" style="margin-top: 8px;">
+        <button onclick="clearMarkers()">清除标记</button>
+        <button onclick="addMarker()">添加标记</button>
+    </div>
 </div>
 <div id="markerList" style="text-align: center;width: 100%; margin-top: 6px; font-size: 13px; color: #666;"></div>
 <div style="text-align: center;width: 100%;" id="res_id">
@@ -139,6 +154,8 @@
 </div>
 <script src="https://cdn.staticfile.net/hls.js/1.6.13/hls.light.min.js"></script>
 <script>
+    let hasMarker = false;
+    setMarkerText();
     const searchParams = new URL(window.location.href).searchParams;
     const id = searchParams.get('id'),
         baseUrl = searchParams.get('baseUrl'),
@@ -149,15 +166,20 @@
     let videoData = {};
     let markers = [];
 
+    function setMarkerText() {
+        hasMarker = !hasMarker;
+        document.getElementById("changeMarkerBtn").textContent = hasMarker ? "有标记" : "无标记";
+    }
+
     function normalizeMarkers(raw) {
         if (!raw || !Array.isArray(raw)) {
             return [];
         }
         return raw.map(function (m) {
             if (typeof m === "number") {
-                return { time: m };
+                return {time: m};
             }
-            return { time: m.time, createdAt: m.createdAt };
+            return {time: m.time, createdAt: m.createdAt};
         }).filter(function (m) {
             return isFinite(m.time) && m.time >= 0;
         });
@@ -215,7 +237,8 @@
         videoElement.currentTime = time;
         const playPromise = videoElement.play();
         if (playPromise && typeof playPromise.catch === "function") {
-            playPromise.catch(function () {});
+            playPromise.catch(function () {
+            });
         }
     }
 
@@ -281,7 +304,7 @@
         }
         apiGet("/mp4/addMarker?id=" + id + "&time=" + time, function (res) {
             const data = res.data || {};
-            setMarkers(data.markers !== undefined ? data.markers : markers.concat([{ time: time }]));
+            setMarkers(data.markers !== undefined ? data.markers : markers.concat([{time: time}]));
             document.getElementById("res_id").innerHTML = "已添加标记 " + formatTime(time);
         }, function (err) {
             document.getElementById("res_id").innerHTML = err || "添加标记失败";
@@ -413,7 +436,7 @@
 
     function randomMp4(flag) {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', baseUrl + "/mp4/getRandomMp4Id?count=" + count, true);
+        xhr.open('GET', baseUrl + "/mp4/getRandomMp4Id?count=" + count + "&hasMarker=" + hasMarker, true);
         xhr.setRequestHeader(tokenName, tokenValue);
         xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {

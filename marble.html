@@ -157,24 +157,6 @@
             line-height: 1.35;
         }
 
-        #addBank {
-            border: none;
-            background: rgba(255, 255, 255, 0.16);
-            color: #fff;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 999px;
-            padding: 0 10px;
-            min-height: 32px;
-            cursor: pointer;
-            flex-shrink: 0;
-            touch-action: manipulation;
-        }
-
-        #addBank:disabled {
-            opacity: 0.45;
-        }
-
         .auto-wrap {
             display: flex;
             align-items: center;
@@ -394,7 +376,6 @@
         </div>
         <div class="sc-row">
             <div id="statusText">点开始，点停倍率，再拉红球发射</div>
-            <button type="button" id="addBank">+50</button>
             <div class="auto-wrap">
                 <span class="label">自动</span>
                 <label class="switch">
@@ -455,13 +436,6 @@ function persist() {
 
 function canStart() {
     return game.phase === "idle" && game.bank >= game.bet && game.bet >= MIN_BET;
-}
-
-function adjustBank(delta) {
-    if (game.phase !== "idle") return;
-    game.bank = Math.max(0, game.bank + delta);
-    game.bet = clampedBet(game.bet, game.bank);
-    persist();
 }
 
 function setBet(value) {
@@ -1254,7 +1228,6 @@ const betInputEl = document.getElementById("betInput");
 const betStepperEl = document.getElementById("betStepper");
 const multiValueEl = document.getElementById("multiValue");
 const statusTextEl = document.getElementById("statusText");
-const addBankBtn = document.getElementById("addBank");
 const autoPlayEl = document.getElementById("autoPlay");
 const startBtn = document.getElementById("startBtn");
 const hintBar = document.getElementById("hintBar");
@@ -1265,11 +1238,6 @@ autoPlayEl.checked = ui.autoPlay;
 autoPlayEl.addEventListener("change", () => {
     ui.autoPlay = autoPlayEl.checked;
     localStorage.setItem("marble.autoPlay", ui.autoPlay ? "1" : "0");
-});
-
-addBankBtn.addEventListener("click", () => {
-    ensureAudio();
-    adjustBank(50);
 });
 
 startBtn.addEventListener("click", () => {
@@ -1456,7 +1424,7 @@ function statusText() {
     if (game.phase === "ready") {
         return ui.failedLaunch ? "力度太小，球没出去，再拉一次" : "可以加球，拉盘面右边的红球发射";
     }
-    if (game.bank < MIN_BET) return "弹珠不够了，点 +50 或加本局库存";
+    if (game.bank < MIN_BET) return "弹珠不够了";
     return "点开始，点停倍率，再拉红球发射";
 }
 
@@ -1484,17 +1452,11 @@ function updateChrome() {
     setText(multiValueEl, "multi", game.multiplier != null ? `${game.multiplier}×` : (isPicking() ? "滚动中" : "—"));
     setText(statusTextEl, "status", statusText());
 
-    const addOff = !controlsIdle();
-    if (chromeCache.addOff !== addOff) {
-        chromeCache.addOff = addOff;
-        addBankBtn.disabled = addOff;
-    }
-
     const idle = controlsIdle();
     setShown(startBtn, "showStart", idle);
     setShown(hintBar, "showHint", !idle);
     if (idle) {
-        setText(startBtn, "startText", game.bank < MIN_BET ? "弹珠不足，先加库存" : "开始");
+        setText(startBtn, "startText", game.bank < MIN_BET ? "弹珠不足" : "开始");
         const startOff = !canStart();
         if (chromeCache.startOff !== startOff) {
             chromeCache.startOff = startOff;

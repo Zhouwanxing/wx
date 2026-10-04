@@ -78,7 +78,7 @@ export default {
     methods: {
         randomMp4: function () {
             const self = this;
-            Http.sendGet("/mp4/getRandomMp4Id?count=" + self.count, function (data) {
+            Http.sendGet("/mp4/getRandomMp4Id?hasMarker=true&count=" + self.count, function (data) {
                 if (data.data) {
                     self.clickImgNew({_id: data.data});
                 }
