@@ -11,7 +11,7 @@
                     <button type="button" class="toolbar-hit" @click="page = 0;list = [];getList();">
                         {{ count }}/{{ list.length }}
                     </button>
-                    <button type="button" class="toolbar-hit" @click="sort = !sort;">{{ sort ? '▲': '▼' }}</button>
+                    <button type="button" class="toolbar-hit" @click="sort = !sort;page = 0;list = [];getList();">{{ sort ? '▲': '▼' }}</button>
                 </div>
             </div>
             <div class="content" @scroll="handleScroll">
