@@ -136,9 +136,9 @@
         <button onclick="openInXx()">官网打开</button>
     </div>
     <div class="actions" style="margin-top: 8px;">
-        <button onclick="setMarkerText()" id="changeMarkerBtn"></button>
-        <button onclick="randomMp4('_blank')">随机(新窗口)</button>
-        <button onclick="randomMp4('_self')">随机(当前窗口)</button>
+        <button onclick="randomMp4('_self',false)">无标记</button>
+        <button onclick="randomMp4('_blank',true)">随机(新窗口)</button>
+        <button onclick="randomMp4('_self',true)">随机(当前窗口)</button>
     </div>
     <div class="actions row3" style="margin-top: 8px;">
         <button onclick="addOne()">+1</button>
@@ -154,8 +154,6 @@
 </div>
 <script src="https://cdn.staticfile.net/hls.js/1.6.13/hls.light.min.js"></script>
 <script>
-    let hasMarker = false;
-    setMarkerText();
     const searchParams = new URL(window.location.href).searchParams;
     const id = searchParams.get('id'),
         baseUrl = searchParams.get('baseUrl'),
@@ -165,11 +163,6 @@
     let useM3u8 = localStorage.getItem("mp4UseM3u8") === "true";
     let videoData = {};
     let markers = [];
-
-    function setMarkerText() {
-        hasMarker = !hasMarker;
-        document.getElementById("changeMarkerBtn").textContent = hasMarker ? "有标记" : "无标记";
-    }
 
     function normalizeMarkers(raw) {
         if (!raw || !Array.isArray(raw)) {
@@ -434,7 +427,7 @@
         }
     }
 
-    function randomMp4(flag) {
+    function randomMp4(flag, hasMarker = true) {
         const xhr = new XMLHttpRequest();
         xhr.open('GET', baseUrl + "/mp4/getRandomMp4Id?count=" + count + "&hasMarker=" + hasMarker, true);
         xhr.setRequestHeader(tokenName, tokenValue);
