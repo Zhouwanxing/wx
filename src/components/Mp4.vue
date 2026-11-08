@@ -187,7 +187,7 @@ export default {
                 }
                 let playUrl = url;
                 if (self.useM3u8 && self.selectMp4.m3u8) {
-                    playUrl = "https://publices.ttjkbx.com" +self.selectMp4.m3u8;
+                    playUrl = self.selectMp4.m3u8Url +self.selectMp4.m3u8;
                 }
                 playUrl = self.playSource === "https" ? playUrl.replace("http:", "https:") : playUrl.replace("https:", "http:");
                 

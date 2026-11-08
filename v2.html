@@ -414,7 +414,7 @@
         const videoElement = document.getElementById('myVideo');
         if (videoData.m3u8 && useM3u8 && Hls.isSupported()) {
             const hls = new Hls();
-            hls.loadSource("https://publices.ttjkbx.com" + videoData.m3u8);
+            hls.loadSource(videoData.m3u8Url + videoData.m3u8);
             hls.attachMedia(videoElement);
             hls.on(Hls.Events.MANIFEST_PARSED, function () {
                 videoElement.play();
