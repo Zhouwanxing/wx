@@ -21,10 +21,24 @@
             width: 100%;
         }
 
+        .video-wrap.is-portrait {
+            width: fit-content;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         #myVideo {
             width: 100%;
-            max-height: 50%;
+            height: auto;
             display: block;
+        }
+
+        .video-wrap.is-portrait #myVideo {
+            width: auto;
+            height: auto;
+            max-height: 50vh;
+            max-width: 100%;
         }
 
         .marker-track {
@@ -321,7 +335,25 @@
         });
     }
 
-    document.getElementById("myVideo").addEventListener("loadedmetadata", renderMarkers);
+    function applyVideoLayout() {
+        const videoElement = document.getElementById("myVideo");
+        const wrap = videoElement.closest(".video-wrap");
+        const w = videoElement.videoWidth;
+        const h = videoElement.videoHeight;
+        if (!wrap || !w || !h) {
+            return;
+        }
+        const portrait = h > w;
+        wrap.classList.toggle("is-portrait", portrait);
+        wrap.classList.toggle("is-landscape", !portrait);
+    }
+
+    const videoElement = document.getElementById("myVideo");
+    videoElement.addEventListener("loadedmetadata", function () {
+        applyVideoLayout();
+        renderMarkers();
+    });
+    videoElement.addEventListener("resize", applyVideoLayout);
 
     if (id) {
         const xhr = new XMLHttpRequest();
